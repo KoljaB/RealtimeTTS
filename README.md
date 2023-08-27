@@ -41,7 +41,22 @@ You can feed individual strings:
 stream.feed("Hello, this is a sentence.")
 ```
 
-Or you can feed character iterators for real-time streaming:
+Or you can feed generators and character iterators for real-time streaming:
+
+```python
+def write(prompt: str):
+    for chunk in openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=[{"role": "user", "content" : prompt}],
+        stream=True
+    ):
+        if (text_chunk := chunk["choices"][0]["delta"].get("content")) is not None:
+            yield text_chunk
+
+text_stream = write("A three-sentence relaxing speech.")
+
+stream.feed(text_stream)
+```
 
 ```python
 char_iterator = iter("Streaming this character by character.")
