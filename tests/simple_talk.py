@@ -12,7 +12,7 @@ import itertools
 import pyaudio
 import wave
 import time
-
+import os
 
 engine = SystemEngine()
 #engine = AzureEngine(os.environ.get("AZURE_SPEECH_KEY"), "germanywestcentral")
