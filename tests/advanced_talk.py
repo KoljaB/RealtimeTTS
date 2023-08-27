@@ -16,7 +16,6 @@ import logging
 
 azure_speech_key = os.environ.get("AZURE_SPEECH_KEY")
 azure_speech_region = ""
-azure_speech_region = "germanywestcentral"
 elevenlabs_api_key = os.environ.get("ELEVENLABS_API_KEY")
 
 
