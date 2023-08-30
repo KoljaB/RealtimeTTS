@@ -1,8 +1,10 @@
 # RealtimeTTS
 
-Converts text input streams into voice audio output streams with minimal latency. Provides nearly instant auditory responses by quickly identifying a sentence fragment from the input stream.  
+*Stream text into audio with a easy-to-use, highly configurable library delivering voice output with minimal latency.*
 
-This solution is perfect for applications that demand immediate and interactive audio responses.
+Quickly transform input streams into immediate auditory output by efficiently detecting sentence fragments.
+
+Ideal for applications requiring on-the-spot audio feedback.
 
 > **Hint**: Looking for a way to convert voice audio input into text? Check out [RealtimeSTT](https://github.com/KoljaB/RealtimeSTT), the perfect input counterpart for this library. Together, they form a powerful realtime audio wrapper around large language model outputs.
 
