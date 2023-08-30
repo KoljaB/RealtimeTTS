@@ -242,7 +242,7 @@ class ElevenlabsEngine(BaseEngine):
         else:
             installed_voices = self.get_voices()
             for installed_voice in installed_voices:
-                if voice.name in installed_voice.name:
+                if voice in installed_voice.name:
                     self.voice_name = installed_voice.name
                     self.id = installed_voice.voice_id
                     self.category = installed_voice.category

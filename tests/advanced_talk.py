@@ -2,18 +2,15 @@ print()
 print("Initializing")
 print()
 
+from RealtimeSTT import AudioToTextRecorder
 from RealtimeTTS import TextToAudioStream, SystemEngine, AzureEngine, ElevenlabsEngine
-import os
-import openai
-import keyboard
-import faster_whisper
-import torch.cuda
-import itertools
-import pyaudio
-import wave
-import time
-import logging
 
+import os
+import openai   # pip install openai
+import keyboard # pip install keyboard
+import time
+
+openai.api_key = os.environ.get("OPENAI_API_KEY")
 azure_speech_key = os.environ.get("AZURE_SPEECH_KEY")
 azure_speech_region = ""
 elevenlabs_api_key = os.environ.get("ELEVENLABS_API_KEY")
@@ -46,6 +43,7 @@ whisper_speech_to_text_model = "medium"
 # engine selection  ####################################################################################################
 
 engines = [SystemEngine(), AzureEngine(), ElevenlabsEngine()]
+recorder = AudioToTextRecorder(model=whisper_speech_to_text_model)
 
 print("Available tts engines:")
 print()
@@ -107,15 +105,11 @@ system_prompt = {
 
 engine.set_voice(voice)
 stream = TextToAudioStream(engine)
-model, answer, history = faster_whisper.WhisperModel(model_size_or_path=whisper_speech_to_text_model, device='cuda' if torch.cuda.is_available() else 'cpu'), "", []
+history = []
 
 def generate(messages):
-    global answer
-    answer = ""
     for chunk in openai.ChatCompletion.create(model=openai_model, messages=messages, stream=True):
         if (text_chunk := chunk["choices"][0]["delta"].get("content")):
-            answer += text_chunk
-            print(text_chunk, end="", flush=True) 
             yield text_chunk
 
 while True:
@@ -125,33 +119,23 @@ while True:
     while keyboard.is_pressed('space'): pass
 
     # Record from microphone until user presses space bar again
-    print("I'm all ears. Tap space when you're done.\n")    
-    audio, frames = pyaudio.PyAudio(), []    
-    input_stream = audio.open(rate=16000, format=pyaudio.paInt16, channels=1, input=True, frames_per_buffer=512)
+    print("I'm all ears. Tap space when you're done.\n")
+    recorder.start()
     while not keyboard.is_pressed('space'): 
-        frames.append(input_stream.read(512))
-    input_stream.stop_stream(), input_stream.close(), audio.terminate()
-
-    # Transcribe recording using whisper
-    with wave.open("voice_record.wav", 'wb') as wf:
-        wf.setparams((1, audio.get_sample_size(pyaudio.paInt16), 16000, 0, 'NONE', 'NONE'))
-        wf.writeframes(b''.join(frames))
-    #user_text = " ".join(seg.text for seg in model.transcribe("voice_record.wav", language="en")[0])
-    user_text = " ".join(seg.text for seg in model.transcribe("voice_record.wav")[0])
-    print(f'>>>{user_text}\n<<< ', end="", flush=True)
+        time.sleep(0.1)  
+    user_text = recorder.stop().text()
+    print(f'>>> {user_text}\n<<< ', end="", flush=True)
     history.append({'role': 'user', 'content': user_text})
 
     # Generate and stream output
     generator = generate([system_prompt] + history[-10:])
-    first_chunk = next(generator)
-    combined_gen = itertools.chain([first_chunk], generator)
+    stream.feed(generator)
 
-    stream.feed(combined_gen)
-    stream.play_async()
+    stream.play_async(log_characters=True)
     while stream.is_playing():
         if keyboard.is_pressed('space'):
             stream.stop()
             break
         time.sleep(0.1)    
 
-    history.append({'role': 'assistant', 'content': answer})
+    history.append({'role': 'assistant', 'content': stream.text()})

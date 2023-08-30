@@ -1,21 +1,21 @@
-# RealTimeTTS
+# RealtimeTTS
 
-Converts text input streams into voice audio output streams with minimal latency. Provides nearly instant auditory responses by intelligently identifying a sentence fragment from the input stream.  
+Converts text input streams into voice audio output streams with minimal latency. Provides nearly instant auditory responses by quickly identifying a sentence fragment from the input stream.  
 
 This solution is perfect for applications that demand immediate and interactive audio responses.
 
 ## Features
 
-- **Real-time Streaming**: Seamlessly stream text as you generate or input it, without waiting for the entire content.
+- **Real-time Streaming**: Stream text as you generate or input it, without waiting for the entire content.
 - **Dynamic Feedback**: Ideal for applications and scenarios where immediate audio response is pivotal.
-- **Modular Engine Design**: Supports custom TTS engines with a base engine provided to get you started.
+- **Modular Engine Design**: Supports custom TTS engines with system tts, azure and elevenlabs engines provided to get you started.
 - **Character-by-character Processing**: Allows for true real-time feedback as characters are read and synthesized in a stream.
 - **Sentence Segmentation**: Efficiently detects sentence boundaries and synthesizes content for natural sounding output.
 
 ## Installation
 
 ```bash
-pip install RealTimeTTS
+pip install RealtimeTTS
 ```
 
 ## Quick Start
@@ -79,6 +79,16 @@ Synchronously:
 stream.play()
 ```
 
+### Tests
+
+In the tests directory there are some files to test the library.  
+
+simple_test.py, complex_test.py will work out of the box.
+simple_llm_test.py needs openai library installed (pip install openai).
+simple_talk.py, advanced_talk.py need faster_whisper, torch and keyboard library (pip install openai keyboard, faster_whisper, torch).
+translator_cli.py needs RealtimeSST library to work
+
+
 ### Pause, Resume & Stop
 
 Pause the audio stream:
@@ -99,14 +109,26 @@ Stop the stream immediately:
 stream.stop()
 ```
 
-## Requirements
+## Requirements Explained
 
 - Python 3.6+
-- nltk 3.6+
+
+- **requests (>=2.31.0)**: to send HTTP requests for API calls and voice list retrieval
+  
+- **PyAudio (>=0.2.13)**: to create an output audio stream
+  
+- **stream2sentence (>=0.1.1)**: to split the incoming text stream into sentences 
+
+- **pyttsx3 (>=2.90)**: System text-to-speech conversion engine
+
+- **azure-cognitiveservices-speech (>=1.31.0)**: Azure text-to-speech conversion engine
+  
+- **elevenlabs (>=0.2.24)**: Elevenlabs text-to-speech conversion engine
+
 
 ## Contribution
 
-Contributions are always welcome! Please refer to our contribution guidelines and code of conduct.
+Contributions are always welcome (e.g. PR to add a new engine).
 
 ## License
 
@@ -116,6 +138,6 @@ MIT
 
 Kolja Beigel  
 Email: kolja.beigel@web.de  
-[GitHub](https://github.com/KoljaB/RealTimeTTS)
+[GitHub](https://github.com/KoljaB/RealtimeTTS)
 
 ---

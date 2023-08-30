@@ -206,6 +206,6 @@ class AzureEngine(BaseEngine):
         else:
             installed_voices = self.get_voices()
             for installed_voice in installed_voices:
-                if voice.name in installed_voice.full_name:
+                if voice in installed_voice.full_name:
                     self.voice_name = installed_voice.full_name
                     self.language = self.voice_name[:5]

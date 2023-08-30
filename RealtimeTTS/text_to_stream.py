@@ -14,9 +14,10 @@ class TextToAudioStream:
 
     def __init__(self, 
                  engine: BaseEngine,
-                 level=logging.WARNING ,
+                 level=logging.WARNING,
                  ):
-        """Initializes the TextToAudioStream.
+        """
+        Initializes the TextToAudioStream.
 
         Args:
             engine: The engine used for text to audio synthesis.
@@ -55,7 +56,8 @@ class TextToAudioStream:
 
     def feed(self, 
              text_or_iterator: Union[str, Iterator[str]]):
-        """Feeds text or an iterator to the stream.
+        """
+        Feeds text or an iterator to the stream.
 
         Args:
             text_or_iterator: Text or iterator to be fed.
@@ -171,7 +173,9 @@ class TextToAudioStream:
                 self.thread_safe_char_iter = AccumulatingThreadSafeGenerator(self.char_iter)
 
     def pause(self):
-        """Pauses playback of the synthesized audio stream (won't work properly with elevenlabs)."""
+        """
+        Pauses playback of the synthesized audio stream (won't work properly with elevenlabs).
+        """
         if self.is_playing():
             logging.info("stream pause")
             if self.engine.can_consume_generators:
@@ -180,7 +184,10 @@ class TextToAudioStream:
                 self.player.pause()
 
     def resume(self):
-        """Resumes a previously paused playback of the synthesized audio stream (won't work properly with elevenlabs)."""
+        """
+        Resumes a previously paused playback of the synthesized audio stream 
+        - won't work properly with elevenlabs
+        """
         if self.is_playing():
             logging.info("stream resume")
             if self.engine.can_consume_generators:
@@ -189,7 +196,9 @@ class TextToAudioStream:
                 self.player.resume()
 
     def stop(self):
-        """Stops the playback of the synthesized audio stream immediately."""
+        """
+        Stops the playback of the synthesized audio stream immediately.
+        """
         if self.is_playing():
             self.char_iter.stop()
             if self.engine.can_consume_generators:
@@ -200,7 +209,9 @@ class TextToAudioStream:
                 self.stream_running = False
     
     def text(self):
-        """Retrieves the text that has been fed into the stream.
+        """
+        Retrieves the text that has been fed into the stream.
+
         Returns:
             The accumulated text.
         """        
@@ -209,7 +220,9 @@ class TextToAudioStream:
         return self.thread_safe_char_iter.accumulated_text()
 
     def is_playing(self):
-        """Checks if the stream is currently playing.
+        """
+        Checks if the stream is currently playing.
+        
         Returns:
             Boolean indicating if the stream is playing.
         """ 
