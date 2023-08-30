@@ -35,9 +35,7 @@ stream.feed("Hello world! How are you today?")
 stream.play_async()
 ```
 
-## Usage
-
-### Feed Text
+## Feed Text
 
 You can feed individual strings:
 
@@ -67,7 +65,7 @@ char_iterator = iter("Streaming this character by character.")
 stream.feed(char_iterator)
 ```
 
-### Playback
+## Playback
 
 Asynchronously:
 
@@ -83,17 +81,37 @@ Synchronously:
 stream.play()
 ```
 
-### Tests
+## Testing the Library
 
-In the tests directory there are some files to test the library.  
+The test subdirectory contains a set of scripts to help you evaluate and understand the capabilities of the RealtimeTTS library.
 
-simple_test.py, complex_test.py will work out of the box.
-simple_llm_test.py needs openai library installed (pip install openai).
-simple_talk.py, advanced_talk.py need faster_whisper, torch and keyboard library (pip install openai keyboard, faster_whisper, torch).
-translator_cli.py needs RealtimeSST library to work
+- **simple_test.py**
+    - **Description**: A "hello world" styled demonstration of the library's simplest usage.
 
+- **complex_test.py**
+    - **Description**: A comprehensive demonstration showcasing most of the features provided by the library.
 
-### Pause, Resume & Stop
+- **translator_cli.py**
+    - **Dependencies**: Run `pip install openai realtimestt`.
+    - **Description**: Real-time translations into six different languages using this test.
+
+- **advanced_talk.py**
+    - **Dependencies**: Run `pip install openai keyboard realtimestt`.
+    - **Description**: Engage in a conversation with an AI. You can choose the TTS engine and voice before starting the conversation.
+
+- **ai_talk_10_lines.py**
+    - **Dependencies**: Run `pip install openai realtimestt`.
+    - **Description**: The world's most concise AI talk program with just 10 lines of code.
+    
+- **simple_llm_test.py**
+    - **Dependencies**: Run `pip install openai`.
+    - **Description**: Demonstrates how to integrate the library with large language models (LLMs).
+
+- **simple_talk.py**
+    - **Dependencies**: Run `pip install openai keyboard realtimestt`.
+    - **Description**: Get introduced to a basic voice-based AI companion talkbot.
+
+## Pause, Resume & Stop
 
 Pause the audio stream:
 
