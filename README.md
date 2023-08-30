@@ -1,6 +1,6 @@
 # RealtimeTTS
 
-*Stream text into audio with a easy-to-use, highly configurable library delivering voice output with minimal latency.*
+*Stream text into audio with an easy-to-use, highly configurable library delivering voice output with minimal latency.*
 
 Quickly transform input streams into immediate auditory output by efficiently detecting sentence fragments.
 
