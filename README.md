@@ -149,6 +149,32 @@ stream.stop()
   
 - **elevenlabs (>=0.2.24)**: Elevenlabs text-to-speech conversion engine
 
+
+## `play` and `play_async` Methods
+
+Handle synthesis of text to audio and play the audio stream. `play` waits until it is finished playing.
+
+- **`fast_sentence_fragment` (bool)**:
+  - Default: `False`
+  - Determines if sentence fragments should be quickly yielded. Useful when a faster response is desired even if a sentence isn't complete.
+
+- **`buffer_threshold_seconds` (float)**:
+  - Default: `2.0`
+  - Time in seconds to determine the buffering threshold. Helps to decide when to generate more audio based on buffered content.
+  - **Hint**: If you experience silence or breaks between sentences, consider raising this value to ensure smoother playback.
+
+- **`minimum_sentence_length` (int)**:
+  - Default: `3`
+  - Minimum characters required to treat content as a sentence.
+
+- **`log_characters` (bool)**:
+  - Default: `False`
+  - If `True`, logs the characters processed for synthesis.
+
+- **`log_synthesized_text` (bool)**:
+  - Default: `False`
+  - If `True`, logs the synthesized text chunks.
+
 ## Contribution
 
 Contributions are always welcome (e.g. PR to add a new engine).
