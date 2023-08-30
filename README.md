@@ -2,6 +2,8 @@
 
 *Stream text into audio with an easy-to-use, highly configurable library delivering voice output with minimal latency.*
 
+## About the project
+
 Quickly transform input streams into immediate auditory output by efficiently detecting sentence fragments.
 
 Ideal for applications requiring on-the-spot audio feedback.
