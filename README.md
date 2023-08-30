@@ -4,6 +4,8 @@ Converts text input streams into voice audio output streams with minimal latency
 
 This solution is perfect for applications that demand immediate and interactive audio responses.
 
+> **Hint**: Looking for a way to convert voice audio input into text? Check out [RealtimeSTT](https://github.com/KoljaB/RealtimeSTT), the perfect input counterpart for this library. Together, they form a powerful realtime audio wrapper around large language model outputs.
+
 ## Features
 
 - **Real-time Streaming**: Stream text as you generate or input it, without waiting for the entire content.
@@ -124,7 +126,6 @@ stream.stop()
 - **azure-cognitiveservices-speech (>=1.31.0)**: Azure text-to-speech conversion engine
   
 - **elevenlabs (>=0.2.24)**: Elevenlabs text-to-speech conversion engine
-
 
 ## Contribution
 
