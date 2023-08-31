@@ -24,6 +24,33 @@ Ideal for applications requiring on-the-spot audio feedback.
 pip install RealtimeTTS
 ```
 
+## Engine Requirements
+
+Different engines supported by RealtimeTTS have unique requirements. Ensure you fulfill these requirements based on the engine you choose.
+
+### SystemEngine
+The `SystemEngine` works out of the box using your system's built-in TTS capabilities. No additional setup is needed.
+
+### AzureEngine
+To use the `AzureEngine`, you will need:
+- Microsoft Azure Text-to-Speech API key.
+- Microsoft Azure service region.
+
+Make sure you have these credentials available and correctly configured when initializing the `AzureEngine`.
+
+### ElevenlabsEngine
+For the `ElevenlabsEngine`, ensure:
+- You have the Elevenlabs API key.
+- `mpv` is installed on your system. It's essential for streaming audio.
+
+  🔹 **Installing `mpv`:**
+  - **macOS**:
+    ```bash
+    brew install mpv
+    ```
+
+  - **Linux and Windows**: Visit [mpv.io](https://mpv.io/) for installation instructions.
+
 ## Quick Start
 
 Here's a basic usage example:
