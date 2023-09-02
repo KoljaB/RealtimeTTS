@@ -1,20 +1,36 @@
 # RealtimeTTS
 
-*Stream text into audio with an easy-to-use, highly configurable library delivering voice output with minimal latency.*
+*Easy to use, low-latency text-to-speech library for realtime applications*
 
-## About the project
+## About the Project
 
-Quickly transform input streams into immediate auditory output by efficiently detecting sentence fragments.
+RealtimeTTS converts text streams into immediate auditory output. 
 
-Ideal for applications requiring on-the-spot audio feedback.
+It's ideal for:
 
-> **Hint**: [RealtimeSTT](https://github.com/KoljaB/RealtimeSTT) is the input counterpart for this library that converts voice audio input into text. Together, they form a powerful realtime audio wrapper around large language model outputs.
+- **Voice Assistants**
+- Applications requiring **instant** audio feedback
 
-## Features
+### Features
 
-- **Real-time Streaming**: Plays speech as you generate or input the text, without waiting for the entire content.
-- **Modular Engine Design**: Supports custom TTS engines with system tts, azure and elevenlabs engines provided.
-- **Sentence Segmentation**: Detects sentence boundaries and a fast synthesizable sentence fragment for quickest possible reaction time.
+- **Realtime Streaming**: Synthesis and playback of speech as text is being generated or input
+- **Sentence Segmentation**: Advanced sentence boundary detection, ensuring immediate reaction time by isolating fast-synthesizable fragments.
+- **Modular Engine Design**: System TTS, Azure and Elevenlabs supported with the possibility to add custom Text-to-Speech engines
+
+> **Hint**: *Check out [RealtimeSTT](https://github.com/KoljaB/RealtimeSTT), the input counterpart of this library, for speech-to-text capabilities. Together, they form a powerful realtime audio wrapper around large language models.*
+
+## Tech Stack
+
+The library is built upon a robust and cutting-edge tech stack:
+
+- **Text-to-Speech Engines**
+  - **Azure**: Microsoft's leading TTS technology. 
+  - **Elevenlabs**: Offer the best sounding voices available.
+
+- **Sentence Boundary Detection**
+  - **NLTK Sentence Tokenizer**: Uses the Natural Language Toolkit's sentence tokenizer for precise and efficient sentence segmentation.
+
+*By using "industry standard" components RealtimeTTS offers a reliable, high-end technological foundation for developing advanced voice solutions.*
 
 ## Installation
 
