@@ -26,7 +26,7 @@ The library is built upon a robust and cutting-edge tech stack:
 - **Text-to-Speech Engines**
   - **AzureEngine**: Microsoft's leading TTS technology. 
   - **ElevenlabsEngine**: Offer the best sounding voices available.
-  - **SystemEngine**: Native engine for quick setup 
+  - **SystemEngine**: Native engine for quick setup.
 
 - **Sentence Boundary Detection**
   - **NLTK Sentence Tokenizer**: Uses the Natural Language Toolkit's sentence tokenizer for precise and efficient sentence segmentation.
