@@ -1,0 +1,12 @@
+Collecting halo
+  Using cached halo-0.0.31-py3-none-any.whl
+Collecting log-symbols>=0.0.14 (from halo)
+  Using cached log_symbols-0.0.14-py3-none-any.whl (3.1 kB)
+Collecting spinners>=0.0.24 (from halo)
+  Using cached spinners-0.0.24-py3-none-any.whl (5.5 kB)
+Collecting termcolor>=1.1.0 (from halo)
+  Using cached termcolor-2.3.0-py3-none-any.whl (6.9 kB)
+Requirement already satisfied: colorama>=0.3.9 in d:\projekte\realtimetts\test_env\lib\site-packages (from halo) (0.4.6)
+Requirement already satisfied: six>=1.12.0 in d:\projekte\realtimetts\test_env\lib\site-packages (from halo) (1.16.0)
+Installing collected packages: spinners, termcolor, log-symbols, halo
+Successfully installed halo-0.0.31 log-symbols-0.0.14 spinners-0.0.24 termcolor-2.3.0

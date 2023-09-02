@@ -2,7 +2,7 @@ from RealtimeTTS import TextToAudioStream, AzureEngine
 import os, openai # pip install openai  
 
 openai.api_key = os.environ.get("OPENAI_API_KEY")
-engine = AzureEngine(os.environ.get("AZURE_SPEECH_KEY"), "germanywestcentral")
+engine = AzureEngine(os.environ.get("AZURE_SPEECH_KEY"), "eastus")
 
 def generate(prompt):
     for chunk in openai.ChatCompletion.create(

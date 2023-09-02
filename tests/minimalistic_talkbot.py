@@ -3,7 +3,7 @@ import openai, os
 
 openai.api_key = os.environ.get("OPENAI_API_KEY")
 character_prompt = 'Answer precise and short with the polite sarcasm of a butler.'
-stream = RealtimeTTS.TextToAudioStream(RealtimeTTS.AzureEngine(os.environ.get("AZURE_SPEECH_KEY"), "germanywestcentral"))
+stream = RealtimeTTS.TextToAudioStream(RealtimeTTS.AzureEngine(os.environ.get("AZURE_SPEECH_KEY"), "eastus"))
 recorder = RealtimeSTT.AudioToTextRecorder(model="medium")
 
 def generate(messages):

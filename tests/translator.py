@@ -9,7 +9,7 @@ openai.api_key = os.environ.get("OPENAI_API_KEY")
 # Text-to-Speech Stream Setup (alternative engines: SystemEngine or ElevenlabsEngine)
 engine = AzureEngine( 
     os.environ.get("AZURE_SPEECH_KEY"),
-    "germanywestcentral"
+    "eastus"
 )
 stream = TextToAudioStream(engine)
 

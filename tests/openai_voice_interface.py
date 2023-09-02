@@ -12,17 +12,14 @@ stream = TextToAudioStream(
     # Alternatives: SystemEngine or ElevenlabsEngine
     AzureEngine(
         os.environ.get("AZURE_SPEECH_KEY"),
-        "germanywestcentral",
-        voice="de-CH-LeniNeural",
-        rate=25,
-        pitch=5
+        "eastus",
     )
 )
 
 # Speech-to-Text Recorder Setup
 recorder = AudioToTextRecorder(
     model="medium",
-    language="de",
+    language="en",
     wake_words="Jarvis",
     spinner=True,
     wake_word_activation_delay=5
