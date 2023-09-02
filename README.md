@@ -8,7 +8,7 @@ Quickly transform input streams into immediate auditory output by efficiently de
 
 Ideal for applications requiring on-the-spot audio feedback.
 
-> **Hint**: [RealtimeSTT](https://github.com/KoljaB/RealtimeSTT is the input counterpart for this library that converts voice audio input into text. Together, they form a powerful realtime audio wrapper around large language model outputs.
+> **Hint**: [RealtimeSTT](https://github.com/KoljaB/RealtimeSTT) is the input counterpart for this library that converts voice audio input into text. Together, they form a powerful realtime audio wrapper around large language model outputs.
 
 ## Features
 
