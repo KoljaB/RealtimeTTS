@@ -35,14 +35,21 @@ class CharIterator:
         stop(): Stops the iterator immediately on the next iteration.
     """
 
-    def __init__(self):
-        """Initialize the CharIterator instance."""
+    def __init__(self, 
+                 log_characters: bool = False):
+        """
+        Initialize the CharIterator instance.
+
+        Args:
+        - log_characters: If True, logs the characters processed.
+        """
         self.items = []
         self._index = 0
         self._char_index = None
         self._current_iterator = None
         self.immediate_stop = threading.Event()
         self.iterated_text = ""
+        self.log_characters = log_characters
 
     def add(self, item: Union[str, Iterator[str]]) -> None:
         """
@@ -106,6 +113,8 @@ class CharIterator:
 
                     # Accumulate the iterated character to the iterated_text attribute
                     self.iterated_text += char
+                    if self.log_characters:
+                        print(char, end="", flush=True)
                     return char
                 
                 else:
@@ -126,6 +135,8 @@ class CharIterator:
 
                     # Accumulate the iterated character to the iterated_text attribute
                     self.iterated_text += char
+                    if self.log_characters:
+                        print(char, end="", flush=True)
                     return char
                 
                 except StopIteration:
@@ -137,22 +148,29 @@ class CharIterator:
         # If all items are exhausted, raise the StopIteration exception to signify end of iteration
         raise StopIteration
 
+import threading
+
 class AccumulatingThreadSafeGenerator:
     """
     A thread-safe generator that accumulates the iterated tokens into a text.
     """
 
-    def __init__(self, gen_func):
+    def __init__(self, gen_func, on_first_text_chunk=None, on_last_text_chunk=None):
         """
         Initialize the AccumulatingThreadSafeGenerator instance.
 
         Args:
             gen_func: The generator function to be used.
+            on_first_text_chunk: Callback function to be executed after the first chunk of text is received.
+            on_last_text_chunk: Callback function to be executed after the last chunk of text is received.
         """
         self.lock = threading.Lock()
         self.generator = gen_func
         self.exhausted = False
         self.iterated_text = ""
+        self.on_first_text_chunk = on_first_text_chunk
+        self.on_last_text_chunk = on_last_text_chunk
+        self.first_chunk_received = False
 
     def __iter__(self):
         """
@@ -177,8 +195,16 @@ class AccumulatingThreadSafeGenerator:
             try:
                 token = next(self.generator) 
                 self.iterated_text += str(token)
+
+                if not self.first_chunk_received and self.on_first_text_chunk:
+                    self.on_first_text_chunk()
+                    self.first_chunk_received = True
+
                 return token
+
             except StopIteration:
+                if self.on_last_text_chunk:
+                    self.on_last_text_chunk()
                 self.exhausted = True
                 raise
 

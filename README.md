@@ -8,15 +8,13 @@ Quickly transform input streams into immediate auditory output by efficiently de
 
 Ideal for applications requiring on-the-spot audio feedback.
 
-> **Hint**: Looking for a way to convert voice audio input into text? Check out [RealtimeSTT](https://github.com/KoljaB/RealtimeSTT), the perfect input counterpart for this library. Together, they form a powerful realtime audio wrapper around large language model outputs.
+> **Hint**: [RealtimeSTT](https://github.com/KoljaB/RealtimeSTT is the input counterpart for this library that converts voice audio input into text. Together, they form a powerful realtime audio wrapper around large language model outputs.
 
 ## Features
 
-- **Real-time Streaming**: Stream text as you generate or input it, without waiting for the entire content.
-- **Dynamic Feedback**: Ideal for applications and scenarios where immediate audio response is pivotal.
-- **Modular Engine Design**: Supports custom TTS engines with system tts, azure and elevenlabs engines provided to get you started.
-- **Character-by-character Processing**: Allows for true real-time feedback as characters are read and synthesized in a stream.
-- **Sentence Segmentation**: Efficiently detects sentence boundaries and synthesizes content for natural sounding output.
+- **Real-time Streaming**: Plays speech as you generate or input the text, without waiting for the entire content.
+- **Modular Engine Design**: Supports custom TTS engines with system tts, azure and elevenlabs engines provided.
+- **Sentence Segmentation**: Detects sentence boundaries and a fast synthesizable sentence fragment for quickest possible reaction time.
 
 ## Installation
 
@@ -120,25 +118,29 @@ The test subdirectory contains a set of scripts to help you evaluate and underst
 - **complex_test.py**
     - **Description**: A comprehensive demonstration showcasing most of the features provided by the library.
 
-- **translator_cli.py**
+- **translator.py**
     - **Dependencies**: Run `pip install openai realtimestt`.
-    - **Description**: Real-time translations into six different languages using this test.
+    - **Description**: Real-time translations into six different languages.
+
+- **openai_voice_interface.py**
+    - **Dependencies**: Run `pip install openai realtimestt`.
+    - **Description**: Wake word activated and voice based user interface to the OpenAI API.
 
 - **advanced_talk.py**
     - **Dependencies**: Run `pip install openai keyboard realtimestt`.
-    - **Description**: Engage in a conversation with an AI. You can choose the TTS engine and voice before starting the conversation.
+    - **Description**: Choose TTS engine and voice before starting AI conversation.
 
-- **ai_talk_10_lines.py**
+- **minimalistic_talkbot.py**
     - **Dependencies**: Run `pip install openai realtimestt`.
-    - **Description**: The world's most concise AI talk program with just 10 lines of code.
+    - **Description**: A basic talkbot in 20 lines of code.
     
 - **simple_llm_test.py**
     - **Dependencies**: Run `pip install openai`.
-    - **Description**: Demonstrates how to integrate the library with large language models (LLMs).
+    - **Description**: Simple demonstration how to integrate the library with large language models (LLMs).
 
-- **simple_talk.py**
-    - **Dependencies**: Run `pip install openai keyboard realtimestt`.
-    - **Description**: Get introduced to a basic voice-based AI companion talkbot.
+- **test_callbacks.py**
+    - **Dependencies**: Run `pip install openai`.
+    - **Description**: Showcases the callbacks and lets you check the latency times in a real-world application environment.
 
 ## Pause, Resume & Stop
 
@@ -177,30 +179,94 @@ stream.stop()
 - **elevenlabs (>=0.2.24)**: Elevenlabs text-to-speech conversion engine
 
 
-## `play` and `play_async` Methods
+## Configuration
 
-Handle synthesis of text to audio and play the audio stream. `play` waits until it is finished playing.
+### Initialization Parameters for `TextToAudioStream`
 
-- **`fast_sentence_fragment` (bool)**:
-  - Default: `False`
-  - Determines if sentence fragments should be quickly yielded. Useful when a faster response is desired even if a sentence isn't complete.
+When you initialize the `TextToAudioStream` class, you have various options to customize its behavior. Here are the available parameters:
 
-- **`buffer_threshold_seconds` (float)**:
-  - Default: `2.0`
-  - Time in seconds to determine the buffering threshold. Helps to decide when to generate more audio based on buffered content.
-  - **Hint**: If you experience silence or breaks between sentences, consider raising this value to ensure smoother playback.
+#### `engine` (BaseEngine)
+- **Type**: BaseEngine
+- **Required**: Yes
+- **Description**: The underlying engine responsible for text-to-audio synthesis. You must provide an instance of `BaseEngine` or its subclass to enable audio synthesis.
 
-- **`minimum_sentence_length` (int)**:
-  - Default: `3`
-  - Minimum characters required to treat content as a sentence.
+#### `on_text_stream_start` (callable)
+- **Type**: Callable function
+- **Required**: No
+- **Description**: This optional callback function is triggered when the text stream begins. Use it for any setup or logging you may need.
 
-- **`log_characters` (bool)**:
-  - Default: `False`
-  - If `True`, logs the characters processed for synthesis.
+#### `on_text_stream_stop` (callable)
+- **Type**: Callable function
+- **Required**: No
+- **Description**: This optional callback function is activated when the text stream ends. You can use this for cleanup tasks or logging.
 
-- **`log_synthesized_text` (bool)**:
-  - Default: `False`
-  - If `True`, logs the synthesized text chunks.
+#### `on_audio_stream_start` (callable)
+- **Type**: Callable function
+- **Required**: No
+- **Description**: This optional callback function is invoked when the audio stream starts. Useful for UI updates or event logging.
+
+#### `on_audio_stream_stop` (callable)
+- **Type**: Callable function
+- **Required**: No
+- **Description**: This optional callback function is called when the audio stream stops. Ideal for resource cleanup or post-processing tasks.
+
+#### `level` (int)
+- **Type**: Integer
+- **Required**: No
+- **Default**: `logging.WARNING`
+- **Description**: Sets the logging level for the internal logger. This can be any integer constant from Python's built-in `logging` module.
+
+#### Example Usage:
+
+```python
+engine = YourEngine()  # Substitute with your engine
+stream = TextToAudioStream(
+    engine=engine,
+    on_text_stream_start=my_text_start_func,
+    on_text_stream_stop=my_text_stop_func,
+    on_audio_stream_start=my_audio_start_func,
+    on_audio_stream_stop=my_audio_stop_func,
+    level=logging.INFO
+)
+```
+
+---
+
+### Methods
+
+#### `play` and `play_async`
+
+These methods are responsible for executing the text-to-audio synthesis and playing the audio stream. The difference is that `play` is a blocking function, while `play_async` runs in a separate thread, allowing other operations to proceed.
+
+##### `fast_sentence_fragment` (bool)
+- **Default**: `False`
+- **Description**: When set to `True`, the method will prioritize speed, generating and playing sentence fragments faster. This is useful for applications where latency matters.
+
+##### `buffer_threshold_seconds` (float)
+- **Default**: `2.0`
+- **Description**: Specifies the time in seconds for the buffering threshold, which impacts the smoothness and continuity of audio playback. 
+
+  - **How it Works**: Before synthesizing a new sentence, the system checks if there is more audio material left in the buffer than the time specified by `buffer_threshold_seconds`. If so, it retrieves another sentence from the text generator, assuming that it can fetch and synthesize this new sentence within the time window provided by the remaining audio in the buffer. This process allows the text-to-speech engine to have more context for better synthesis, enhancing the user experience.
+
+  A higher value ensures that there's more pre-buffered audio, reducing the likelihood of silence or gaps during playback. If you experience breaks or pauses, consider increasing this value.
+
+- **Hint**: If you experience silence or breaks between sentences, consider raising this value to ensure smoother playback.
+
+##### `minimum_sentence_length` (int)
+- **Default**: `3`
+- **Description**: Sets the minimum character length to consider a string as a sentence to be synthesized. This affects how text chunks are processed and played.
+
+##### `log_characters` (bool)
+- **Default**: `False`
+- **Description**: Enable this to log the individual characters that are being processed for synthesis.
+
+##### `log_synthesized_text` (bool)
+- **Default**: `False`
+- **Description**: When enabled, logs the text chunks as they are synthesized into audio. Helpful for auditing and debugging.
+
+---
+
+By understanding and setting these parameters and methods appropriately, you can tailor the `TextToAudioStream` to meet the specific needs of your application.
 
 ## Contribution
 

@@ -1,10 +1,7 @@
 from .engines import BaseEngine
 from .threadsafe_generators import CharIterator, AccumulatingThreadSafeGenerator
 from .stream_player import StreamPlayer, AudioConfiguration
-
 import stream2sentence as s2s
-from typing import Iterator
-
 import threading
 import logging
 from typing import Union, Iterator
@@ -14,14 +11,22 @@ class TextToAudioStream:
 
     def __init__(self, 
                  engine: BaseEngine,
+                 on_text_stream_start=None,
+                 on_text_stream_stop=None,
+                 on_audio_stream_start=None,
+                 on_audio_stream_stop=None,
                  level=logging.WARNING,
                  ):
         """
         Initializes the TextToAudioStream.
 
         Args:
-            engine: The engine used for text to audio synthesis.
-            level: Logging level.
+            engine (BaseEngine): The engine used for text to audio synthesis.
+            on_text_stream_start (callable, optional): Callback function that gets called when the text stream starts.
+            on_text_stream_stop (callable, optional): Callback function that gets called when the text stream stops.
+            on_audio_stream_start (callable, optional): Callback function that gets called when the audio stream starts.
+            on_audio_stream_stop (callable, optional): Callback function that gets called when the audio stream stops.
+            level (int, optional): Logging level. Defaults to logging.WARNING.
         """
 
         # Initialize the logging configuration with the specified level
@@ -37,13 +42,13 @@ class TextToAudioStream:
         self.char_iter = CharIterator()
 
         # Create a thread-safe version of the char iterator
-        self.thread_safe_char_iter = AccumulatingThreadSafeGenerator(self.char_iter)
+        self.thread_safe_char_iter = AccumulatingThreadSafeGenerator(self.char_iter, on_first_text_chunk=on_text_stream_start, on_last_text_chunk=on_text_stream_stop)
 
         # Check if the engine doesn't support consuming generators directly
         if not self.engine.can_consume_generators:
             
             # Initialize a StreamPlayer for managing audio playback if the engine can't handle generators directly
-            self.player = StreamPlayer(self.engine.queue, AudioConfiguration(format, channels, rate))
+            self.player = StreamPlayer(self.engine.queue, AudioConfiguration(format, channels, rate), on_playback_start=on_audio_stream_start, on_playback_stop=on_audio_stream_stop)
         
         # Initialize the play_thread attribute (used for playing audio in a separate thread)
         self.play_thread = None
@@ -69,7 +74,7 @@ class TextToAudioStream:
         return self        
 
     def play_async(self,   
-                   fast_sentence_fragment: bool = False,
+                   fast_sentence_fragment: bool = True,
                    buffer_threshold_seconds: float = 2.0,
                    minimum_sentence_length: int = 3, 
                    log_characters: bool = False,
@@ -93,7 +98,7 @@ class TextToAudioStream:
         self.play_thread.start()        
 
     def play(self,
-            fast_sentence_fragment: bool = False,
+            fast_sentence_fragment: bool = True,
             buffer_threshold_seconds: float = 2.0,
             minimum_sentence_length: int = 3,
             log_characters: bool = False,
@@ -125,6 +130,7 @@ class TextToAudioStream:
 
             try:
                 # Directly synthesize audio using the character iterator
+                self.char_iter.log_characters = log_characters
                 self.engine.synthesize(self.char_iter)
 
             finally:
@@ -133,7 +139,7 @@ class TextToAudioStream:
                 logging.info("stream stop")
 
                 # Accumulate the generated text and reset the character iterators
-                self.generated_text = self.thread_safe_char_iter.accumulated_text()
+                self.generated_text = self.char_iter.iterated_text
 
                 self.char_iter = CharIterator()
                 self.thread_safe_char_iter = AccumulatingThreadSafeGenerator(self.char_iter)
@@ -165,6 +171,9 @@ class TextToAudioStream:
                 self.player.stop()
                 self.stream_running = False
                 logging.info("stream stop")
+
+                if log_characters:
+                    print()
 
                 # Accumulate the generated text and reset the character iterators
                 self.generated_text = self.thread_safe_char_iter.accumulated_text()
