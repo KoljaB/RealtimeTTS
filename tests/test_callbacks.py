@@ -31,11 +31,12 @@ stream = TextToAudioStream(engine,
                            on_text_stream_start=text_start, 
                            on_text_stream_stop=text_stop, 
                            on_audio_stream_start=audio_start, 
-                           on_audio_stream_stop=audio_stop)
+                           on_audio_stream_stop=audio_stop,
+                           log_characters=True)
 
 text_stream = generate("A very short two-sentence relaxing speech.")
 stream.feed(text_stream)
-stream.play_async(log_characters=True)
+stream.play_async()
 
 while stream.is_playing():
     time.sleep(0.1)

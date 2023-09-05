@@ -79,7 +79,7 @@ print()
 # async  (allows pause, resume and stop of stream)
 #
 stream.play_async()  
-#stream.play_async(log_characters=True) # prints every character processed to console
+#stream.play_async() # prints every character processed to console
 
 
 # async stream handling

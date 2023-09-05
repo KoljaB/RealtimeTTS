@@ -11,6 +11,7 @@ class TextToAudioStream:
 
     def __init__(self, 
                  engine: BaseEngine,
+                 log_characters: bool = False,
                  on_text_stream_start=None,
                  on_text_stream_stop=None,
                  on_audio_stream_start=None,
@@ -23,6 +24,7 @@ class TextToAudioStream:
 
         Args:
             engine (BaseEngine): The engine used for text to audio synthesis.
+            log_characters (bool, optional): If True, logs the characters processed for synthesis.
             on_text_stream_start (callable, optional): Callback function that gets called when the text stream starts.
             on_text_stream_stop (callable, optional): Callback function that gets called when the text stream stops.
             on_audio_stream_start (callable, optional): Callback function that gets called when the audio stream starts.
@@ -40,6 +42,7 @@ class TextToAudioStream:
         # Extract stream information (format, channels, rate) from the engine
         format, channels, rate = self.engine.get_stream_info()
 
+        self.log_characters = log_characters
         self.on_text_stream_start = on_text_stream_start
         self.on_text_stream_stop = on_text_stream_stop
         self.on_audio_stream_start = on_audio_stream_start
@@ -51,7 +54,7 @@ class TextToAudioStream:
         if not self.engine.can_consume_generators:
             
             # Initialize a StreamPlayer for managing audio playback if the engine can't handle generators directly
-            self.player = StreamPlayer(self.engine.queue, AudioConfiguration(format, channels, rate), on_playback_start=on_audio_stream_start, on_playback_stop=on_audio_stream_stop)
+            self.player = StreamPlayer(self.engine.queue, AudioConfiguration(format, channels, rate), on_playback_start=on_audio_stream_start, on_playback_stop=self.on_audio_stream_stop)
         
         # Initialize the play_thread attribute (used for playing audio in a separate thread)
         self.play_thread = None
@@ -63,22 +66,6 @@ class TextToAudioStream:
         self.stream_running = False
 
         self.on_character = on_character
-
-    def _create_iterators(self):
-
-        # Create a CharIterator instance for managing individual characters
-        self.char_iter = CharIterator(on_character=self._on_character, on_first_text_chunk=self.on_text_stream_start, on_last_text_chunk=self.on_text_stream_stop)
-
-        # Create a thread-safe version of the char iterator
-        self.thread_safe_char_iter = AccumulatingThreadSafeGenerator(self.char_iter)
-
-
-    def _on_character(self, char: str):
-
-        if self.on_character:
-            self.on_character(char)
-
-        self.generated_text += char
 
 
     def feed(self, 
@@ -95,11 +82,11 @@ class TextToAudioStream:
         self.char_iter.add(text_or_iterator)
         return self        
 
+
     def play_async(self,   
                    fast_sentence_fragment: bool = True,
                    buffer_threshold_seconds: float = 2.0,
                    minimum_sentence_length: int = 3, 
-                   log_characters: bool = False,
                    log_synthesized_text = False             
                    ):
         """
@@ -111,19 +98,18 @@ class TextToAudioStream:
         - fast_sentence_fragment: Determines if sentence fragments should be quickly yielded. Useful when a faster response is desired even if a sentence isn't complete.
         - buffer_threshold_seconds: Time in seconds to determine the buffering threshold. Helps to decide when to generate more audio based on buffered content.
         - minimum_sentence_length: Minimum characters required to treat content as a sentence.
-        - log_characters: If True, logs the characters processed for synthesis.
         - log_synthesized_text: If True, logs the synthesized text chunks.
         """
         
         self.stream_running = True
-        self.play_thread = threading.Thread(target=self.play, args=(fast_sentence_fragment, buffer_threshold_seconds, minimum_sentence_length, log_characters, log_synthesized_text))
+        self.play_thread = threading.Thread(target=self.play, args=(fast_sentence_fragment, buffer_threshold_seconds, minimum_sentence_length, log_synthesized_text))
         self.play_thread.start()        
+
 
     def play(self,
             fast_sentence_fragment: bool = True,
             buffer_threshold_seconds: float = 2.0,
             minimum_sentence_length: int = 3,
-            log_characters: bool = False,
             log_synthesized_text = False):
         """
         Handles the synthesis of text to audio.
@@ -134,7 +120,6 @@ class TextToAudioStream:
         - fast_sentence_fragment: Determines if sentence fragments should be quickly yielded. Useful when a faster response is desired even if a sentence isn't complete.
         - buffer_threshold_seconds: Time in seconds to determine the buffering threshold. Helps to decide when to generate more audio based on buffered content.
         - minimum_sentence_length: Minimum characters required to treat content as a sentence.
-        - log_characters: If True, logs the characters processed for synthesis.
         - log_synthesized_text: If True, logs the synthesized text chunks.
         """
 
@@ -152,7 +137,7 @@ class TextToAudioStream:
 
             try:
                 # Directly synthesize audio using the character iterator
-                self.char_iter.log_characters = log_characters
+                self.char_iter.log_characters = self.log_characters
 
                 if self.on_audio_stream_start:
                     self.on_audio_stream_start()
@@ -177,10 +162,10 @@ class TextToAudioStream:
                 self.player.start()
 
                 # Generate sentences from the characters
-                generate_sentences = s2s.generate_sentences(self.thread_safe_char_iter, minimum_sentence_length=minimum_sentence_length, quick_yield_single_sentence_fragment=fast_sentence_fragment, cleanup_text_links=True, cleanup_text_emojis=True, log_characters=log_characters)
+                generate_sentences = s2s.generate_sentences(self.thread_safe_char_iter, minimum_sentence_length=minimum_sentence_length, quick_yield_single_sentence_fragment=fast_sentence_fragment, cleanup_text_links=True, cleanup_text_emojis=True, log_characters=self.log_characters)
                 
                 # Create the synthesis chunk generator with the given sentences
-                chunk_generator = self.synthesis_chunk_generator(generate_sentences, buffer_threshold_seconds, log_synthesized_text)
+                chunk_generator = self._synthesis_chunk_generator(generate_sentences, buffer_threshold_seconds, log_synthesized_text)
 
                 # Iterate through the synthesized chunks and feed them to the engine for audio synthesis
                 for sentence in chunk_generator:
@@ -200,13 +185,11 @@ class TextToAudioStream:
                 self.stream_running = False
                 logging.info("stream stop")
 
-                if log_characters:
-                    print()
-
                 # Accumulate the generated text and reset the character iterators
                 self.generated_text = self.thread_safe_char_iter.accumulated_text()
 
                 self._create_iterators()
+
 
     def pause(self):
         """
@@ -219,6 +202,7 @@ class TextToAudioStream:
             else:
                 self.player.pause()
 
+
     def resume(self):
         """
         Resumes a previously paused playback of the synthesized audio stream 
@@ -230,6 +214,7 @@ class TextToAudioStream:
                 self.engine.resume()
             else:
                 self.player.resume()
+
 
     def stop(self):
         """
@@ -244,6 +229,7 @@ class TextToAudioStream:
                 self.player.stop(immediate=True)
                 self.stream_running = False
     
+
     def text(self):
         """
         Retrieves the text that has been fed into the stream.
@@ -255,6 +241,7 @@ class TextToAudioStream:
             return self.generated_text
         return self.thread_safe_char_iter.accumulated_text()
 
+
     def is_playing(self):
         """
         Checks if the stream is currently playing.
@@ -264,7 +251,58 @@ class TextToAudioStream:
         """ 
         return self.stream_running
 
-    def synthesis_chunk_generator(self,
+
+    def _on_last_character(self):
+        """
+        This method is invoked when the last character of the text stream has been processed.
+        It logs information and triggers a callback, if defined.
+        """
+
+        # If an on_text_stream_stop callback is defined, invoke it to signal the end of the text stream
+        if self.on_text_stream_stop:
+            self.on_text_stream_stop()
+
+        # If log_characters flag is True, print a new line for better log readability
+        if self.log_characters:
+            print()        
+
+
+    def _create_iterators(self):
+        """
+        Creates iterators required for text-to-audio streaming.
+
+        This method initializes two types of iterators:
+
+        1. `CharIterator`: Responsible for managing individual characters during the streaming process.
+        - It takes callbacks for events like when a character is processed (`on_character`), when the first text chunk is encountered (`on_first_text_chunk`), and when the last text chunk is encountered (`on_last_text_chunk`).
+
+        2. `AccumulatingThreadSafeGenerator`: A thread-safe wrapper around `CharIterator`.
+        - Ensures that the character iterator can be safely accessed from multiple threads.
+        """        
+
+        # Create a CharIterator instance for managing individual characters
+        self.char_iter = CharIterator(on_character=self._on_character, on_first_text_chunk=self.on_text_stream_start, on_last_text_chunk=self._on_last_character)
+
+        # Create a thread-safe version of the char iterator
+        self.thread_safe_char_iter = AccumulatingThreadSafeGenerator(self.char_iter)
+
+
+    def _on_character(self, char: str):
+        """
+        This method is called for each character that is processed in the text stream.
+        It accumulates the characters and invokes a callback.
+        
+        Args:
+            char (str): The character currently being processed.
+        """
+        # If an on_character callback is defined, invoke it for the current character
+        if self.on_character:
+            self.on_character(char)
+
+        self.generated_text += char
+
+
+    def _synthesis_chunk_generator(self,
                                   generator: Iterator[str],
                                   buffer_threshold_seconds: float = 2.0,
                                   log_synthesis_chunks: bool = False) -> Iterator[str]:
