@@ -294,5 +294,3 @@ MIT
 Kolja Beigel  
 Email: kolja.beigel@web.de  
 [GitHub](https://github.com/KoljaB/RealtimeTTS)
-
----
