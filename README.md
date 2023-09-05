@@ -247,8 +247,6 @@ stream = TextToAudioStream(
 )
 ```
 
----
-
 ### Methods
 
 #### `play` and `play_async`
@@ -280,8 +278,6 @@ These methods are responsible for executing the text-to-audio synthesis and play
 ##### `log_synthesized_text` (bool)
 - **Default**: `False`
 - **Description**: When enabled, logs the text chunks as they are synthesized into audio. Helpful for auditing and debugging.
-
----
 
 By understanding and setting these parameters and methods appropriately, you can tailor the `TextToAudioStream` to meet the specific needs of your application.
 
