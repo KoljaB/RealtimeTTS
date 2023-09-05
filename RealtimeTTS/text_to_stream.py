@@ -27,6 +27,7 @@ class TextToAudioStream:
             on_text_stream_stop (callable, optional): Callback function that gets called when the text stream stops.
             on_audio_stream_start (callable, optional): Callback function that gets called when the audio stream starts.
             on_audio_stream_stop (callable, optional): Callback function that gets called when the audio stream stops.
+            on_character (callable, optional): Callback function that gets called when a single character is processed.
             level (int, optional): Logging level. Defaults to logging.WARNING.
         """
         

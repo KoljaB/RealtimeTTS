@@ -227,6 +227,11 @@ When you initialize the `TextToAudioStream` class, you have various options to c
 - **Required**: No
 - **Description**: This optional callback function is called when the audio stream stops. Ideal for resource cleanup or post-processing tasks.
 
+#### `on_character` (callable)
+- **Type**: Callable function
+- **Required**: No
+- **Description**: This optional callback function is called when a single character is processed.
+
 #### `level` (int)
 - **Type**: Integer
 - **Required**: No
