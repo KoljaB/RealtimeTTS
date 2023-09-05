@@ -18,8 +18,8 @@ engine = SystemEngine()
 
 # Azure Engine
 #
-# engine = AzureEngine(os.environ.get("AZURE_SPEECH_KEY"), "germanywestcentral")
-# engine = AzureEngine(os.environ.get("AZURE_SPEECH_KEY"), "germanywestcentral", "en-US-AshleyNeural", rate=20.0, pitch=10.0)
+# engine = AzureEngine(os.environ.get("AZURE_SPEECH_KEY"), "eastus")
+# engine = AzureEngine(os.environ.get("AZURE_SPEECH_KEY"), "eastus", "en-US-AshleyNeural", rate=20.0, pitch=10.0)
 
 # Elevenlabs Engine
 #

@@ -36,7 +36,10 @@ class CharIterator:
     """
 
     def __init__(self, 
-                 log_characters: bool = False):
+                 log_characters: bool = False,
+                 on_character=None,
+                 on_first_text_chunk=None,
+                 on_last_text_chunk=None):
         """
         Initialize the CharIterator instance.
 
@@ -50,6 +53,10 @@ class CharIterator:
         self.immediate_stop = threading.Event()
         self.iterated_text = ""
         self.log_characters = log_characters
+        self.on_character = on_character
+        self.on_first_text_chunk = on_first_text_chunk
+        self.on_last_text_chunk = on_last_text_chunk
+        self.first_chunk_received = False
 
     def add(self, item: Union[str, Iterator[str]]) -> None:
         """
@@ -115,6 +122,14 @@ class CharIterator:
                     self.iterated_text += char
                     if self.log_characters:
                         print(char, end="", flush=True)
+                    if self.on_character:
+                        self.on_character(char) 
+
+                    if not self.first_chunk_received and self.on_first_text_chunk:
+                        self.on_first_text_chunk()
+
+                    self.first_chunk_received = True
+
                     return char
                 
                 else:
@@ -137,6 +152,14 @@ class CharIterator:
                     self.iterated_text += char
                     if self.log_characters:
                         print(char, end="", flush=True)
+                    if self.on_character:
+                        self.on_character(char) 
+
+                    if not self.first_chunk_received and self.on_first_text_chunk:
+                        self.on_first_text_chunk()
+
+                    self.first_chunk_received = True
+
                     return char
                 
                 except StopIteration:
@@ -144,6 +167,9 @@ class CharIterator:
                     # If the iterator is exhausted, reset it and move on to the next item
                     self._current_iterator = None
                     self._index += 1
+
+        if self.iterated_text and self.on_last_text_chunk:
+                self.on_last_text_chunk()
 
         # If all items are exhausted, raise the StopIteration exception to signify end of iteration
         raise StopIteration
@@ -171,6 +197,7 @@ class AccumulatingThreadSafeGenerator:
         self.on_first_text_chunk = on_first_text_chunk
         self.on_last_text_chunk = on_last_text_chunk
         self.first_chunk_received = False
+        # print ("STARTED")
 
     def __iter__(self):
         """
@@ -198,12 +225,13 @@ class AccumulatingThreadSafeGenerator:
 
                 if not self.first_chunk_received and self.on_first_text_chunk:
                     self.on_first_text_chunk()
-                    self.first_chunk_received = True
 
+                self.first_chunk_received = True
                 return token
 
             except StopIteration:
-                if self.on_last_text_chunk:
+                if self.iterated_text and self.on_last_text_chunk:
+                    # print ("Calling on_last_text_chunk")
                     self.on_last_text_chunk()
                 self.exhausted = True
                 raise
