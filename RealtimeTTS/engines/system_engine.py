@@ -28,17 +28,18 @@ class SystemEngine(BaseEngine):
         Initializes a system voice realtime text to speech engine object.
 
         Args:
-            speech_key (str): Azure subscription key. (TTS API key)
-            service_region (str): Azure service region. (Cloud Region ID)
-            voice (str, optional): Voice name. Defaults to "en-US-AriaNeural".
-            rate (float, optional): Speech speed. Defaults to "0.0".
-            pitch (float, optional): Speech pitch. Defaults to "0.0".
+            voice (str, optional): Voice name. Defaults to "Zira".
+            print_installed_voices (bool, optional): Indicates if the list of installed voices should be printed. Defaults to False.
         """        
 
         self.engine = pyttsx3.init()
         self.set_voice(voice)
         temp_file_path = tempfile.gettempdir()
         self.file_path = os.path.join(temp_file_path, SYNTHESIS_FILE)
+
+        if print_installed_voices:
+            print (self.get_voices())
+
 
     def get_stream_info(self):
         """
