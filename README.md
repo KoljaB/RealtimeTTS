@@ -48,15 +48,15 @@ The `SystemEngine` works out of the box using your system's built-in TTS capabil
 
 ### AzureEngine
 To use the `AzureEngine`, you will need:
-- Microsoft Azure Text-to-Speech API key.
+- Microsoft Azure Text-to-Speech API key (provided via AzureEngine constructor parameter "speech_key" or in the environment variable AZURE_SPEECH_KEY)
 - Microsoft Azure service region.
 
 Make sure you have these credentials available and correctly configured when initializing the `AzureEngine`.
 
 ### ElevenlabsEngine
-For the `ElevenlabsEngine`, ensure:
-- You have the Elevenlabs API key.
-- `mpv` is installed on your system. It's essential for streaming audio.
+For the `ElevenlabsEngine`, you need:
+- Elevenlabs API key (provided via ElevenlabsEngine constructor parameter "api_key" or in the environment variable ELEVENLABS_API_KEY)
+- `mpv` installed on your system (essential for streaming mpeg audio, Elevenlabs only delivers mpeg).
 
   🔹 **Installing `mpv`:**
   - **macOS**:

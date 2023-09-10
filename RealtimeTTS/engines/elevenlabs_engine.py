@@ -100,9 +100,6 @@ class ElevenlabsEngine(BaseEngine):
 
         self.immediate_stop.clear()
 
-        first_chunk = next(generator)
-        combined_gen = itertools.chain([first_chunk], generator)
-
         voice_object = Voice(
             voice_id=self.id,
             name=self.voice_name,
@@ -111,7 +108,7 @@ class ElevenlabsEngine(BaseEngine):
         )
 
         self.audio_stream = generate(
-            text=combined_gen,
+            text=generator,
             voice=voice_object,
             model=self.model,
             stream=True
