@@ -24,7 +24,8 @@ It's ideal for:
 The library is built upon a robust and cutting-edge tech stack:
 
 - **Text-to-Speech Engines**
-  - **AzureEngine**: Microsoft's leading TTS technology. 
+  - **CoquiEngine**: High quality local neural TTS.
+  - **AzureEngine**: Microsoft's leading TTS technology. 250000 chars free per month.
   - **ElevenlabsEngine**: Offer the best sounding voices available.
   - **SystemEngine**: Native engine for quick setup.
 
@@ -65,6 +66,10 @@ For the `ElevenlabsEngine`, you need:
     ```
 
   - **Linux and Windows**: Visit [mpv.io](https://mpv.io/) for installation instructions.
+
+### CoquiEngine
+Downloads a neural TTS model first. Will only be fast enought for Realtime using GPU synthesis. Needs around 4-5 GB VRAM. Delivers high quality, local, neural TTS with voice-cloning.
+- To use voice cloning create a 44100 Hz mono 32bit float WAV file containing a short (~10 sec) sample of the voice to clone, then submit the filename as cloning_reference_wav to the CoquiEngine constructor.
 
 ## Quick Start
 
@@ -134,6 +139,9 @@ The test subdirectory contains a set of scripts to help you evaluate and underst
 
 - **complex_test.py**
     - **Description**: A comprehensive demonstration showcasing most of the features provided by the library.
+
+- **coqui_test.py**
+    - **Description**: Test of local coqui TTS engine.
 
 - **translator.py**
     - **Dependencies**: Run `pip install openai realtimestt`.

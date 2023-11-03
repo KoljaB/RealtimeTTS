@@ -143,31 +143,41 @@ class CharIterator:
                 # If we haven't started iterating over this iterator yet, initialize it
                 if self._current_iterator is None:
                     self._current_iterator = iter(item)
-                
-                # Try to fetch the next character from the iterator
-                try:
-                    char = next(self._current_iterator)
 
-                    # Accumulate the iterated character to the iterated_text attribute
+                if self._char_index is None:
+                    try:                    
+                        self._current_str = next(self._current_iterator)
+                    except StopIteration:
+                        
+                        # If the iterator is exhausted, reset it and move on to the next item
+                        self._char_index = None
+                        self._current_iterator = None
+                        self._index += 1    
+                        continue
+                    
+                    self._char_index = 0
+
+                if self._char_index < len(self._current_str):
+                    char = self._current_str[self._char_index]
+                    self._char_index += 1
+
                     self.iterated_text += char
                     if self.log_characters:
-                        print(char, end="", flush=True)
+                        print(char, end="", flush=True)                    
                     if self.on_character:
-                        self.on_character(char) 
-
+                        self.on_character(char)                        
+                    
                     if not self.first_chunk_received and self.on_first_text_chunk:
                         self.on_first_text_chunk()
 
-                    self.first_chunk_received = True
+                    self.first_chunk_received = True                    
 
                     return char
                 
-                except StopIteration:
-                    
-                    # If the iterator is exhausted, reset it and move on to the next item
-                    self._current_iterator = None
-                    self._index += 1
+                else:
+                    self._char_index = None
 
+            
         if self.iterated_text and self.on_last_text_chunk:
                 self.on_last_text_chunk()
 
@@ -197,7 +207,6 @@ class AccumulatingThreadSafeGenerator:
         self.on_first_text_chunk = on_first_text_chunk
         self.on_last_text_chunk = on_last_text_chunk
         self.first_chunk_received = False
-        # print ("STARTED")
 
     def __iter__(self):
         """
@@ -231,7 +240,6 @@ class AccumulatingThreadSafeGenerator:
 
             except StopIteration:
                 if self.iterated_text and self.on_last_text_chunk:
-                    # print ("Calling on_last_text_chunk")
                     self.on_last_text_chunk()
                 self.exhausted = True
                 raise

@@ -4,3 +4,4 @@ pyttsx3>=2.90
 stream2sentence>=0.1.1
 azure-cognitiveservices-speech>=1.31.0
 elevenlabs>=0.2.24
+tts>=0.19.1

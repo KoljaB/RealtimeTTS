@@ -107,3 +107,13 @@ class SystemEngine(BaseEngine):
                 for installed_voice in installed_voices:
                     if voice in installed_voice.name:
                         self.engine.setProperty('voice', installed_voice.id)
+
+    def set_voice_parameters(self, **voice_parameters):
+        """
+        Sets the voice parameters to be used for speech synthesis.
+
+        Args:
+            **voice_parameters: The voice parameters to be used for speech synthesis.
+        """
+        for parameter, value in voice_parameters.items():
+            self.engine.setProperty(parameter, value)

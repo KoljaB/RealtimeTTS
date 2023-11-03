@@ -3,7 +3,7 @@ import os, openai # pip install openai
 import time
 
 openai.api_key = os.environ.get("OPENAI_API_KEY")
-engine = AzureEngine(os.environ.get("AZURE_SPEECH_KEY"), "eastus")
+engine = AzureEngine(os.environ.get("AZURE_SPEECH_KEY"), os.environ.get("AZURE_SPEECH_REGION"))
 
 def generate(prompt):
     for chunk in openai.ChatCompletion.create(

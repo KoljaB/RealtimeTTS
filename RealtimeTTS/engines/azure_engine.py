@@ -31,7 +31,6 @@ class AzureVoice:
 
     def __repr__(self):
         return f"{self.name} ({self.gender}, {self.locale})"
-        #return f"<Voice(name={self.name}, locale={self.locale}, gender={self.gender})>"
 
     @staticmethod
     def _extract_voice_name(full_name):
@@ -43,7 +42,6 @@ class AzureVoice:
     @staticmethod
     def _extract_voice_language(locale):
         # Extracts the language from the locale string
-        #return locale
         end_index = locale.find("-")
         return locale[:end_index]
 
@@ -62,8 +60,8 @@ class AzureEngine(BaseEngine):
             speech_key (str): Azure subscription key. (TTS API key)
             service_region (str): Azure service region. (Cloud Region ID)
             voice (str, optional): Voice name. Defaults to "en-US-AshleyNeural".
-            rate (float, optional): Speech speed. Defaults to "0.0".
-            pitch (float, optional): Speech pitch. Defaults to "0.0".
+            rate (float, optional): Speech speed as a percentage. Defaults to "0.0". Indicating the relative change.
+            pitch (float, optional): Speech pitch as a percentage. Defaults to "0.0". Indicating the relative change.
         """
 
         self.speech_key = speech_key
@@ -117,10 +115,19 @@ class AzureEngine(BaseEngine):
         # Convert the SSML to audio stream
         result = speech_synthesizer.speak_ssml_async(ssml_string).get()
 
-        # Check for an error
-        if result.reason != tts.ResultReason.SynthesizingAudioCompleted:
-            print(f"Speech synthesis failed, check speech_key and service_region: {result.reason}")
-            raise RuntimeError(f"Speech synthesis failed: {result}")
+        if result.reason == tts.ResultReason.SynthesizingAudioCompleted:
+            logging.debug(f"Speech synthesized")
+        elif result.reason == tts.ResultReason.Canceled:
+            cancellation_details = result.cancellation_details
+            print(f"Speech synthesis canceled, check speech_key and service_region: {result.reason}")
+            print("Cancellation details: {}".format(cancellation_details.reason))
+            print("SSLM:")
+            print(ssml_string)
+            if cancellation_details.reason == tts.CancellationReason.Error:
+                print("Error details: {}".format(cancellation_details.error_details))        
+        else:
+            print(f"Speech synthesis failed: {result.reason}")
+            print(f"Result: {result}")
         
     def set_speech_key(self, speech_key: str):
         """
@@ -209,3 +216,15 @@ class AzureEngine(BaseEngine):
                 if voice in installed_voice.full_name:
                     self.voice_name = installed_voice.full_name
                     self.language = self.voice_name[:5]
+
+    def set_voice_parameters(self, **voice_parameters):
+        """
+        Sets the voice parameters to be used for speech synthesis.
+
+        Args:
+            **voice_parameters: The voice parameters to be used for speech synthesis.
+        """
+        if 'rate' in voice_parameters:
+            self.rate = voice_parameters['rate']
+        if 'pitch' in voice_parameters:
+            self.pitch = voice_parameters['pitch']

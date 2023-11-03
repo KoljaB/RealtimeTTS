@@ -1,15 +1,15 @@
-from .base_engine import BaseEngine
 from elevenlabs import voices, generate, stream
 from elevenlabs.api import Voice, VoiceSettings
-import pyaudio
-import itertools
+from .base_engine import BaseEngine
 from typing import Iterator
+from typing import Union
+
+import elevenlabs
 import subprocess
 import threading
+import logging
+import pyaudio
 import shutil
-import subprocess
-import elevenlabs
-from typing import Union
 
 class ElevenlabsVoice:
     def __init__(self, name, voice_id, category, description, labels):
@@ -21,9 +21,7 @@ class ElevenlabsVoice:
 
     def __repr__(self):
         label_string = ', '.join(self.labels.values())
-        #return f"{self.name} ({self.category}, {label_string})"
         return f"{self.name} ({self.category}, id: {self.voice_id}, {label_string})"
-        #return f"<Voice(name={self.name}, locale={self.locale}, gender={self.gender})>"
 
 
 class ElevenlabsEngine(BaseEngine):
@@ -33,8 +31,9 @@ class ElevenlabsEngine(BaseEngine):
                  voice: str = "Nicole", 
                  id: str = "piTKgcLEGmPE4e6mEKli",
                  category: str = "premade",
-                 clarity: float = 100.0,
-                 stability: float = 30.0,
+                 clarity: float = 75.0,
+                 stability: float = 50.0,
+                 style_exxageration: float = 0.0,
                  model: str = "eleven_multilingual_v1"):
         """
         Initializes an elevenlabs voice realtime text to speech engine object.
@@ -44,9 +43,10 @@ class ElevenlabsEngine(BaseEngine):
             voice (str, optional): Voice name. Defaults to "Nicole".
             id (str, optional): Voice ID. Defaults to "piTKgcLEGmPE4e6mEKli".
             category (str, optional): Voice category. Defaults to "premade".
-            clarity (float, optional): Clarity. Adjusts voice similarity and resemblance. Defaults to "100.0".
-            stability (float, optional): Stability. Controls the voice performance, with higher values producing a steadier tone and lower values giving a more emotive output. Defaults to "30.0".
-            
+            clarity (float, optional): Clarity / Similarity. Adjusts voice similarity and resemblance. Defaults to "75.0".
+            stability (float, optional): Stability. Controls the voice performance, with higher values producing a steadier tone and lower values giving a more emotive output. Defaults to "50.0".
+            style_exxageration (float, optional): Style Exxageration. Controls the voice performance, with higher values giving a more emotive output and lower values producing a steadier tone. Defaults to "0.0".
+            model (str, optional): Model. Defaults to "eleven_multilingual_v1". Some models may not work with real time inference.
         """
 
         self.voice_name = voice
@@ -54,6 +54,7 @@ class ElevenlabsEngine(BaseEngine):
         self.category = category
         self.clarity = clarity
         self.stability = stability
+        self.style_exxageration = style_exxageration
         self.model = model
         self.pause_event = threading.Event()
         self.immediate_stop = threading.Event()
@@ -100,11 +101,12 @@ class ElevenlabsEngine(BaseEngine):
 
         self.immediate_stop.clear()
 
-        voice_object = Voice(
-            voice_id=self.id,
-            name=self.voice_name,
-            category=self.category,
-            settings=VoiceSettings(stability=self.stability/100, similarity_boost=self.clarity/100)
+        voice_object = Voice.from_id(self.id)
+        voice_object.settings = VoiceSettings(
+            stability=self.stability / 100,
+            similarity_boost=self.clarity / 100,
+            style=self.style_exxageration / 100,
+            use_speaker_boost=True
         )
 
         self.audio_stream = generate(
@@ -114,7 +116,7 @@ class ElevenlabsEngine(BaseEngine):
             stream=True
         )
 
-        self.stream(self.audio_stream)
+        stream(self.audio_stream)
         
     def set_api_key(self, api_key: str):
         """
@@ -233,13 +235,33 @@ class ElevenlabsEngine(BaseEngine):
             voice (Union[str, ElevenlabsVoice]): The voice to be used for speech synthesis.
         """
         if isinstance(voice, ElevenlabsVoice):
+            logging.info(f"Setting voice to {voice.name}")
             self.voice_name = voice.name
             self.id = voice.voice_id
             self.category = voice.category
+            return
         else:
             installed_voices = self.get_voices()
             for installed_voice in installed_voices:
                 if voice in installed_voice.name:
+                    logging.info(f"Setting voice to {installed_voice.name}")
                     self.voice_name = installed_voice.name
                     self.id = installed_voice.voice_id
                     self.category = installed_voice.category
+                    return
+                
+        logging.warning(f"Voice {voice} not found.")
+
+    def set_voice_parameters(self, **voice_parameters):
+        """
+        Sets the voice parameters to be used for speech synthesis.
+
+        Args:
+            **voice_parameters: The voice parameters to be used for speech synthesis.
+        """
+        if 'clarity' in voice_parameters:
+            self.clarity = voice_parameters['clarity']
+        if 'stability' in voice_parameters:
+            self.stability = voice_parameters['stability']
+        if 'style_exxageration' in voice_parameters:
+            self.style_exxageration = voice_parameters['style_exxageration']

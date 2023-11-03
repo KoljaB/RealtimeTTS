@@ -1,10 +1,12 @@
-from .engines import BaseEngine
 from .threadsafe_generators import CharIterator, AccumulatingThreadSafeGenerator
 from .stream_player import StreamPlayer, AudioConfiguration
+from typing import Union, Iterator
+from .engines import BaseEngine
+
 import stream2sentence as s2s
 import threading
 import logging
-from typing import Union, Iterator
+import queue
 
 
 class TextToAudioStream:
@@ -32,15 +34,11 @@ class TextToAudioStream:
             on_character (callable, optional): Callback function that gets called when a single character is processed.
             level (int, optional): Logging level. Defaults to logging.WARNING.
         """
-        
+
         # Initialize the logging configuration with the specified level
         logging.basicConfig(format='RealTimeTTS: %(message)s', level=level)
 
-        # Store the engine instance (responsible for text-to-audio conversion)
-        self.engine = engine
-
-        # Extract stream information (format, channels, rate) from the engine
-        format, channels, rate = self.engine.get_stream_info()
+        logging.info(f"Starting RealTimeTTS")
 
         self.log_characters = log_characters
         self.on_text_stream_start = on_text_stream_start
@@ -49,12 +47,6 @@ class TextToAudioStream:
         self.on_audio_stream_stop = on_audio_stream_stop
 
         self._create_iterators()
-
-        # Check if the engine doesn't support consuming generators directly
-        if not self.engine.can_consume_generators:
-            
-            # Initialize a StreamPlayer for managing audio playback if the engine can't handle generators directly
-            self.player = StreamPlayer(self.engine.queue, AudioConfiguration(format, channels, rate), on_playback_start=on_audio_stream_start, on_playback_stop=self.on_audio_stream_stop)
         
         # Initialize the play_thread attribute (used for playing audio in a separate thread)
         self.play_thread = None
@@ -66,6 +58,29 @@ class TextToAudioStream:
         self.stream_running = False
 
         self.on_character = on_character
+
+        self.load_engine(engine)
+        
+
+    def load_engine(self, 
+             engine: BaseEngine):
+        """
+        Loads the synthesis engine and prepares the audio player for stream playback.
+        This method sets up the engine that will be used for text-to-audio conversion, extracts the necessary stream information like format, channels, and rate from the engine, and initializes the StreamPlayer if the engine does not support consuming generators directly.
+
+        Args:
+            engine (BaseEngine): The synthesis engine to be used for converting text to audio.
+        """        
+
+        # Store the engine instance (responsible for text-to-audio conversion)
+        self.engine = engine
+
+        # Extract stream information (format, channels, rate) from the engine
+        format, channels, rate = self.engine.get_stream_info()
+
+        # Check if the engine doesn't support consuming generators directly
+        if not self.engine.can_consume_generators:
+            self.player = StreamPlayer(self.engine.queue, AudioConfiguration(format, channels, rate), on_playback_start=self.on_audio_stream_start)
 
 
     def feed(self, 
@@ -85,10 +100,11 @@ class TextToAudioStream:
 
     def play_async(self,   
                    fast_sentence_fragment: bool = True,
-                   buffer_threshold_seconds: float = 2.0,
-                   minimum_sentence_length: int = 3, 
-                   log_synthesized_text = False             
-                   ):
+                   buffer_threshold_seconds: float = 0.0,
+                   minimum_sentence_length: int = 10, 
+                   minimum_first_fragment_length : int = 10,
+                   log_synthesized_text = False,
+                   reset_generated_text: bool = True):
         """
         Handles the synthesis of text to audio.
         Initiates the audio stream playback in a separate thread, allowing the main thread to continue without waiting for the playback to finish.
@@ -96,21 +112,25 @@ class TextToAudioStream:
 
         Args:
         - fast_sentence_fragment: Determines if sentence fragments should be quickly yielded. Useful when a faster response is desired even if a sentence isn't complete.
-        - buffer_threshold_seconds: Time in seconds to determine the buffering threshold. Helps to decide when to generate more audio based on buffered content.
-        - minimum_sentence_length: Minimum characters required to treat content as a sentence.
+        - buffer_threshold_seconds (float): Time in seconds for the buffering threshold, influencing the flow and continuity of audio playback. Set to 0 to deactivate. Default is 0.
+          - How it Works: The system verifies whether there is more audio content in the buffer than the duration defined by buffer_threshold_seconds. If so, it proceeds to synthesize the next sentence, capitalizing on the remaining audio to maintain smooth delivery. A higher value means more audio is pre-buffered, which minimizes pauses during playback. Adjust this upwards if you encounter interruptions.
+        - minimum_sentence_length (int): The minimum number of characters a sentence must have. If a sentence is shorter, it will be concatenated with the following one, improving the overall readability. This parameter does not apply to the first sentence fragment, which is governed by `minimum_first_fragment_length`. Default is 10 characters.
+        - minimum_first_fragment_length (int): The minimum number of characters required for the first sentence fragment before yielding. Default is 10 characters.
         - log_synthesized_text: If True, logs the synthesized text chunks.
         """
         
         self.stream_running = True
-        self.play_thread = threading.Thread(target=self.play, args=(fast_sentence_fragment, buffer_threshold_seconds, minimum_sentence_length, log_synthesized_text))
+        self.play_thread = threading.Thread(target=self.play, args=(fast_sentence_fragment, buffer_threshold_seconds, minimum_sentence_length, minimum_first_fragment_length, log_synthesized_text, reset_generated_text))
         self.play_thread.start()        
 
 
     def play(self,
             fast_sentence_fragment: bool = True,
-            buffer_threshold_seconds: float = 2.0,
-            minimum_sentence_length: int = 3,
-            log_synthesized_text = False):
+            buffer_threshold_seconds: float = 0.0,
+            minimum_sentence_length: int = 10,
+            minimum_first_fragment_length : int = 10,
+            log_synthesized_text = False,
+            reset_generated_text: bool = True):
         """
         Handles the synthesis of text to audio.
         Plays the audio stream and waits until it is finished playing.
@@ -118,8 +138,11 @@ class TextToAudioStream:
 
         Args:
         - fast_sentence_fragment: Determines if sentence fragments should be quickly yielded. Useful when a faster response is desired even if a sentence isn't complete.
-        - buffer_threshold_seconds: Time in seconds to determine the buffering threshold. Helps to decide when to generate more audio based on buffered content.
-        - minimum_sentence_length: Minimum characters required to treat content as a sentence.
+        - buffer_threshold_seconds (float): Time in seconds for the buffering threshold, influencing the flow and continuity of audio playback. Set to 0 to deactivate. Default is 0.
+          - How it Works: The system verifies whether there is more audio content in the buffer than the duration defined by buffer_threshold_seconds. If so, it proceeds to synthesize the next sentence, capitalizing on the remaining audio to maintain smooth delivery. A higher value means more audio is pre-buffered, which minimizes pauses during playback. Adjust this upwards if you encounter interruptions.
+        - buffer_threshold_seconds (int): Time in seconds to determine the buffering threshold. Helps to decide when to generate more audio based on buffered content.
+        - minimum_sentence_length (int): The minimum number of characters a sentence must have. If a sentence is shorter, it will be concatenated with the following one, improving the overall readability. This parameter does not apply to the first sentence fragment, which is governed by `minimum_first_fragment_length`. Default is 10 characters.
+        - minimum_first_fragment_length (int): The minimum number of characters required for the first sentence fragment before yielding. Default is 10 characters.
         - log_synthesized_text: If True, logs the synthesized text chunks.
         """
 
@@ -130,7 +153,8 @@ class TextToAudioStream:
         self.stream_running = True
 
         # Initialize the generated_text variable
-        self.generated_text = ""
+        if reset_generated_text:
+            self.generated_text = ""
 
         # Check if the engine can handle generators directly
         if self.engine.can_consume_generators:
@@ -153,7 +177,7 @@ class TextToAudioStream:
                 logging.info("stream stop")
 
                 # Accumulate the generated text and reset the character iterators
-                self.generated_text = self.char_iter.iterated_text
+                self.generated_text += self.char_iter.iterated_text
 
                 self._create_iterators()
         else:
@@ -162,33 +186,53 @@ class TextToAudioStream:
                 self.player.start()
 
                 # Generate sentences from the characters
-                generate_sentences = s2s.generate_sentences(self.thread_safe_char_iter, minimum_sentence_length=minimum_sentence_length, quick_yield_single_sentence_fragment=fast_sentence_fragment, cleanup_text_links=True, cleanup_text_emojis=True, log_characters=self.log_characters)
+                generate_sentences = s2s.generate_sentences(self.thread_safe_char_iter, minimum_sentence_length=minimum_sentence_length, minimum_first_fragment_length=minimum_first_fragment_length, quick_yield_single_sentence_fragment=fast_sentence_fragment, cleanup_text_links=True, cleanup_text_emojis=True, log_characters=self.log_characters)
                 
                 # Create the synthesis chunk generator with the given sentences
                 chunk_generator = self._synthesis_chunk_generator(generate_sentences, buffer_threshold_seconds, log_synthesized_text)
 
+                sentence_queue = queue.Queue()
+
+                def synthesize_worker():
+                    while True:
+                        sentence = sentence_queue.get()
+                        if sentence is None:  # Sentinel value to stop the worker
+                            break
+                        self.engine.synthesize(sentence)
+                        sentence_queue.task_done()
+
+
+                worker_thread = threading.Thread(target=synthesize_worker)
+                worker_thread.start()      
+
                 # Iterate through the synthesized chunks and feed them to the engine for audio synthesis
                 for sentence in chunk_generator:
-
                     sentence = sentence.strip()
                     if log_synthesized_text:
                         logging.info(f"synthesizing: {sentence}")
 
-                    self.engine.synthesize(sentence)
+                    sentence_queue.put(sentence)
 
-                    # Break out of the loop if the stream is no longer running
                     if not self.stream_running:
                         break
+
+                # Signal to the worker to stop
+                sentence_queue.put(None)
+                worker_thread.join()                    
+
             finally:
-                # Once done, stop the player, set the stream running flag to False, and log the stream stop
                 self.player.stop()
+
+                if self.stream_running and len(self.char_iter.items) > 0 and self.char_iter.iterated_text == "":
+                    # new text was feeded while playing audio but after the last character was processed
+                    # we need to start another play() call
+                    self.play(fast_sentence_fragment, buffer_threshold_seconds, minimum_sentence_length, log_synthesized_text, reset_generated_text=False)
+
                 self.stream_running = False
                 logging.info("stream stop")
 
-                # Accumulate the generated text and reset the character iterators
-                self.generated_text = self.thread_safe_char_iter.accumulated_text()
-
-                self._create_iterators()
+                if reset_generated_text and self.on_audio_stream_stop:
+                    self.on_audio_stream_stop()
 
 
     def pause(self):
@@ -264,7 +308,10 @@ class TextToAudioStream:
 
         # If log_characters flag is True, print a new line for better log readability
         if self.log_characters:
-            print()        
+            print()    
+
+        self._create_iterators()
+
 
 
     def _create_iterators(self):
@@ -314,8 +361,7 @@ class TextToAudioStream:
 
         Args:
             generator: Input iterator that provides chunks for synthesis.
-            buffer_threshold_seconds: Time in seconds to specify how long audio data should be buffered 
-                                    before yielding the synthesis chunk.
+            buffer_threshold_seconds: Time in seconds to specify how long audio data should be buffered before yielding the synthesis chunk.
             log_synthesis_chunks: Boolean flag that, if set to True, logs the synthesis chunks to the logging system.
 
         Returns:
@@ -335,20 +381,23 @@ class TextToAudioStream:
             synthesis_chunk += chunk + " "
             
             # Check if the buffered audio is below the specified threshold
-            if buffered_audio_seconds < buffer_threshold_seconds:
+            if buffered_audio_seconds < buffer_threshold_seconds or buffer_threshold_seconds <= 0:
                 # If the log_synthesis_chunks flag is True, log the current synthesis_chunk
                 if log_synthesis_chunks:
-                    logging.info(f"-- \"{synthesis_chunk}\"")
+                    logging.info(f"-- [\"{synthesis_chunk}\"], buffered {buffered_audio_seconds:1f}s")
                 
                 # Yield the current synthesis_chunk and reset it for the next set of accumulations
                 yield synthesis_chunk
                 synthesis_chunk = ""
 
+            else:
+                logging.info(f"summing up chunks because buffer {buffered_audio_seconds:.1f} > threshold ({buffer_threshold_seconds:.1f}s)")
+
         # After iterating over all chunks, check if there's any remaining data in synthesis_chunk
         if synthesis_chunk:
             # If the log_synthesis_chunks flag is True, log the remaining synthesis_chunk
             if log_synthesis_chunks:
-                logging.info(f"-- \"{synthesis_chunk}\"")
+                logging.info(f"-- [\"{synthesis_chunk}\"], buffered {buffered_audio_seconds:.1f}s")
             
             # Yield the remaining synthesis_chunk
             yield synthesis_chunk

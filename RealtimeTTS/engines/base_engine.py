@@ -72,3 +72,14 @@ class BaseEngine(ABC, metaclass=BaseInitMeta):
         This method should be overridden by the derived class to set the desired voice.
         """
         raise NotImplementedError("The set_voice method must be implemented by the derived class.")
+    
+    def set_voice_parameters(self, **voice_parameters):
+        """
+        Sets the voice parameters to be used for speech synthesis.
+
+        Args:
+            **voice_parameters: The voice parameters to be used for speech synthesis.
+
+        This method should be overridden by the derived class to set the desired voice parameters.
+        """
+        raise NotImplementedError("The set_voice_parameters method must be implemented by the derived class.")
