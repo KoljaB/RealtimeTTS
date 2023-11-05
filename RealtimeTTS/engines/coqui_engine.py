@@ -158,9 +158,6 @@ class CoquiEngine(BaseEngine):
                 language = data['language']
 
                 try:
-                    with open('synthesis.txt', 'a') as f:
-                        f.write(f'Starting inference for text: \"{text}\"\n')    
-
                     logging.debug(f'Starting inference for text: {text}')
 
                     chunks =  tts.inference_stream(
