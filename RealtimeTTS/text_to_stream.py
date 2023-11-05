@@ -208,6 +208,11 @@ class TextToAudioStream:
                 # Iterate through the synthesized chunks and feed them to the engine for audio synthesis
                 for sentence in chunk_generator:
                     sentence = sentence.strip()
+
+                    with open('synthesis.txt', 'a') as f:
+                        f.write(f"Synthesis request for sentence: \"{sentence}\"\n")    
+
+                    # print (f"Synthesis request for sentence: ", sentence)
                     if log_synthesized_text:
                         logging.info(f"synthesizing: {sentence}")
 

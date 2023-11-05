@@ -34,6 +34,12 @@ class CoquiEngine(BaseEngine):
         # Start the worker process
         self.main_synthesize_ready_event = Event()
         self.parent_synthesize_pipe, child_synthesize_pipe = Pipe()
+
+        # download coqui model
+        from TTS.utils.manage import ModelManager
+        logging.info(f"Downloading XTTS Model: {model_name}")
+        ModelManager().download_model(model_name)
+
         self.synthesize_process = Process(target=CoquiEngine._synthesize_worker, args=(child_synthesize_pipe, model_name, cloning_reference_wav, language, self.main_synthesize_ready_event, level))
         self.synthesize_process.start()
 
@@ -57,7 +63,6 @@ class CoquiEngine(BaseEngine):
 
         from TTS.utils.generic_utils import get_user_data_dir
         from TTS.tts.configs.xtts_config import XttsConfig
-        from TTS.utils.manage import ModelManager
         from TTS.tts.models.xtts import Xtts
 
         logging.basicConfig(format='CoquiEngine: %(message)s', level=loglevel)
@@ -110,9 +115,6 @@ class CoquiEngine(BaseEngine):
             torch.set_num_threads(int(os.environ.get("NUM_THREADS", "8")))
             device = torch.device("cuda")
 
-            model_name = "tts_models/multilingual/multi-dataset/xtts_v1.1"
-            logging.info(f"Downloading XTTS Model: {model_name}")
-            ModelManager().download_model(model_name)
             model_path = os.path.join(get_user_data_dir("tts"), model_name.replace("/", "--"))
             logging.debug("XTTS Model downloaded.")
 
@@ -156,6 +158,8 @@ class CoquiEngine(BaseEngine):
                 language = data['language']
 
                 try:
+                    with open('synthesis.txt', 'a') as f:
+                        f.write(f'Starting inference for text: \"{text}\"\n')    
 
                     logging.debug(f'Starting inference for text: {text}')
 
