@@ -24,8 +24,8 @@ It's ideal for:
 #### v0.1.9
 - Upgrade to PyTorch 2.1.0
 - Support of new OpenAI API
-- Support of Coqui XTTS 1.1 
-  XTTS 2.0 will follow as soon as the checkpoint loading [issue](https://github.com/coqui-ai/TTS/issues/3177) needed for inference streaming is resolved
+- Support of Coqui XTTS 1.1  
+  *- XTTS 2.0 will follow as soon as the checkpoint loading [issue](https://github.com/coqui-ai/TTS/issues/3177) needed for inference streaming is resolved*
 
 ## Tech Stack
 
