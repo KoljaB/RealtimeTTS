@@ -14,7 +14,7 @@ class CoquiEngine(BaseEngine):
 
     def __init__(self, 
                  model_name = "tts_models/multilingual/multi-dataset/xtts_v1.1",
-                 cloning_reference_wav: str = "clone_voice.wav",
+                 cloning_reference_wav: str = "female.wav",
                  language = "en",
                  level=logging.WARNING,
                  ):

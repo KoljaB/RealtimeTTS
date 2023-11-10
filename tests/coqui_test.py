@@ -8,8 +8,8 @@ if __name__ == '__main__':
 
     # import logging
     # logging.basicConfig(level=logging.DEBUG)    
-    # engine = CoquiEngine(cloning_reference_wav="female.wav", level=logging.DEBUG)
-    engine = CoquiEngine(cloning_reference_wav="female.wav")
+    # engine = CoquiEngine(level=logging.DEBUG)
+    engine = CoquiEngine()
     stream = TextToAudioStream(engine)
     
     os.system('cls')
