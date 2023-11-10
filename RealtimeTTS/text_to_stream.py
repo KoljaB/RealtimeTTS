@@ -209,7 +209,6 @@ class TextToAudioStream:
                 for sentence in chunk_generator:
                     sentence = sentence.strip()
 
-                    # print (f"Synthesis request for sentence: ", sentence)
                     if log_synthesized_text:
                         logging.info(f"synthesizing: {sentence}")
 

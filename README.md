@@ -19,9 +19,17 @@ It's ideal for:
 
 > **Hint**: *Check out [RealtimeSTT](https://github.com/KoljaB/RealtimeSTT), the input counterpart of this library, for speech-to-text capabilities. Together, they form a powerful realtime audio wrapper around large language models.*
 
+### Updates
+
+#### v0.1.9
+- Upgrade to PyTorch 2.1.0
+- Support of new OpenAI API
+- Support of Coqui XTTS 1.1 
+  XTTS 2.0 will follow as soon as the checkpoint loading [issue](https://github.com/coqui-ai/TTS/issues/3177) needed for inference streaming is resolved
+
 ## Tech Stack
 
-The library is built upon a robust and cutting-edge tech stack:
+This library uses:
 
 - **Text-to-Speech Engines**
   - **CoquiEngine**: High quality local neural TTS.
@@ -39,6 +47,10 @@ The library is built upon a robust and cutting-edge tech stack:
 ```bash
 pip install RealtimeTTS
 ```
+
+This will install all the necessary dependencies, including a **CPU support only** version of PyTorch (needed for Coqui engine)
+
+To use Coqui engine it is recommended to upgrade torch to GPU usage (see installation steps under [Coqui Engine](#coquiengine) further below).
 
 ## Engine Requirements
 
@@ -68,8 +80,73 @@ For the `ElevenlabsEngine`, you need:
   - **Linux and Windows**: Visit [mpv.io](https://mpv.io/) for installation instructions.
 
 ### CoquiEngine
-Downloads a neural TTS model first. Will only be fast enought for Realtime using GPU synthesis. Needs around 4-5 GB VRAM. Delivers high quality, local, neural TTS with voice-cloning.
-- To use voice cloning create a 44100 Hz mono 32bit float WAV file containing a short (~10 sec) sample of the voice to clone, then submit the filename as cloning_reference_wav to the CoquiEngine constructor.
+
+Delivers high quality, local, neural TTS with voice-cloning.  
+
+Downloads a neural TTS model first. In most cases it be fast enought for Realtime using GPU synthesis. Needs around 4-5 GB VRAM.
+
+- To use voice cloning create a 44100 Hz (or 22050 Hz) mono 32bit float WAV file containing a short (~10 sec) sample of the voice to clone, then submit the filename as cloning_reference_wav to the CoquiEngine constructor.
+
+#### GPU-Support (CUDA) for Coqui
+
+Additional steps are needed for a **GPU-optimized** installation. These steps are recommended for those who require **better performance** and have a compatible NVIDIA GPU.
+
+> **Note**: *To check if your NVIDIA GPU supports CUDA, visit the [official CUDA GPUs list](https://developer.nvidia.com/cuda-gpus).*
+
+To use local Coqui Engine with GPU support via CUDA please follow these steps:
+
+1. **Install NVIDIA CUDA Toolkit 11.8**:
+    - Visit [NVIDIA CUDA Toolkit Archive](https://developer.nvidia.com/cuda-11-8-0-download-archive).
+    - Select version 11.
+    - Download and install the software.
+
+2. **Install NVIDIA cuDNN 8.7.0 for CUDA 11.x**:
+    - Visit [NVIDIA cuDNN Archive](https://developer.nvidia.com/rdp/cudnn-archive).
+    - Click on "Download cuDNN v8.7.0 (November 28th, 2022), for CUDA 11.x".
+    - Download and install the software.
+
+3. **Install ffmpeg**:
+
+    You can download an installer for your OS from the [ffmpeg Website](https://ffmpeg.org/download.html).  
+    
+    Or use a package manager:
+
+    - **On Ubuntu or Debian**:
+        ```bash
+        sudo apt update && sudo apt install ffmpeg
+        ```
+
+    - **On Arch Linux**:
+        ```bash
+        sudo pacman -S ffmpeg
+        ```
+
+    - **On MacOS using Homebrew** ([https://brew.sh/](https://brew.sh/)):
+        ```bash
+        brew install ffmpeg
+        ```
+
+    - **On Windows using Chocolatey** ([https://chocolatey.org/](https://chocolatey.org/)):
+        ```bash
+        choco install ffmpeg
+        ```
+
+    - **On Windows using Scoop** ([https://scoop.sh/](https://scoop.sh/)):
+        ```bash
+        scoop install ffmpeg
+        ```    
+
+4. **Install PyTorch with CUDA support**:
+    ```bash
+    pip install torch==2.1.0+cu118 torchaudio==2.1.0+cu118 --index-url https://download.pytorch.org/whl/cu118
+    ```
+
+5. **Fix for to resolve compatility issues**:
+    ```bash
+    pip install fsspec==2023.6.0
+    pip install typing_extensions==4.8.0
+    pip install networkx==2.8.8
+    ```
 
 ## Quick Start
 

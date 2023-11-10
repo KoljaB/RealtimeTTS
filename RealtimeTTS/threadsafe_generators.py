@@ -147,6 +147,13 @@ class CharIterator:
                 if self._char_index is None:
                     try:                    
                         self._current_str = next(self._current_iterator)
+
+                        # fix for new openai api
+                        if hasattr(self._current_str, "choices"):
+                            chunk = self._current_str.choices[0].delta.content
+                            chunk = str(chunk) if chunk else ""
+                            self._current_str = chunk
+
                     except StopIteration:
                         
                         # If the iterator is exhausted, reset it and move on to the next item

@@ -113,11 +113,16 @@ class CoquiEngine(BaseEngine):
 
         try:
             torch.set_num_threads(int(os.environ.get("NUM_THREADS", "8")))
-            device = torch.device("cuda")
+
+            # Check if CUDA is available, else use CPU
+            if torch.cuda.is_available():
+                device = torch.device("cuda")
+            else:
+                logging.info("CUDA not available, CPU inference used.")
+                device = torch.device("cpu")
 
             model_path = os.path.join(get_user_data_dir("tts"), model_name.replace("/", "--"))
-            logging.debug("XTTS Model downloaded.")
-
+            
             logging.info("Loading XTTS Model")
             config = XttsConfig()
             print (f"Model path: {model_path}")
