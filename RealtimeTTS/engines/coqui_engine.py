@@ -13,7 +13,7 @@ import re
 class CoquiEngine(BaseEngine):
 
     def __init__(self, 
-                 model_name = "tts_models/multilingual/multi-dataset/xtts_v1.1",
+                 model_name = "tts_models/multilingual/multi-dataset/xtts_v2",
                  cloning_reference_wav: str = "female.wav",
                  language = "en",
                  level=logging.WARNING,
@@ -92,7 +92,7 @@ class CoquiEngine(BaseEngine):
 
             # compute and write latents to json file
             logging.debug(f"Computing latents for {filename}")
-            gpt_cond_latent, _, speaker_embedding = tts.get_conditioning_latents(audio_path=filename)
+            gpt_cond_latent, speaker_embedding = tts.get_conditioning_latents(audio_path=filename)
             latents = {
                 "gpt_cond_latent": gpt_cond_latent.cpu().squeeze().half().tolist(),
                 "speaker_embedding": speaker_embedding.cpu().squeeze().half().tolist(),

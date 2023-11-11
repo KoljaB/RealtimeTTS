@@ -21,11 +21,13 @@ It's ideal for:
 
 ### Updates
 
+#### v0.2.0
+- Support of Coqui XTTS 2.0
+
 #### v0.1.9
 - Upgrade to PyTorch 2.1.0
 - Support of new OpenAI API
 - Support of Coqui XTTS 1.1  
-  *- XTTS 2.0 will follow as soon as the checkpoint loading [issue](https://github.com/coqui-ai/TTS/issues/3177) needed for inference streaming is resolved*
 
 ## Tech Stack
 
@@ -142,10 +144,16 @@ To use local Coqui Engine with GPU support via CUDA please follow these steps:
     ```
 
 5. **Fix for to resolve compatility issues**:
+    If you run into library compatility issues, please set these libraries to fixed versions:
+
     ```bash
-    pip install fsspec==2023.6.0
-    pip install typing_extensions==4.8.0
     pip install networkx==2.8.8
+    pip install typing_extensions==4.8.0
+    pip install fsspec==2023.6.0
+    pip install imageio==2.31.6
+    pip install networkx==2.8.8
+    pip install numpy==1.24.3
+    pip install requests==2.31.0
     ```
 
 ## Quick Start
@@ -210,6 +218,8 @@ stream.play()
 ## Testing the Library
 
 The test subdirectory contains a set of scripts to help you evaluate and understand the capabilities of the RealtimeTTS library.
+
+Note that most of the tests still rely on the "old" OpenAI API (<1.0.0). Usage of the new OpenAI API is demonstrated in openai_1.0_test.py.
 
 - **simple_test.py**
     - **Description**: A "hello world" styled demonstration of the library's simplest usage.

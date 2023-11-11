@@ -1,16 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
 import os, openai # pip install openai  
 from RealtimeTTS import TextToAudioStream, SystemEngine, AzureEngine, ElevenlabsEngine
 
@@ -30,5 +17,3 @@ text_stream = write("A three-sentence relaxing speech.")
 print("Starting to play")
 
 TextToAudioStream(SystemEngine()).feed(text_stream).play()
-# TextToAudioStream(AzureEngine(os.environ.get("AZURE_SPEECH_KEY"), "germanywestcentral")).feed(text_stream).play()
-# TextToAudioStream(ElevenlabsEngine(os.environ.get("ELEVENLABS_API_KEY"))).feed(text_stream).play()

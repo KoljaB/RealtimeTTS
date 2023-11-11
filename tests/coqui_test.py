@@ -6,9 +6,6 @@ if __name__ == '__main__':
         yield "Hey guys! These here are realtime spoken sentences based on local text synthesis. "
         yield "With a local, neuronal, cloned voice. So every spoken sentence sounds unique."
 
-    # import logging
-    # logging.basicConfig(level=logging.DEBUG)    
-    # engine = CoquiEngine(level=logging.DEBUG)
     engine = CoquiEngine()
     stream = TextToAudioStream(engine)
     
