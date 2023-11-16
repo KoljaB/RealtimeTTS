@@ -16,7 +16,8 @@ class CoquiEngine(BaseEngine):
                  model_name = "tts_models/multilingual/multi-dataset/xtts_v2",
                  cloning_reference_wav: str = "female.wav",
                  language = "en",
-                 level=logging.WARNING,
+                 speed = 1.0,
+                 level=logging.WARNING
                  ):
         """
         Initializes a coqui voice realtime text to speech engine object.
@@ -30,6 +31,7 @@ class CoquiEngine(BaseEngine):
         self.model_name = model_name
         self.language = language
         self.cloning_reference_wav = cloning_reference_wav
+        self.speed = speed
 
         # Start the worker process
         self.main_synthesize_ready_event = Event()
@@ -40,7 +42,7 @@ class CoquiEngine(BaseEngine):
         logging.info(f"Downloading XTTS Model: {model_name}")
         ModelManager().download_model(model_name)
 
-        self.synthesize_process = Process(target=CoquiEngine._synthesize_worker, args=(child_synthesize_pipe, model_name, cloning_reference_wav, language, self.main_synthesize_ready_event, level))
+        self.synthesize_process = Process(target=CoquiEngine._synthesize_worker, args=(child_synthesize_pipe, model_name, cloning_reference_wav, language, self.main_synthesize_ready_event, level, self.speed))
         self.synthesize_process.start()
 
         logging.debug('Waiting for coqui text to speech synthesize model to start')
@@ -49,7 +51,7 @@ class CoquiEngine(BaseEngine):
 
 
     @staticmethod
-    def _synthesize_worker(conn, model_name, cloning_reference_wav, language, ready_event, loglevel):
+    def _synthesize_worker(conn, model_name, cloning_reference_wav, language, ready_event, loglevel, speed):
         """
         Worker process for the coqui text to speech synthesis model.
 
@@ -64,6 +66,8 @@ class CoquiEngine(BaseEngine):
         from TTS.utils.generic_utils import get_user_data_dir
         from TTS.tts.configs.xtts_config import XttsConfig
         from TTS.tts.models.xtts import Xtts
+        from TTS.config import load_config
+        from TTS.tts.models import setup_model as setup_tts_model
 
         logging.basicConfig(format='CoquiEngine: %(message)s', level=loglevel)
 
@@ -92,7 +96,9 @@ class CoquiEngine(BaseEngine):
 
             # compute and write latents to json file
             logging.debug(f"Computing latents for {filename}")
-            gpt_cond_latent, speaker_embedding = tts.get_conditioning_latents(audio_path=filename)
+
+            gpt_cond_latent, speaker_embedding = tts.get_conditioning_latents(audio_path=filename, gpt_cond_len=30, max_ref_length=60)
+
             latents = {
                 "gpt_cond_latent": gpt_cond_latent.cpu().squeeze().half().tolist(),
                 "speaker_embedding": speaker_embedding.cpu().squeeze().half().tolist(),
@@ -102,17 +108,20 @@ class CoquiEngine(BaseEngine):
 
             return gpt_cond_latent, speaker_embedding
 
-
         def postprocess_wave(chunk):
-            tensor_audio_data = chunk.squeeze().unsqueeze(0).cpu()
-            audio_data_bytes = tensor_audio_data.numpy()
-            return audio_data_bytes     
-             
+            """Post process the output waveform"""
+            if isinstance(chunk, list):
+                chunk = torch.cat(chunk, dim=0)
+            chunk = chunk.clone().detach().cpu().numpy()
+            chunk = chunk[None, : int(chunk.shape[0])]
+            chunk = np.clip(chunk, -1, 1)
+            chunk = chunk.astype(np.float32)
+            return chunk
 
         logging.debug(f"Initializing coqui model {model_name} with cloning reference wave file {cloning_reference_wav} and language {language}")
 
         try:
-            torch.set_num_threads(int(os.environ.get("NUM_THREADS", "8")))
+            torch.set_num_threads(int(os.environ.get("NUM_THREADS", "2")))
 
             # Check if CUDA is available, else use CPU
             if torch.cuda.is_available():
@@ -122,13 +131,18 @@ class CoquiEngine(BaseEngine):
                 device = torch.device("cpu")
 
             model_path = os.path.join(get_user_data_dir("tts"), model_name.replace("/", "--"))
-            
-            logging.info("Loading XTTS Model")
-            config = XttsConfig()
-            print (f"Model path: {model_path}")
-            config.load_json(os.path.join(model_path, "config.json"))
-            tts = Xtts.init_from_config(config)
-            tts.load_checkpoint(config, checkpoint_dir=model_path, eval=True, use_deepspeed=False)
+
+            print (model_path)
+
+            config = load_config((os.path.join(model_path, "config.json")))
+            tts = setup_tts_model(config)
+            tts.load_checkpoint(
+                config,
+                checkpoint_path=os.path.join(model_path, "model.pth"),
+                vocab_path=os.path.join(model_path, "vocab.json"),
+                eval=True,
+                use_deepspeed=False,
+            )
             tts.to(device)
             logging.debug("XTTS Model loaded.")
 
@@ -142,27 +156,27 @@ class CoquiEngine(BaseEngine):
 
         logging.info('Coqui text to speech synthesize model initialized successfully')
 
-        while True:
-            message = conn.recv()  
-            command = message['command']
-            data = message['data']
+        try:
+            while True:
+                message = conn.recv()  
+                command = message['command']
+                data = message['data']
 
-            if command == 'update_reference':
-                new_wav_path = data['cloning_reference_wav']
-                gpt_cond_latent, speaker_embedding = get_conditioning_latents(new_wav_path)
-                conn.send(('success', 'Reference updated successfully'))
+                if command == 'update_reference':
+                    new_wav_path = data['cloning_reference_wav']
+                    gpt_cond_latent, speaker_embedding = get_conditioning_latents(new_wav_path)
+                    conn.send(('success', 'Reference updated successfully'))
 
-            if command == 'shutdown':
-                logging.info('Shutdown command received. Exiting worker process.')
-                conn.send({'status': 'shutdown'})
-                break  # This exits the loop, effectively stopping the worker process.
+                if command == 'shutdown':
+                    logging.info('Shutdown command received. Exiting worker process.')
+                    conn.send({'status': 'shutdown'})
+                    break  # This exits the loop, effectively stopping the worker process.
 
-            elif command == 'synthesize':
+                elif command == 'synthesize':
 
-                text = data['text']
-                language = data['language']
+                    text = data['text']
+                    language = data['language']
 
-                try:
                     logging.debug(f'Starting inference for text: {text}')
 
                     chunks =  tts.inference_stream(
@@ -170,7 +184,11 @@ class CoquiEngine(BaseEngine):
                         language,
                         gpt_cond_latent,
                         speaker_embedding,
-                        decoder="ne_hifigan",
+                        decoder = "ne_hifigan",
+                        stream_chunk_size=20,
+                        repetition_penalty=7.0,
+                        temperature=0.85,
+                        speed=speed
                     )
 
                     for i, chunk in enumerate(chunks):
@@ -190,15 +208,19 @@ class CoquiEngine(BaseEngine):
                     conn.send(('success', silent_chunk.tobytes()))                        
 
                     conn.send(('finished', ''))
+        
+        except KeyboardInterrupt:
+            logging.info('Keyboard interrupt received. Exiting worker process.')
+            conn.send({'status': 'shutdown'})
 
-                except Exception as e:
-                    logging.error(f"General synthesis error: {e} occured trying to synthesize text {text}")
+        except Exception as e:
+            logging.error(f"General synthesis error: {e} occured trying to synthesize text {text}")
 
-                    tb_str = traceback.format_exc()
-                    print (f"Traceback: {tb_str}")
-                    print (f"Error: {e}")
+            tb_str = traceback.format_exc()
+            print (f"Traceback: {tb_str}")
+            print (f"Error: {e}")
 
-                    conn.send(('error', str(e)))
+            conn.send(('error', str(e)))
 
     def send_command(self, command, data):
         """
@@ -253,22 +275,15 @@ class CoquiEngine(BaseEngine):
         text = re.sub("\(.*\)", "", text, flags=re.DOTALL)
         text = text.replace("```", "")
         text = text.replace("...", " ")
-        text = text.replace("(", " ")
-        text = text.replace(")", " ")
+        text = text.replace("»", "")
+        text = text.replace("«", "")
+        text = re.sub(" +", " ", text)
+        text= re.sub("([^\x00-\x7F]|\w)(\.|\。|\?)",r"\1 \2\2",text)
+
         text = text.strip()
 
         if len(text) <= 3:
             return
-
-        try:
-            if text[-1] in ["."]:
-                text = text[:-1]
-            if text[-1] in ["!", "?", ".", ","]:
-                text = text[:-1] + " " + text[-1]
-            elif text[-2] in ["!", "?", ".", ","]:
-                text = text[:-2] + " " + text[-2] + text[-1]        
-        except Exception as e:
-            logging.warning (f"Error fixing sentence end punctuation: {e}, Text: \"{text}\"")
 
         data = {'text': text, 'language': self.language}
         self.send_command('synthesize', data)
@@ -276,6 +291,8 @@ class CoquiEngine(BaseEngine):
         status, result = self.parent_synthesize_pipe.recv()
 
         while not 'finished' in status:
+            if 'shutdown' in status:
+                break
             if not 'error' in status:
                 self.queue.put(result)
             status, result = self.parent_synthesize_pipe.recv()         
