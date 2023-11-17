@@ -184,11 +184,14 @@ class CoquiEngine(BaseEngine):
                         language,
                         gpt_cond_latent,
                         speaker_embedding,
-                        decoder = "ne_hifigan",
+                        # decoder = "ne_hifigan",
                         stream_chunk_size=20,
+                        # repetition_penalty=10.0,
+                        # temperature=0.75,
                         repetition_penalty=7.0,
                         temperature=0.85,
-                        speed=speed
+                        speed=speed,
+                        enable_text_splitting=True
                     )
 
                     for i, chunk in enumerate(chunks):
@@ -236,16 +239,13 @@ class CoquiEngine(BaseEngine):
         self.send_command('update_reference', {'cloning_reference_wav': cloning_reference_wav})
         
         # Wait for the response from the worker process
-        response = self.parent_synthesize_pipe.recv()
-        status = response.get('status')
-        message = response.get('message')
-
+        status, result = self.parent_synthesize_pipe.recv()
         if status == 'success':
             logging.info('Reference WAV updated successfully')
         else:
-            logging.error(f'Error updating reference WAV: {message}')
+            logging.error(f'Error updating reference WAV: {cloning_reference_wav}')
 
-        return status, message
+        return status, result
 
     def get_stream_info(self):
         """
@@ -278,7 +278,20 @@ class CoquiEngine(BaseEngine):
         text = text.replace("»", "")
         text = text.replace("«", "")
         text = re.sub(" +", " ", text)
-        text= re.sub("([^\x00-\x7F]|\w)(\.|\。|\?)",r"\1 \2\2",text)
+        #text= re.sub("([^\x00-\x7F]|\w)(\.|\。|\?)",r"\1 \2\2",text)
+        #text= re.sub("([^\x00-\x7F]|\w)(\.|\。|\?)",r"\1 \2",text)
+
+        try:
+            if text[-1] in ["."]:
+                text = text[:-1] 
+            elif text[-1] in ["!", "?", ","]:
+                text = text[:-1] + " " + text[-1]
+            elif text[-2] in ["."]:
+                text = text[:-2] 
+            elif text[-2] in ["!", "?", ","]:
+                text = text[:-2] + " " + text[-2]
+        except Exception as e:
+            logging.warning (f"Error fixing sentence end punctuation: {e}, Text: \"{text}\"")
 
         text = text.strip()
 
@@ -307,7 +320,7 @@ class CoquiEngine(BaseEngine):
         """
         Sets the voice to be used for speech synthesis.
         """
-        pass    
+        self.set_cloning_reference(voice)
     
     def set_voice_parameters(self, **voice_parameters):
         """
