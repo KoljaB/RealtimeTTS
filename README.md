@@ -23,6 +23,9 @@ https://github.com/KoljaB/RealtimeTTS/assets/7604638/87dcd9a5-3a4e-4f57-be45-837
 
 ### Updates
 
+#### v0.2.2
+- Upgrade to Coqui XTTS 2.0.2
+
 #### v0.2.0
 - Support of Coqui XTTS 2.0
 
