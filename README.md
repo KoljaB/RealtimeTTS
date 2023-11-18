@@ -11,6 +11,8 @@ It's ideal for:
 - **Voice Assistants**
 - Applications requiring **instant** audio feedback
 
+https://github.com/KoljaB/RealtimeTTS/assets/7604638/87dcd9a5-3a4e-4f57-be45-837fc63237e7
+
 ### Features
 
 - **Realtime Streaming**: Synthesis and playback of speech as text is being generated or input
