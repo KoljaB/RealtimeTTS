@@ -394,7 +394,7 @@ Contributions are always welcome (e.g. PR to add a new engine).
 
 MIT
 
-Please respect the different licensse of the engine providers:
+Please respect the different licenses of the engine providers:
 
 [CoquiEngine](https://coqui.ai/cpml)
 - only non-commercial use  
