@@ -394,6 +394,22 @@ Contributions are always welcome (e.g. PR to add a new engine).
 
 MIT
 
+Please respect the different licenses of the engine providers:
+
+[CoquiEngine](https://coqui.ai/cpml)
+- only non-commercial use  
+	
+[ElevenlabsEngine](https://help.elevenlabs.io/hc/en-us/articles/13313564601361-Can-I-publish-the-content-I-generate-on-the-platform-)
+- non-commercial for free plan, commercial for every paid plan  
+
+[AzureEngine](https://learn.microsoft.com/en-us/answers/questions/1192398/can-i-use-azure-text-to-speech-for-commercial-usag)
+- non-commercial for free tier, commercial for standard tier upwards  
+	  
+SystemEngine:  
+- GNU Lesser General Public License (LGPL) version 3.0  
+- commercial use allowed
+
+
 ## Author
 
 Kolja Beigel  
