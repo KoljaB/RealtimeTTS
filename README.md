@@ -92,7 +92,7 @@ Delivers high quality, local, neural TTS with voice-cloning.
 
 Downloads a neural TTS model first. In most cases it be fast enought for Realtime using GPU synthesis. Needs around 4-5 GB VRAM.
 
-- To use voice cloning create a 44100 Hz (or 22050 Hz) mono 32bit float WAV file containing a short (~10 sec) sample of the voice to clone, then submit the filename as cloning_reference_wav to the CoquiEngine constructor.
+- To use voice cloning create a 24000 Hz mono 16bit WAV file containing a short (~10 sec) sample of the voice to clone, then submit the filename as cloning_reference_wav to the CoquiEngine constructor.
 
 #### GPU-Support (CUDA) for Coqui
 
@@ -397,7 +397,7 @@ MIT
 Please respect the different licenses of the engine providers:
 
 [CoquiEngine](https://coqui.ai/cpml)
-- only non-commercial use  
+- non-commercial for free plan, commercial plans available
 	
 [ElevenlabsEngine](https://help.elevenlabs.io/hc/en-us/articles/13313564601361-Can-I-publish-the-content-I-generate-on-the-platform-)
 - non-commercial for free plan, commercial for every paid plan  
