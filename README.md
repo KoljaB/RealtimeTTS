@@ -394,7 +394,7 @@ Contributions are always welcome (e.g. PR to add a new engine).
 ## License
 
 ❗
-While the source of this library is under MIT, the libraries it depends on are not.  
+While the source of this library is under MIT, some libraries it depends on are not.  
 A lot of external engine providers currently DO NOT ALLOW commercial use together with their free plans.
 Please read and respect the different licenses of the different engine providers.
 
