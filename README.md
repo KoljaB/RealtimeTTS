@@ -26,6 +26,7 @@ https://github.com/KoljaB/RealtimeTTS/assets/7604638/87dcd9a5-3a4e-4f57-be45-837
 #### v0.2.4
 - added more config options to CoquiEngine constructor
 - support for metal shaders gpu acceleration (you may need to set the environment variable `PYTORCH_ENABLE_MPS_FALLBACK=1` to use the CPU as a fallback for ops not implemented in mps yet)
+- default voice added in case no wav or speaker latents json file present
 
 #### v0.2.2
 - upgrade to Coqui XTTS 2.0.2
