@@ -17,8 +17,15 @@ class CoquiEngine(BaseEngine):
                  cloning_reference_wav: str = "female.wav",
                  language = "en",
                  speed = 1.0,
-                 thread_count = 24,
+                 thread_count = 6,
                  stream_chunk_size = 20,
+                 overlap_wav_len = 1024,
+                 temperature = 0.85,
+                 length_penalty = 1.0,
+                 repetition_penalty = 7.0,
+                 top_k = 50,
+                 top_p = 0.85,
+                 enable_text_splitting = True,
                  full_sentences = False,
                  level=logging.WARNING
                  ):
@@ -45,7 +52,7 @@ class CoquiEngine(BaseEngine):
         logging.info(f"Downloading XTTS Model: {model_name}")
         ModelManager().download_model(model_name)
 
-        self.synthesize_process = Process(target=CoquiEngine._synthesize_worker, args=(child_synthesize_pipe, model_name, cloning_reference_wav, language, self.main_synthesize_ready_event, level, self.speed, thread_count, stream_chunk_size, full_sentences))
+        self.synthesize_process = Process(target=CoquiEngine._synthesize_worker, args=(child_synthesize_pipe, model_name, cloning_reference_wav, language, self.main_synthesize_ready_event, level, self.speed, thread_count, stream_chunk_size, full_sentences, overlap_wav_len, temperature, length_penalty, repetition_penalty, top_k, top_p, enable_text_splitting))
         self.synthesize_process.start()
 
         logging.debug('Waiting for coqui text to speech synthesize model to start')
@@ -54,7 +61,7 @@ class CoquiEngine(BaseEngine):
 
 
     @staticmethod
-    def _synthesize_worker(conn, model_name, cloning_reference_wav, language, ready_event, loglevel, speed, thread_count, stream_chunk_size, full_sentences):
+    def _synthesize_worker(conn, model_name, cloning_reference_wav, language, ready_event, loglevel, speed, thread_count, stream_chunk_size, full_sentences, overlap_wav_len, temperature, length_penalty, repetition_penalty, top_k, top_p, enable_text_splitting):
         """
         Worker process for the coqui text to speech synthesis model.
 
@@ -85,6 +92,14 @@ class CoquiEngine(BaseEngine):
                 raise ValueError(f"Filename {filename} must end with .wav")
 
             filename_json = filename[:-3] + "json"
+
+            if not os.path.exists(filename_json) and not os.path.exists(filename):
+                logging.warn(f"No cloning source file found, using female default voice.")
+                # Get the directory of the current script
+                current_dir = os.path.dirname(os.path.realpath(__file__))
+                filename_json = os.path.join(current_dir, "coqui_default_voice.json")
+                if not os.path.exists(filename_json):
+                    raise ValueError(f"Default voice file {filename_json} not found.")
 
             # check if latents are already computed
             if os.path.exists(filename_json):
@@ -191,14 +206,15 @@ class CoquiEngine(BaseEngine):
                         language,
                         gpt_cond_latent,
                         speaker_embedding,
-                        # decoder = "ne_hifigan",
                         stream_chunk_size=stream_chunk_size,
-                        # repetition_penalty=10.0,
-                        # temperature=0.75,
-                        repetition_penalty=7.0,
-                        temperature=0.85,
+                        overlap_wav_len=overlap_wav_len,
+                        temperature=temperature,
+                        length_penalty=length_penalty,
+                        repetition_penalty=repetition_penalty,
+                        top_k=top_k,
+                        top_p=top_p,
                         speed=speed,
-                        enable_text_splitting=True
+                        enable_text_splitting=enable_text_splitting
                     )
 
                     if full_sentences:
