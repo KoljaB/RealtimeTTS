@@ -17,6 +17,9 @@ class CoquiEngine(BaseEngine):
                  cloning_reference_wav: str = "female.wav",
                  language = "en",
                  speed = 1.0,
+                 thread_count = 24,
+                 stream_chunk_size = 20,
+                 full_sentences = False,
                  level=logging.WARNING
                  ):
         """
@@ -42,7 +45,7 @@ class CoquiEngine(BaseEngine):
         logging.info(f"Downloading XTTS Model: {model_name}")
         ModelManager().download_model(model_name)
 
-        self.synthesize_process = Process(target=CoquiEngine._synthesize_worker, args=(child_synthesize_pipe, model_name, cloning_reference_wav, language, self.main_synthesize_ready_event, level, self.speed))
+        self.synthesize_process = Process(target=CoquiEngine._synthesize_worker, args=(child_synthesize_pipe, model_name, cloning_reference_wav, language, self.main_synthesize_ready_event, level, self.speed, thread_count, stream_chunk_size, full_sentences))
         self.synthesize_process.start()
 
         logging.debug('Waiting for coqui text to speech synthesize model to start')
@@ -51,7 +54,7 @@ class CoquiEngine(BaseEngine):
 
 
     @staticmethod
-    def _synthesize_worker(conn, model_name, cloning_reference_wav, language, ready_event, loglevel, speed):
+    def _synthesize_worker(conn, model_name, cloning_reference_wav, language, ready_event, loglevel, speed, thread_count, stream_chunk_size, full_sentences):
         """
         Worker process for the coqui text to speech synthesis model.
 
@@ -121,13 +124,17 @@ class CoquiEngine(BaseEngine):
         logging.debug(f"Initializing coqui model {model_name} with cloning reference wave file {cloning_reference_wav} and language {language}")
 
         try:
-            torch.set_num_threads(int(os.environ.get("NUM_THREADS", "2")))
+            torch.set_num_threads(int(str(thread_count)))
 
-            # Check if CUDA is available, else use CPU
+            # Check if CUDA or MPS is available, else use CPU
             if torch.cuda.is_available():
+                logging.info("CUDA available, GPU inference used.")
                 device = torch.device("cuda")
+            elif torch.backends.mps.is_available() and torch.backends.mps.is_built():
+                logging.info("MPS available, GPU inference used.")
+                device = torch.device("mps")
             else:
-                logging.info("CUDA not available, CPU inference used.")
+                logging.info("CUDA and MPS not available, CPU inference used.")
                 device = torch.device("cpu")
 
             model_path = os.path.join(get_user_data_dir("tts"), model_name.replace("/", "--"))
@@ -185,7 +192,7 @@ class CoquiEngine(BaseEngine):
                         gpt_cond_latent,
                         speaker_embedding,
                         # decoder = "ne_hifigan",
-                        stream_chunk_size=20,
+                        stream_chunk_size=stream_chunk_size,
                         # repetition_penalty=10.0,
                         # temperature=0.75,
                         repetition_penalty=7.0,
@@ -194,9 +201,19 @@ class CoquiEngine(BaseEngine):
                         enable_text_splitting=True
                     )
 
-                    for i, chunk in enumerate(chunks):
-                        chunk = postprocess_wave(chunk)
-                        conn.send(('success', chunk.tobytes()))
+                    if full_sentences:
+                        chunklist = []
+
+                        for i, chunk in enumerate(chunks):
+                            chunk = postprocess_wave(chunk)
+                            chunklist.append(chunk.tobytes())
+
+                        for chunk in chunklist:
+                            conn.send(('success', chunk))
+                    else:
+                        for i, chunk in enumerate(chunks):
+                            chunk = postprocess_wave(chunk)
+                            conn.send(('success', chunk.tobytes()))                            
 
                     # Send silent audio
                     sample_rate = config.audio.sample_rate  
