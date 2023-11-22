@@ -23,16 +23,20 @@ https://github.com/KoljaB/RealtimeTTS/assets/7604638/87dcd9a5-3a4e-4f57-be45-837
 
 ### Updates
 
+#### v0.2.4
+- added more config options to CoquiEngine constructor
+- support for metal shaders gpu acceleration (you may need to set the environment variable `PYTORCH_ENABLE_MPS_FALLBACK=1` to use the CPU as a fallback for ops not implemented in mps yet)
+
 #### v0.2.2
-- Upgrade to Coqui XTTS 2.0.2
+- upgrade to Coqui XTTS 2.0.2
 
 #### v0.2.0
-- Support of Coqui XTTS 2.0
+- support of Coqui XTTS 2.0
 
 #### v0.1.9
-- Upgrade to PyTorch 2.1.0
-- Support of new OpenAI API
-- Support of Coqui XTTS 1.1  
+- upgrade to PyTorch 2.1.0
+- support of new OpenAI API
+- support of Coqui XTTS 1.1  
 
 ## Tech Stack
 
