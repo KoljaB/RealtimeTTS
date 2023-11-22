@@ -393,9 +393,10 @@ Contributions are always welcome (e.g. PR to add a new engine).
 
 ## License
 
-MIT
-
-Please respect the different licenses of the engine providers:
+❗
+While the source of this library is under MIT, the libraries it depends on are not.  
+A lot of external engine providers currently DO NOT ALLOW commercial use together with their free plans.
+Please read and respect the different licenses of the different engine providers.
 
 [CoquiEngine](https://coqui.ai/cpml)
 - non-commercial for free plan, commercial paid plans available
@@ -409,7 +410,6 @@ Please respect the different licenses of the engine providers:
 SystemEngine:  
 - GNU Lesser General Public License (LGPL) version 3.0  
 - commercial use allowed
-
 
 ## Author
 
