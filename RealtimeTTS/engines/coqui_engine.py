@@ -316,13 +316,13 @@ class CoquiEngine(BaseEngine):
         #text= re.sub("([^\x00-\x7F]|\w)(\.|\。|\?)",r"\1 \2",text)
 
         try:
-            if text[-1] in ["."]:
+            if len(text) > 2 and text[-1] in ["."]:
                 text = text[:-1] 
-            elif text[-1] in ["!", "?", ","]:
+            elif len(text) > 2 and text[-1] in ["!", "?", ","]:
                 text = text[:-1] + " " + text[-1]
-            elif text[-2] in ["."]:
+            elif len(text) > 3 and text[-2] in ["."]:
                 text = text[:-2] 
-            elif text[-2] in ["!", "?", ","]:
+            elif len(text) > 3 and text[-2] in ["!", "?", ","]:
                 text = text[:-2] + " " + text[-2]
         except Exception as e:
             logging.warning (f"Error fixing sentence end punctuation: {e}, Text: \"{text}\"")
