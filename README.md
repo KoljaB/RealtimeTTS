@@ -23,6 +23,11 @@ https://github.com/KoljaB/RealtimeTTS/assets/7604638/87dcd9a5-3a4e-4f57-be45-837
 
 ### Updates
 
+#### v0.2.6
+
+- metal shader support configurable via coqui engine constructor (set env variable PYTORCH_ENABLE_MPS_FALLBACK=1 to use mps)
+- fix for sentence end punctuation handling bug
+
 #### v0.2.4
 - added more config options to CoquiEngine constructor
 - support for metal shaders gpu acceleration (you may need to set the environment variable `PYTORCH_ENABLE_MPS_FALLBACK=1` to use the CPU as a fallback for ops not implemented in mps yet)
