@@ -4,7 +4,7 @@
 
 ## About the Project
 
-RealtimeTTS converts text streams into immediate auditory output. 
+RealtimeTTS converts text streams into immediate auditory output by identifying synthesizable sentence fragments. 
 
 It's ideal for:
 
@@ -15,37 +15,15 @@ https://github.com/KoljaB/RealtimeTTS/assets/7604638/87dcd9a5-3a4e-4f57-be45-837
 
 ### Features
 
-- **Realtime Streaming**: Synthesis and playback of speech as text is being generated or input
+- **Realtime Streaming**: Synthesis and playback of speech as text is being generated, for example by LLMs
 - **Sentence Segmentation**: Advanced sentence boundary detection, ensuring immediate reaction time by isolating fast-synthesizable fragments.
-- **Modular Engine Design**: System TTS, Azure and Elevenlabs supported with the possibility to add custom Text-to-Speech engines
+- **Modular Engine Design**: System TTS, Azure, Elevenlabs and Coqui supported with the possibility to add custom Text-to-Speech engines
 
 > **Hint**: *Check out [RealtimeSTT](https://github.com/KoljaB/RealtimeSTT), the input counterpart of this library, for speech-to-text capabilities. Together, they form a powerful realtime audio wrapper around large language models.*
 
 ### Updates
 
-#### v0.2.7
-- added options for coqui constructor (specify XTTS model, local download folder, deepspeed option, prepare_text_for_synthesis_callback)
-- switch back to XTTS v2.0.2 now as default (v2.0.3 seems to perform worse right now)
-
-#### v0.2.6
-- metal shader support configurable via coqui engine constructor (set env variable PYTORCH_ENABLE_MPS_FALLBACK=1 to use mps)
-- fix for sentence end punctuation handling bug
-
-#### v0.2.4
-- added more config options to CoquiEngine constructor
-- support for metal shaders gpu acceleration (you may need to set the environment variable `PYTORCH_ENABLE_MPS_FALLBACK=1` to use the CPU as a fallback for ops not implemented in mps yet)
-- default voice added in case no wav or speaker latents json file present
-
-#### v0.2.2
-- upgrade to Coqui XTTS 2.0.2
-
-#### v0.2.0
-- support of Coqui XTTS 2.0
-
-#### v0.1.9
-- upgrade to PyTorch 2.1.0
-- support of new OpenAI API
-- support of Coqui XTTS 1.1  
+> Please check the [release history](https://github.com/KoljaB/RealtimeTTS/releases) for detailled informations about recent updates.
 
 ## Tech Stack
 
