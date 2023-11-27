@@ -25,7 +25,7 @@ https://github.com/KoljaB/RealtimeTTS/assets/7604638/87dcd9a5-3a4e-4f57-be45-837
 
 #### v0.2.7
 - added options for coqui constructor (specify XTTS model, local download folder, deepspeed option, prepare_text_for_synthesis_callback)
-- switch back to XTTS v2.0.2 now as default because v2.0.3 delivers some strange results right now
+- switch back to XTTS v2.0.2 now as default (v2.0.3 seems to perform worse right now)
 
 #### v0.2.6
 - metal shader support configurable via coqui engine constructor (set env variable PYTORCH_ENABLE_MPS_FALLBACK=1 to use mps)
