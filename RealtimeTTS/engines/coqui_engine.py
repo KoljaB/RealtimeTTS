@@ -2,6 +2,7 @@ from multiprocessing import Process, Pipe, Event
 from .base_engine import BaseEngine
 import numpy as np
 import traceback
+import requests
 import logging
 import pyaudio
 import torch
@@ -14,6 +15,8 @@ class CoquiEngine(BaseEngine):
 
     def __init__(self, 
                  model_name = "tts_models/multilingual/multi-dataset/xtts_v2",
+                 specific_model = "2.0.2",
+                 local_models_path = None, # specify a global model path here (otherwise it will create a directory "models" in the script directory)
                  cloning_reference_wav: str = "female.wav",
                  language = "en",
                  speed = 1.0,
@@ -28,32 +31,59 @@ class CoquiEngine(BaseEngine):
                  enable_text_splitting = True,
                  full_sentences = False,
                  level=logging.WARNING,
-                 use_mps = False
+                 use_mps = False,
+                 use_deepspeed = False,
+                 prepare_text_for_synthesis_callback = None,
                  ):
         """
         Initializes a coqui voice realtime text to speech engine object.
 
         Args:
             model_name (str): Name of the coqui model to use. Tested with XTTS only.
+            specific_model (str): Name of the specific model to use. If not specified, the most recent model will be downloaded.
+            local_models_path (str): Path to a local models directory. If not specified, a directory "models" will be created in the script directory.
             cloning_reference_wav (str): Name to the file containing the voice to clone. Works with a 44100Hz or 22050Hz mono 32bit float WAV file.
             language (str): Language to use for the coqui model.
+            speed (float): Speed factor for the coqui model.
+            thread_count (int): Number of threads to use for the coqui model.
+            stream_chunk_size (int): Chunk size for the coqui model.
+            overlap_wav_len (int): Overlap length for the coqui model.
+            temperature (float): Temperature for the coqui model.
+            length_penalty (float): Length penalty for the coqui model.
+            repetition_penalty (float): Repetition penalty for the coqui model.
+            top_k (int): Top K for the coqui model. 
+            top_p (float): Top P for the coqui model.
+            enable_text_splitting (bool): Enable text splitting for the coqui model.
+            full_sentences (bool): Enable full sentences for the coqui model.
+            level (int): Logging level for the coqui model.
+            use_mps (bool): Enable MPS for the coqui model.
+            use_deepspeed (bool): Enable deepspeed for the coqui model.
+            prepare_text_for_synthesis_callback (function): Function to prepare text for synthesis. If not specified, a default sentence parser will be used. 
         """
 
         self.model_name = model_name
         self.language = language
         self.cloning_reference_wav = cloning_reference_wav
         self.speed = speed
+        self.specific_model = specific_model
+        self.local_models_path = local_models_path
+        self.prepare_text_for_synthesis_callback = prepare_text_for_synthesis_callback
 
         # Start the worker process
         self.main_synthesize_ready_event = Event()
         self.parent_synthesize_pipe, child_synthesize_pipe = Pipe()
 
         # download coqui model
-        from TTS.utils.manage import ModelManager
-        logging.info(f"Downloading XTTS Model: {model_name}")
-        ModelManager().download_model(model_name)
+        self.local_model_path = None
+        if not self.specific_model:
+            from TTS.utils.manage import ModelManager
+            logging.info(f"Download most recent XTTS Model if available")
+            ModelManager().download_model(model_name)
+        else:
+            logging.info(f"Local XTTS Model: \"{specific_model}\" specified")
+            self.local_model_path = self.download_model(specific_model, local_models_path)
 
-        self.synthesize_process = Process(target=CoquiEngine._synthesize_worker, args=(child_synthesize_pipe, model_name, cloning_reference_wav, language, self.main_synthesize_ready_event, level, self.speed, thread_count, stream_chunk_size, full_sentences, overlap_wav_len, temperature, length_penalty, repetition_penalty, top_k, top_p, enable_text_splitting, use_mps))
+        self.synthesize_process = Process(target=CoquiEngine._synthesize_worker, args=(child_synthesize_pipe, model_name, cloning_reference_wav, language, self.main_synthesize_ready_event, level, self.speed, thread_count, stream_chunk_size, full_sentences, overlap_wav_len, temperature, length_penalty, repetition_penalty, top_k, top_p, enable_text_splitting, use_mps, self.local_model_path, use_deepspeed))
         self.synthesize_process.start()
 
         logging.debug('Waiting for coqui text to speech synthesize model to start')
@@ -62,7 +92,7 @@ class CoquiEngine(BaseEngine):
 
 
     @staticmethod
-    def _synthesize_worker(conn, model_name, cloning_reference_wav, language, ready_event, loglevel, speed, thread_count, stream_chunk_size, full_sentences, overlap_wav_len, temperature, length_penalty, repetition_penalty, top_k, top_p, enable_text_splitting, use_mps):
+    def _synthesize_worker(conn, model_name, cloning_reference_wav, language, ready_event, loglevel, speed, thread_count, stream_chunk_size, full_sentences, overlap_wav_len, temperature, length_penalty, repetition_penalty, top_k, top_p, enable_text_splitting, use_mps, local_model_path, use_deepspeed):
         """
         Worker process for the coqui text to speech synthesis model.
 
@@ -140,9 +170,11 @@ class CoquiEngine(BaseEngine):
         logging.debug(f"Initializing coqui model {model_name} with cloning reference wave file {cloning_reference_wav} and language {language}")
 
         try:
+            logging.debug(f"Setting torch threads to {thread_count}")
             torch.set_num_threads(int(str(thread_count)))
 
             # Check if CUDA or MPS is available, else use CPU
+            logging.debug (f"Checking for CUDA and MPS availability")
             if torch.cuda.is_available():
                 logging.info("CUDA available, GPU inference used.")
                 device = torch.device("cuda")
@@ -153,26 +185,42 @@ class CoquiEngine(BaseEngine):
                 logging.info("CUDA and MPS not available, CPU inference used.")
                 device = torch.device("cpu")
 
-            model_path = os.path.join(get_user_data_dir("tts"), model_name.replace("/", "--"))
+            logging.debug (f"Torch device set.")
 
-            print (model_path)
+            if local_model_path:
+                logging.debug (f"Starting TTS with local path from {local_model_path} ")
 
-            config = load_config((os.path.join(model_path, "config.json")))
-            tts = setup_tts_model(config)
-            tts.load_checkpoint(
-                config,
-                checkpoint_path=os.path.join(model_path, "model.pth"),
-                vocab_path=os.path.join(model_path, "vocab.json"),
-                eval=True,
-                use_deepspeed=False,
-            )
+                config = load_config((os.path.join(local_model_path, "config.json")))
+                tts = setup_tts_model(config)
+                tts.load_checkpoint(
+                    config,
+                    checkpoint_path=os.path.join(local_model_path, "model.pth"),
+                    vocab_path=os.path.join(local_model_path, "vocab.json"),
+                    eval=True,
+                    use_deepspeed=use_deepspeed,
+                )                
+            else:
+                model_path = os.path.join(get_user_data_dir("tts"), model_name.replace("/", "--"))
+                logging.debug (f"Starting TTS with autoupdate from {model_path} ")
+
+                config = load_config((os.path.join(model_path, "config.json")))
+                tts = setup_tts_model(config)
+                tts.load_checkpoint(
+                    config,
+                    checkpoint_path=os.path.join(model_path, "model.pth"),
+                    vocab_path=os.path.join(model_path, "vocab.json"),
+                    eval=True,
+                    use_deepspeed=use_deepspeed,
+                )
             tts.to(device)
+
             logging.debug("XTTS Model loaded.")
+
 
             gpt_cond_latent, speaker_embedding = get_conditioning_latents(cloning_reference_wav)
 
         except Exception as e:
-            logging.exception(f"Error initializing main faster_whisper transcription model: {e}")
+            logging.exception(f"Error initializing main coqui engine model: {e}")
             raise
 
         ready_event.set()
@@ -292,17 +340,23 @@ class CoquiEngine(BaseEngine):
                   - Sample Rate (int): The sample rate of the audio in Hz. 16000 represents 16kHz sample rate.
         """        
         return pyaudio.paFloat32, 1, 24000
-
-    def synthesize(self, 
-                   text: str):
+    
+    def _prepare_text_for_synthesis(self, text: str):
         """
-        Synthesizes text to audio stream.
+        Splits a text into sentences.
 
         Args:
-            text (str): Text to synthesize.
+            text (str): Text to prepare for synthesis.
+
+        Returns:
+            text (str): Prepared text.
         """
 
+        if self.prepare_text_for_synthesis_callback:
+            return self.prepare_text_for_synthesis_callback(text)
+
         # A fast fix for last character, may produce weird sounds if it is with text
+        text = text.strip()
         text = text.replace("</s>", "")
         text = re.sub("```.*```", "", text, flags=re.DOTALL)
         text = re.sub("`.*`", "", text, flags=re.DOTALL)
@@ -325,9 +379,21 @@ class CoquiEngine(BaseEngine):
             elif len(text) > 3 and text[-2] in ["!", "?", ","]:
                 text = text[:-2] + " " + text[-2]
         except Exception as e:
-            logging.warning (f"Error fixing sentence end punctuation: {e}, Text: \"{text}\"")
-
+            logging.warning (f"Error fixing sentence end punctuation: {e}, Text: \"{text}\"")        
+        
         text = text.strip()
+        return text
+
+    def synthesize(self, 
+                   text: str):
+        """
+        Synthesizes text to audio stream.
+
+        Args:
+            text (str): Text to synthesize.
+        """
+
+        text = self._prepare_text_for_synthesis(text)
 
         if len(text) <= 3:
             return
@@ -342,7 +408,40 @@ class CoquiEngine(BaseEngine):
                 break
             if not 'error' in status:
                 self.queue.put(result)
-            status, result = self.parent_synthesize_pipe.recv()         
+            status, result = self.parent_synthesize_pipe.recv()
+
+    @staticmethod
+    def download_model(model_name = "2.0.2", local_models_path = None):
+
+        # Creating a unique folder for each model version
+        if local_models_path:
+            model_folder = os.path.join(local_models_path, f'v{model_name}')
+            logging.info(f"Local models path: \"{model_folder}\"")
+        else:
+            model_folder = os.path.join(os.getcwd(), 'models', f'v{model_name}')
+            logging.info(f"Checking for models within application directory: \"{model_folder}\"")
+
+        os.makedirs(model_folder, exist_ok=True)
+
+        files = {
+            "config.json": f"https://huggingface.co/coqui/XTTS-v2/raw/v{model_name}/config.json",
+            "model.pth": f"https://huggingface.co/coqui/XTTS-v2/resolve/v{model_name}/model.pth?download=true",
+            "vocab.json": f"https://huggingface.co/coqui/XTTS-v2/raw/v{model_name}/vocab.json"
+        }
+
+        for file_name, url in files.items():
+            file_path = os.path.join(model_folder, file_name)
+            if not os.path.exists(file_path):
+                logging.info(f"Downloading {file_name}...")
+                r = requests.get(url, allow_redirects=True)
+                with open(file_path, 'wb') as f:
+                    f.write(r.content)
+                logging.info(f"{file_name} downloaded successfully.")
+            else:
+                logging.info(f"{file_name} already exists. Skipping download.")
+
+
+        return model_folder            
 
     def get_voices(self):
         """
@@ -394,3 +493,4 @@ class CoquiEngine(BaseEngine):
         # Wait for the process to terminate
         self.synthesize_process.join()
         logging.info('Worker process has been terminated')
+
