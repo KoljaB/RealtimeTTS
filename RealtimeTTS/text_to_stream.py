@@ -1,18 +1,18 @@
 from .threadsafe_generators import CharIterator, AccumulatingThreadSafeGenerator
 from .stream_player import StreamPlayer, AudioConfiguration
-from typing import Union, Iterator
+from typing import Union, Iterator, List
 from .engines import BaseEngine
-
 import stream2sentence as s2s
 import threading
 import logging
 import queue
+import time
 
 
 class TextToAudioStream:
 
     def __init__(self, 
-                 engine: BaseEngine,
+                 engine: Union[BaseEngine, List[BaseEngine]],
                  log_characters: bool = False,
                  on_text_stream_start=None,
                  on_text_stream_stop=None,
@@ -59,7 +59,15 @@ class TextToAudioStream:
 
         self.on_character = on_character
 
-        self.load_engine(engine)
+        self.engine_index = 0
+        if isinstance(engine, list):
+            # Handle the case where engine is a list of BaseEngine instances
+            self.engines = engine
+        else:
+            # Handle the case where engine is a single BaseEngine instance
+            self.engines = [engine]        
+
+        self.load_engine(self.engines[self.engine_index])
         
 
     def load_engine(self, 
@@ -70,7 +78,7 @@ class TextToAudioStream:
 
         Args:
             engine (BaseEngine): The synthesis engine to be used for converting text to audio.
-        """        
+        """
 
         # Store the engine instance (responsible for text-to-audio conversion)
         self.engine = engine
@@ -81,6 +89,8 @@ class TextToAudioStream:
         # Check if the engine doesn't support consuming generators directly
         if not self.engine.can_consume_generators:
             self.player = StreamPlayer(self.engine.queue, AudioConfiguration(format, channels, rate), on_playback_start=self.on_audio_stream_start)
+
+        logging.info(f"loaded engine {self.engine.engine_name}")
 
 
     def feed(self, 
@@ -198,7 +208,32 @@ class TextToAudioStream:
                         sentence = sentence_queue.get()
                         if sentence is None:  # Sentinel value to stop the worker
                             break
-                        self.engine.synthesize(sentence)
+
+                        synthesis_successful = False
+                        while not synthesis_successful:
+                            try:
+                                success = self.engine.synthesize(sentence)
+                                if success:
+                                    synthesis_successful = True
+                                else:
+                                    logging.warning(f"engine {self.engine.engine_name} failed to synthesize sentence \"sentence\", unknown error")
+
+                            except Exception as e:
+                                logging.warning(f"engine {self.engine.engine_name} failed to synthesize sentence \"sentence\" with error: {e}")
+
+                            if not synthesis_successful:
+                                if len(self.engines) == 1:
+                                    time.sleep(0.2)
+                                    logging.warning(f"engine {self.engine.engine_name} is the only engine available, can't switch to another engine, trying again")
+                                else:
+                                    logging.warning(f"fallback engine(s) available, switching to next engine")
+                                    self.engine_index = (self.engine_index + 1) % len(self.engines)
+
+                                    self.player.stop()
+                                    self.load_engine(self.engines[self.engine_index])
+                                    self.player.start()
+
+
                         sentence_queue.task_done()
 
 
@@ -401,4 +436,4 @@ class TextToAudioStream:
                 logging.info(f"-- [\"{synthesis_chunk}\"], buffered {buffered_audio_seconds:.1f}s")
             
             # Yield the remaining synthesis_chunk
-            yield synthesis_chunk
+            yield synthesis_chunki

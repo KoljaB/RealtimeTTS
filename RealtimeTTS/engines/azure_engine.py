@@ -1,9 +1,9 @@
-from .base_engine import BaseEngine
 import azure.cognitiveservices.speech as tts
-import pyaudio
-import requests
-import logging
+from .base_engine import BaseEngine
 from typing import Union
+import requests
+import pyaudio
+import logging
 
 class PushAudioOutputStreamSampleCallback(tts.audio.PushAudioOutputStreamCallback):
     """
@@ -71,6 +71,9 @@ class AzureEngine(BaseEngine):
         self.rate = rate
         self.pitch = pitch
 
+    def post_init(self):
+        self.engine_name = "azure"
+
     def get_stream_info(self):
         """
         Returns the audio stream configuration information suitable for PyAudio.
@@ -84,7 +87,7 @@ class AzureEngine(BaseEngine):
         return pyaudio.paInt16, 1, 16000
 
     def synthesize(self, 
-                   text: str):
+                   text: str) -> bool:
         """
         Synthesizes text to audio stream.
 
@@ -117,6 +120,7 @@ class AzureEngine(BaseEngine):
 
         if result.reason == tts.ResultReason.SynthesizingAudioCompleted:
             logging.debug(f"Speech synthesized")
+            return True
         elif result.reason == tts.ResultReason.Canceled:
             cancellation_details = result.cancellation_details
             print(f"Speech synthesis canceled, check speech_key and service_region: {result.reason}")

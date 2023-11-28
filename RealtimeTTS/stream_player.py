@@ -2,10 +2,10 @@
 Stream management
 """
 
-import pyaudio
-import queue
 import threading
+import pyaudio
 import logging
+import queue
 import time
 
 

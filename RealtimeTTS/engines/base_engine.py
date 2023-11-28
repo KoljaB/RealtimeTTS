@@ -1,6 +1,6 @@
 from abc import ABCMeta, ABC, abstractmethod
-import queue
 from typing import Union
+import queue
 
 # Define a meta class that will automatically call the BaseEngine's __init__ method
 # and also the post_init method if it exists.
@@ -23,6 +23,8 @@ class BaseInitMeta(ABCMeta):
 class BaseEngine(ABC, metaclass=BaseInitMeta):
 
     def __init__(self):
+        self.engine_name = "unknown"
+
         # Indicates if the engine can handle generators.
         self.can_consume_generators = False
         
@@ -42,7 +44,7 @@ class BaseEngine(ABC, metaclass=BaseInitMeta):
         raise NotImplementedError("The get_stream_info method must be implemented by the derived class.")
 
     def synthesize(self, 
-                   text: str):        
+                   text: str) -> bool:
         """
         Synthesizes text to audio stream.
 

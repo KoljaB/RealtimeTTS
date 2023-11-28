@@ -3,7 +3,6 @@ from elevenlabs.api import Voice, VoiceSettings
 from .base_engine import BaseEngine
 from typing import Iterator
 from typing import Union
-
 import elevenlabs
 import subprocess
 import threading
@@ -64,6 +63,7 @@ class ElevenlabsEngine(BaseEngine):
     def post_init(self):
         """ Information that this engine can handle generators directly """ 
         self.can_consume_generators = True
+        self.engine_name = "elevenlabs"
 
     def get_stream_info(self):
         """
@@ -91,7 +91,7 @@ class ElevenlabsEngine(BaseEngine):
         return True
 
     def synthesize(self, 
-                   generator: Iterator[str]):
+                   generator: Iterator[str]) -> bool:
         """
         Synthesizes text to audio stream.
 
@@ -117,6 +117,8 @@ class ElevenlabsEngine(BaseEngine):
         )
 
         stream(self.audio_stream)
+
+        return True
         
     def set_api_key(self, api_key: str):
         """

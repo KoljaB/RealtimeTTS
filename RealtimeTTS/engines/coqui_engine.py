@@ -66,6 +66,10 @@ class CoquiEngine(BaseEngine):
         self.cloning_reference_wav = cloning_reference_wav
         self.speed = speed
         self.specific_model = specific_model
+        if not local_models_path:
+            local_models_path = os.environ.get("COQUI_MODEL_PATH")
+            if local_models_path and len(local_models_path) > 0:
+                logging.info(f"Local models path from environment variable COQUI_MODEL_PATH: \"{local_models_path}\"")
         self.local_models_path = local_models_path
         self.prepare_text_for_synthesis_callback = prepare_text_for_synthesis_callback
 
@@ -90,6 +94,8 @@ class CoquiEngine(BaseEngine):
         self.main_synthesize_ready_event.wait()
         logging.info('Coqui synthesis model ready')
 
+    def post_init(self):
+        self.engine_name = "coqui"
 
     @staticmethod
     def _synthesize_worker(conn, model_name, cloning_reference_wav, language, ready_event, loglevel, speed, thread_count, stream_chunk_size, full_sentences, overlap_wav_len, temperature, length_penalty, repetition_penalty, top_k, top_p, enable_text_splitting, use_mps, local_model_path, use_deepspeed):
@@ -250,6 +256,7 @@ class CoquiEngine(BaseEngine):
 
                     logging.debug(f'Starting inference for text: {text}')
 
+                    raise ValueError("heut kein Bock")
                     chunks =  tts.inference_stream(
                         text,
                         language,
@@ -296,7 +303,7 @@ class CoquiEngine(BaseEngine):
         
         except KeyboardInterrupt:
             logging.info('Keyboard interrupt received. Exiting worker process.')
-            conn.send({'status': 'shutdown'})
+            conn.send({'shutdown': 'shutdown'})
 
         except Exception as e:
             logging.error(f"General synthesis error: {e} occured trying to synthesize text {text}")
@@ -385,7 +392,7 @@ class CoquiEngine(BaseEngine):
         return text
 
     def synthesize(self, 
-                   text: str):
+                   text: str) -> bool:
         """
         Synthesizes text to audio stream.
 
@@ -404,17 +411,18 @@ class CoquiEngine(BaseEngine):
         status, result = self.parent_synthesize_pipe.recv()
 
         while not 'finished' in status:
-            if 'shutdown' in status:
-                break
-            if not 'error' in status:
-                self.queue.put(result)
+            if 'shutdown' in status or 'error' in status:
+                return False
+            self.queue.put(result)
             status, result = self.parent_synthesize_pipe.recv()
+
+        return True
 
     @staticmethod
     def download_model(model_name = "2.0.2", local_models_path = None):
 
         # Creating a unique folder for each model version
-        if local_models_path:
+        if local_models_path and len(local_models_path) > 0:
             model_folder = os.path.join(local_models_path, f'v{model_name}')
             logging.info(f"Local models path: \"{model_folder}\"")
         else:

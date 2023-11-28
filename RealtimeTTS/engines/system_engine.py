@@ -1,10 +1,10 @@
 from .base_engine import BaseEngine
+from typing import Union
+import tempfile
 import pyaudio
 import pyttsx3
-import os
-import tempfile
 import wave
-from typing import Union
+import os
 
 SYNTHESIS_FILE = 'system_speech_synthesis.wav' 
 
@@ -54,7 +54,7 @@ class SystemEngine(BaseEngine):
         return pyaudio.paInt16, 1, 22050
 
     def synthesize(self, 
-                   text: str):
+                   text: str) -> bool:
         """
         Synthesizes text to audio stream.
 
@@ -68,7 +68,9 @@ class SystemEngine(BaseEngine):
         # Open the saved WAV file
         with wave.open(self.file_path, 'rb') as wf:
             audio_data = wf.readframes(wf.getnframes())
-            self.queue.put(audio_data)           
+            self.queue.put(audio_data)
+
+        return True           
 
     def get_voices(self):
         """

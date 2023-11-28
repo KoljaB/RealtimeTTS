@@ -10,9 +10,8 @@
 # """
 
 
-import threading
-from collections import deque
 from typing import Union, Iterator
+import threading
 
 class CharIterator:
     """
