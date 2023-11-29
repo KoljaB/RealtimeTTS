@@ -1,8 +1,7 @@
 from elevenlabs import voices, generate, stream
 from elevenlabs.api import Voice, VoiceSettings
+from typing import Iterator, Union, Optional
 from .base_engine import BaseEngine
-from typing import Iterator
-from typing import Union
 import elevenlabs
 import subprocess
 import threading
@@ -57,6 +56,8 @@ class ElevenlabsEngine(BaseEngine):
         self.model = model
         self.pause_event = threading.Event()
         self.immediate_stop = threading.Event()
+        self.on_audio_chunk = None
+        self.on_playback_started = False
 
         self.set_api_key(api_key)
         
@@ -75,7 +76,7 @@ class ElevenlabsEngine(BaseEngine):
                   - Channels (int): The number of audio channels. 1 represents mono audio.
                   - Sample Rate (int): The sample rate of the audio in Hz. 16000 represents 16kHz sample rate.
         """        
-        return pyaudio.paInt16, 1, 16000
+        return pyaudio.paCustomFormat, 1, 16000
     
     def pause(self):
         """Pauses playback of the synthesized audio stream (won't work properly with elevenlabs)."""
@@ -98,7 +99,8 @@ class ElevenlabsEngine(BaseEngine):
         Args:
             text (str): Text to synthesize.
         """
-
+        
+        self.on_playback_started = False
         self.immediate_stop.clear()
 
         voice_object = Voice.from_id(self.id)
@@ -116,7 +118,7 @@ class ElevenlabsEngine(BaseEngine):
             stream=True
         )
 
-        stream(self.audio_stream)
+        self.stream(self.audio_stream)
 
         return True
         
@@ -130,7 +132,8 @@ class ElevenlabsEngine(BaseEngine):
         self.api_key = api_key
         if api_key: 
             elevenlabs.set_api_key(api_key)
-    
+
+
     def stream(self, audio_stream: Iterator[bytes]) -> bytes:
         """
         Stream the audio data using the 'mpv' player.
@@ -144,13 +147,14 @@ class ElevenlabsEngine(BaseEngine):
 
         Args:
             audio_stream (Iterator[bytes]): An iterator that yields bytes of audio data.
+            filename (Optional[str], optional): The filename to save the audio to. Defaults to None.
 
         Returns:
             bytes: The concatenated bytes of the entire audio stream.
 
         Raises:
             ValueError: If the 'mpv' player is not found.
-        """        
+        """       
         if not self.is_installed("mpv"):
             message = (
                 "mpv not found, necessary to stream audio. "
@@ -169,22 +173,25 @@ class ElevenlabsEngine(BaseEngine):
 
         audio = b""
 
-        try:
+        try: 
             for chunk in audio_stream:
                 if chunk is not None:
+                    if not self.on_playback_started and self.on_playback_start:
+                        self.on_playback_start()
+                    self.on_playback_started = True
                     self.mpv_process.stdin.write(chunk)
                     self.mpv_process.stdin.flush()
                     audio += chunk
+                    if self.on_audio_chunk: 
+                        self.on_audio_chunk(chunk)
         except BrokenPipeError:
-            # broken pipe error if mpv is terminated prematurely
-            # we need to handle this because we terminate the process in stop method
             pass
 
         if self.mpv_process.stdin:
             self.mpv_process.stdin.close()
         self.mpv_process.wait()
 
-        return audio
+        return audio            
     
     def is_installed(self, lib_name: str) -> bool:
         """

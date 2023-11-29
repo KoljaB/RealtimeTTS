@@ -12,14 +12,11 @@ if __name__ == '__main__':
     # test with extended logging:
     import logging
     logging.basicConfig(level=logging.DEBUG)    
-    engine = CoquiEngine()
+    engine = CoquiEngine(level=logging.DEBUG)
 
 
     stream = TextToAudioStream(engine)
     
-    import os
-    os.system('clear' if os.name == 'posix' else 'cls')
-
     print ("Starting to play stream")
     stream.feed(dummy_generator()).play()
 

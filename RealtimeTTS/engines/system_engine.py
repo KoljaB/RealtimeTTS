@@ -40,10 +40,12 @@ class SystemEngine(BaseEngine):
         if print_installed_voices:
             print (self.get_voices())
 
+    def post_init(self):
+        self.engine_name = "system"
 
     def get_stream_info(self):
         """
-        Returns the audio stream configuration information suitable for PyAudio.
+        Returns the PyAudio stream configuration information suitable for System Engine.
 
         Returns:
             tuple: A tuple containing the audio format, number of channels, and the sample rate.

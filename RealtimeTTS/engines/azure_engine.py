@@ -76,7 +76,7 @@ class AzureEngine(BaseEngine):
 
     def get_stream_info(self):
         """
-        Returns the audio stream configuration information suitable for PyAudio.
+        Returns the PyAudio stream configuration information suitable for Azure Engine.
 
         Returns:
             tuple: A tuple containing the audio format, number of channels, and the sample rate.
@@ -153,7 +153,7 @@ class AzureEngine(BaseEngine):
 
     def get_voices(self):
         """
-        Retrieves the installed voices available for this Azure Speech engine.
+        Retrieves the installed voices available for the Azure Speech engine.
 
         Sends a request to the Azure Speech API to fetch the list of available voices.
         The method uses the `service_region` and `speech_key` attributes of the instance to authenticate 

@@ -31,6 +31,12 @@ class BaseEngine(ABC, metaclass=BaseInitMeta):
         # Queue to manage tasks or data for the engine.
         self.queue = queue.Queue()
 
+         # Callback to be called when an audio chunk is available.
+        self.on_audio_chunk = None
+
+         # Callback to be called when the engine is starting to synthesize audio.
+        self.on_playback_start = None
+
     def get_stream_info(self):
         """
         Returns the audio stream configuration information suitable for PyAudio.
@@ -85,3 +91,9 @@ class BaseEngine(ABC, metaclass=BaseInitMeta):
         This method should be overridden by the derived class to set the desired voice parameters.
         """
         raise NotImplementedError("The set_voice_parameters method must be implemented by the derived class.")
+    
+    def shutdown(self):
+        """
+        Shuts down the engine.
+        """
+        pass
