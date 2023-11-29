@@ -11,10 +11,16 @@ https://github.com/KoljaB/RealtimeTTS/assets/7604638/87dcd9a5-3a4e-4f57-be45-837
 
 ### Key Features
 
-- **Low Latency**: provides almost instantaneous text-to-speech conversion, including compatibility with LLM outputs
-- **High-Quality Audio**: generates clear and natural-sounding speech
-- **Multilingual and Multiple Engine Support**: supports various languages and TTS engines
-- **Robust and Reliable**: ensures continuous operation with a fallback mechanism, switching to alternative engines in case of disruptions which guarantees consistent performance
+- **Low Latency**
+  - provides almost instantaneous text-to-speech conversion
+  - compatible with LLM outputs
+- **High-Quality Audio**
+  - generates clear and natural-sounding speech
+- **Multilingual and Multiple Engine Support**
+  - supports various languages and TTS engines
+- **Robust and Reliable**: 
+  - ensures continuous operation with a fallback mechanism
+  - switches to alternative engines in case of disruptions guaranteeing consistent performance and reliability, which is vital for critical and professional use cases
 
 > **Hint**: *Check out [RealtimeSTT](https://github.com/KoljaB/RealtimeSTT), the input counterpart of this library, for speech-to-text capabilities. Together, they form a powerful realtime audio wrapper around large language models.*
 
