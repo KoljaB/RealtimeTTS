@@ -4,7 +4,7 @@
 
 ## About the Project
 
-RealtimeTTS is a state-of-the-art text-to-speech (TTS) library designed for real-time applications. It stands out in its ability to convert text streams into high-quality auditory output with minimal latency. This makes it an ideal solution for voice assistants, interactive games, and any applications requiring instant audio feedback.
+RealtimeTTS is a state-of-the-art text-to-speech (TTS) library designed for real-time applications. It stands out in its ability to convert text streams fast into high-quality auditory output with minimal latency. 
 
 https://github.com/KoljaB/RealtimeTTS/assets/7604638/87dcd9a5-3a4e-4f57-be45-837fc63237e7
 
@@ -12,7 +12,7 @@ https://github.com/KoljaB/RealtimeTTS/assets/7604638/87dcd9a5-3a4e-4f57-be45-837
 ### Key Features
 
 - **Low Latency**
-  - provides almost instantaneous text-to-speech conversion
+  - almost instantaneous text-to-speech conversion
   - compatible with LLM outputs
 - **High-Quality Audio**
   - generates clear and natural-sounding speech
