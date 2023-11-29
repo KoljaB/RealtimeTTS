@@ -4,20 +4,17 @@
 
 ## About the Project
 
-RealtimeTTS converts text streams into immediate auditory output by identifying synthesizable sentence fragments. 
-
-It's ideal for:
-
-- **Voice Assistants**
-- Applications requiring **instant** audio feedback
+RealtimeTTS is a state-of-the-art text-to-speech (TTS) library designed for real-time applications. It stands out in its ability to convert text streams into high-quality auditory output with minimal latency. This makes it an ideal solution for voice assistants, interactive games, and any applications requiring instant audio feedback.
 
 https://github.com/KoljaB/RealtimeTTS/assets/7604638/87dcd9a5-3a4e-4f57-be45-837fc63237e7
 
-### Features
 
-- **Realtime Streaming**: Synthesis and playback of speech as text is being generated, for example by LLMs
-- **Sentence Segmentation**: Advanced sentence boundary detection, ensuring immediate reaction time by isolating fast-synthesizable fragments.
-- **Modular Engine Design**: System TTS, Azure, Elevenlabs and Coqui supported with the possibility to add custom Text-to-Speech engines
+### Key Features
+
+- **Low Latency**: provides almost instantaneous text-to-speech conversion, including compatibility with LLM outputs
+- **High-Quality Audio**: generates clear and natural-sounding speech
+- **Multilingual and Multiple Engine Support**: supports various languages and TTS engines
+- **Robust and Reliable**: ensures continuous operation with a fallback mechanism, switching to alternative engines in case of disruptions which guarantees consistent performance
 
 > **Hint**: *Check out [RealtimeSTT](https://github.com/KoljaB/RealtimeSTT), the input counterpart of this library, for speech-to-text capabilities. Together, they form a powerful realtime audio wrapper around large language models.*
 
