@@ -1,5 +1,6 @@
 from multiprocessing import Process, Pipe, Event
 from .base_engine import BaseEngine
+from tqdm import tqdm
 import numpy as np
 import traceback
 import requests
@@ -10,14 +11,14 @@ import json
 import os
 import re
 
-
 class CoquiEngine(BaseEngine):
 
     def __init__(self, 
                  model_name = "tts_models/multilingual/multi-dataset/xtts_v2",
                  specific_model = "2.0.2",
                  local_models_path = None, # specify a global model path here (otherwise it will create a directory "models" in the script directory)
-                 cloning_reference_wav: str = "female.wav",
+                 voices_path = None,
+                 cloning_reference_wav: str = "",
                  language = "en",
                  speed = 1.0,
                  thread_count = 6,
@@ -66,12 +67,25 @@ class CoquiEngine(BaseEngine):
         self.cloning_reference_wav = cloning_reference_wav
         self.speed = speed
         self.specific_model = specific_model
+        if not local_models_path:
+            local_models_path = os.environ.get("COQUI_MODEL_PATH")
+            if local_models_path and len(local_models_path) > 0:
+                logging.info(f"Local models path from environment variable COQUI_MODEL_PATH: \"{local_models_path}\"")
         self.local_models_path = local_models_path
         self.prepare_text_for_synthesis_callback = prepare_text_for_synthesis_callback
 
         # Start the worker process
         self.main_synthesize_ready_event = Event()
         self.parent_synthesize_pipe, child_synthesize_pipe = Pipe()
+
+        self.voices_path = voices_path
+        # if not self.voices_path:
+        #     os.makedirs("voices", exist_ok=True)
+        #     self.voices_path = "voices"
+
+            # current_dir = os.path.dirname(os.path.realpath(__file__))
+            # voices_path = os.path.join(current_dir, DEFAULT_VOICES_PATH)
+            # self.voices_path = voices_path 
 
         # download coqui model
         self.local_model_path = None
@@ -83,16 +97,18 @@ class CoquiEngine(BaseEngine):
             logging.info(f"Local XTTS Model: \"{specific_model}\" specified")
             self.local_model_path = self.download_model(specific_model, local_models_path)
 
-        self.synthesize_process = Process(target=CoquiEngine._synthesize_worker, args=(child_synthesize_pipe, model_name, cloning_reference_wav, language, self.main_synthesize_ready_event, level, self.speed, thread_count, stream_chunk_size, full_sentences, overlap_wav_len, temperature, length_penalty, repetition_penalty, top_k, top_p, enable_text_splitting, use_mps, self.local_model_path, use_deepspeed))
+        self.synthesize_process = Process(target=CoquiEngine._synthesize_worker, args=(child_synthesize_pipe, model_name, cloning_reference_wav, language, self.main_synthesize_ready_event, level, self.speed, thread_count, stream_chunk_size, full_sentences, overlap_wav_len, temperature, length_penalty, repetition_penalty, top_k, top_p, enable_text_splitting, use_mps, self.local_model_path, use_deepspeed, self.voices_path))
         self.synthesize_process.start()
 
         logging.debug('Waiting for coqui text to speech synthesize model to start')
         self.main_synthesize_ready_event.wait()
         logging.info('Coqui synthesis model ready')
 
+    def post_init(self):
+        self.engine_name = "coqui"
 
     @staticmethod
-    def _synthesize_worker(conn, model_name, cloning_reference_wav, language, ready_event, loglevel, speed, thread_count, stream_chunk_size, full_sentences, overlap_wav_len, temperature, length_penalty, repetition_penalty, top_k, top_p, enable_text_splitting, use_mps, local_model_path, use_deepspeed):
+    def _synthesize_worker(conn, model_name, cloning_reference_wav, language, ready_event, loglevel, speed, thread_count, stream_chunk_size, full_sentences, overlap_wav_len, temperature, length_penalty, repetition_penalty, top_k, top_p, enable_text_splitting, use_mps, local_model_path, use_deepspeed, voices_path):
         """
         Worker process for the coqui text to speech synthesis model.
 
@@ -118,24 +134,45 @@ class CoquiEngine(BaseEngine):
         def get_conditioning_latents(filename):
             logging.debug(f"Computing speaker latents")
 
+            if not filename or len(filename) == 0:
+                filename = "coqui_default_voice.wav"
+
             # verify that filename ends with .wav
-            if not filename.endswith(".wav"):
-                raise ValueError(f"Filename {filename} must end with .wav")
+            if filename.endswith(".json"):
+                filename_json = filename
+                filename = filename[:-5]
+                filename_wav = filename + "wav"
+            elif filename.endswith(".wav"):
+                filename_json = filename[:-3] + "json"
+                filename = filename[:-4]
+                filename_wav = filename + "wav"
+            else:
+                filename_json = filename + ".json"
+                filename_wav = filename + ".wav"
 
-            filename_json = filename[:-3] + "json"
+            if voices_path:
+                filename_voice_wav = os.path.join(voices_path, filename_wav)
+                filename_voice_json = os.path.join(voices_path, filename_json)
+            else:
+                filename_voice_wav = filename_wav
+                filename_voice_json = filename_json
 
-            if not os.path.exists(filename_json) and not os.path.exists(filename):
-                logging.warn(f"No cloning source file found, using female default voice.")
+            if not os.path.exists(filename_voice_json) and not os.path.exists(filename_voice_wav):
+                if len(filename) > 0:
+                    logging.info(f"Using default female voice, both {filename_voice_json} and {filename_voice_wav} not found.")
+                else:
+                    logging.info(f"Using default female voice, no cloning source specified.")
+                
                 # Get the directory of the current script
                 current_dir = os.path.dirname(os.path.realpath(__file__))
-                filename_json = os.path.join(current_dir, "coqui_default_voice.json")
-                if not os.path.exists(filename_json):
-                    raise ValueError(f"Default voice file {filename_json} not found.")
+                filename_voice_json = os.path.join(current_dir, "coqui_default_voice.json")
+                if not os.path.exists(filename_voice_json):
+                    raise ValueError(f"Default voice file {filename_voice_json} not found.")                
 
             # check if latents are already computed
-            if os.path.exists(filename_json):
-                logging.debug(f"Latents already computed, reading from {filename_json}")
-                with open(filename_json, "r") as new_file:
+            if os.path.exists(filename_voice_json):
+                logging.debug(f"Latents already computed, reading from {filename_voice_json}")
+                with open(filename_voice_json, "r") as new_file:
                     latents = json.load(new_file)
 
                 speaker_embedding = (torch.tensor(latents["speaker_embedding"]).unsqueeze(0).unsqueeze(-1))
@@ -146,13 +183,13 @@ class CoquiEngine(BaseEngine):
             # compute and write latents to json file
             logging.debug(f"Computing latents for {filename}")
 
-            gpt_cond_latent, speaker_embedding = tts.get_conditioning_latents(audio_path=filename, gpt_cond_len=30, max_ref_length=60)
+            gpt_cond_latent, speaker_embedding = tts.get_conditioning_latents(audio_path=filename_voice_wav, gpt_cond_len=30, max_ref_length=60)
 
             latents = {
                 "gpt_cond_latent": gpt_cond_latent.cpu().squeeze().half().tolist(),
                 "speaker_embedding": speaker_embedding.cpu().squeeze().half().tolist(),
             }
-            with open(filename_json, "w") as new_file:
+            with open(filename_voice_json, "w") as new_file:
                 json.dump(latents, new_file)
 
             return gpt_cond_latent, speaker_embedding
@@ -167,7 +204,7 @@ class CoquiEngine(BaseEngine):
             chunk = chunk.astype(np.float32)
             return chunk
 
-        logging.debug(f"Initializing coqui model {model_name} with cloning reference wave file {cloning_reference_wav} and language {language}")
+        logging.debug(f"Initializing coqui model {model_name} with cloning reference {cloning_reference_wav} and language {language}")
 
         try:
             logging.debug(f"Setting torch threads to {thread_count}")
@@ -296,7 +333,7 @@ class CoquiEngine(BaseEngine):
         
         except KeyboardInterrupt:
             logging.info('Keyboard interrupt received. Exiting worker process.')
-            conn.send({'status': 'shutdown'})
+            conn.send({'shutdown': 'shutdown'})
 
         except Exception as e:
             logging.error(f"General synthesis error: {e} occured trying to synthesize text {text}")
@@ -331,7 +368,7 @@ class CoquiEngine(BaseEngine):
 
     def get_stream_info(self):
         """
-        Returns the audio stream configuration information suitable for PyAudio.
+        Returns the PyAudio stream configuration information suitable for Coqui Engine.
 
         Returns:
             tuple: A tuple containing the audio format, number of channels, and the sample rate.
@@ -351,6 +388,8 @@ class CoquiEngine(BaseEngine):
         Returns:
             text (str): Prepared text.
         """
+
+        logging.debug (f"Preparing text for synthesis: \"{text}\"")
 
         if self.prepare_text_for_synthesis_callback:
             return self.prepare_text_for_synthesis_callback(text)
@@ -382,10 +421,13 @@ class CoquiEngine(BaseEngine):
             logging.warning (f"Error fixing sentence end punctuation: {e}, Text: \"{text}\"")        
         
         text = text.strip()
+
+        logging.debug (f"Text after preparation: \"{text}\"")
+
         return text
 
     def synthesize(self, 
-                   text: str):
+                   text: str) -> bool:
         """
         Synthesizes text to audio stream.
 
@@ -395,7 +437,7 @@ class CoquiEngine(BaseEngine):
 
         text = self._prepare_text_for_synthesis(text)
 
-        if len(text) <= 3:
+        if len(text) < 1:
             return
 
         data = {'text': text, 'language': self.language}
@@ -404,17 +446,33 @@ class CoquiEngine(BaseEngine):
         status, result = self.parent_synthesize_pipe.recv()
 
         while not 'finished' in status:
-            if 'shutdown' in status:
-                break
-            if not 'error' in status:
-                self.queue.put(result)
+            if 'shutdown' in status or 'error' in status:
+                return False
+            self.queue.put(result)
             status, result = self.parent_synthesize_pipe.recv()
+
+        return True
+    
+    @staticmethod
+    def download_file(url, destination):
+        response = requests.get(url, stream=True)
+        total_size_in_bytes = int(response.headers.get('content-length', 0))
+        block_size = 1024  # 1 Kibibyte
+
+        progress_bar = tqdm(total=total_size_in_bytes, unit='iB', unit_scale=True)
+
+        with open(destination, 'wb') as file:
+            for data in response.iter_content(block_size):
+                progress_bar.update(len(data))
+                file.write(data)
+
+        progress_bar.close()
 
     @staticmethod
     def download_model(model_name = "2.0.2", local_models_path = None):
 
         # Creating a unique folder for each model version
-        if local_models_path:
+        if local_models_path and len(local_models_path) > 0:
             model_folder = os.path.join(local_models_path, f'v{model_name}')
             logging.info(f"Local models path: \"{model_folder}\"")
         else:
@@ -433,9 +491,10 @@ class CoquiEngine(BaseEngine):
             file_path = os.path.join(model_folder, file_name)
             if not os.path.exists(file_path):
                 logging.info(f"Downloading {file_name}...")
-                r = requests.get(url, allow_redirects=True)
-                with open(file_path, 'wb') as f:
-                    f.write(r.content)
+                CoquiEngine.download_file(url, file_path)
+                # r = requests.get(url, allow_redirects=True)
+                # with open(file_path, 'wb') as f:
+                #     f.write(r.content)
                 logging.info(f"{file_name} downloaded successfully.")
             else:
                 logging.info(f"{file_name} already exists. Skipping download.")
@@ -445,9 +504,24 @@ class CoquiEngine(BaseEngine):
 
     def get_voices(self):
         """
-        Retrieves the voices available in the underlying system's speech engine.
-        """        
-        return []
+        Retrieves the installed voices available for the Coqui TTS engine.
+        """
+        # get all files in self.voices_path directory
+        files = os.listdir(self.voices_path)
+
+        voice_file_names = []
+        for file in files:
+            # remove ending .wav or .json from filename
+            if file.endswith(".wav"):
+                file = file[:-4]
+            elif file.endswith(".json"):
+                file = file[:-5]
+            else:
+                continue
+
+            voice_file_names.append(file)
+
+        return voice_file_names 
     
     def set_voice(self, voice: str):
         """

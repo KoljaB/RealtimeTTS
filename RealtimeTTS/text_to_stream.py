@@ -1,18 +1,20 @@
 from .threadsafe_generators import CharIterator, AccumulatingThreadSafeGenerator
 from .stream_player import StreamPlayer, AudioConfiguration
-from typing import Union, Iterator
+from typing import Union, Iterator, List
 from .engines import BaseEngine
-
 import stream2sentence as s2s
+import numpy as np
 import threading
 import logging
+import pyaudio
 import queue
-
+import time
+import wave
 
 class TextToAudioStream:
 
     def __init__(self, 
-                 engine: BaseEngine,
+                 engine: Union[BaseEngine, List[BaseEngine]],
                  log_characters: bool = False,
                  on_text_stream_start=None,
                  on_text_stream_stop=None,
@@ -45,6 +47,9 @@ class TextToAudioStream:
         self.on_text_stream_stop = on_text_stream_stop
         self.on_audio_stream_start = on_audio_stream_start
         self.on_audio_stream_stop = on_audio_stream_stop
+        self.output_wavfile = None
+        self.chunk_callback = None
+        self.wf = None
 
         self._create_iterators()
         
@@ -59,8 +64,16 @@ class TextToAudioStream:
 
         self.on_character = on_character
 
-        self.load_engine(engine)
-        
+        self.engine_index = 0
+        if isinstance(engine, list):
+            # Handle the case where engine is a list of BaseEngine instances
+            self.engines = engine
+        else:
+            # Handle the case where engine is a single BaseEngine instance
+            self.engines = [engine]        
+
+        self.load_engine(self.engines[self.engine_index])
+
 
     def load_engine(self, 
              engine: BaseEngine):
@@ -70,7 +83,7 @@ class TextToAudioStream:
 
         Args:
             engine (BaseEngine): The synthesis engine to be used for converting text to audio.
-        """        
+        """
 
         # Store the engine instance (responsible for text-to-audio conversion)
         self.engine = engine
@@ -81,6 +94,10 @@ class TextToAudioStream:
         # Check if the engine doesn't support consuming generators directly
         if not self.engine.can_consume_generators:
             self.player = StreamPlayer(self.engine.queue, AudioConfiguration(format, channels, rate), on_playback_start=self.on_audio_stream_start)
+        else:
+            self.engine.on_playback_start = self.on_audio_stream_start
+
+        logging.info(f"loaded engine {self.engine.engine_name}")
 
 
     def feed(self, 
@@ -95,8 +112,7 @@ class TextToAudioStream:
             Self instance.
         """
         self.char_iter.add(text_or_iterator)
-        return self        
-
+        return self
 
     def play_async(self,   
                    fast_sentence_fragment: bool = True,
@@ -104,25 +120,37 @@ class TextToAudioStream:
                    minimum_sentence_length: int = 10, 
                    minimum_first_fragment_length : int = 10,
                    log_synthesized_text = False,
-                   reset_generated_text: bool = True):
+                   reset_generated_text: bool = True,
+                   output_wavfile: str = None,
+                   on_sentence_synthesized = None,
+                   on_audio_chunk = None,
+                   tokenizer: str = "nltk",
+                   language: str = "en",
+                   context_size: int = 12
+                   ):
         """
-        Handles the synthesis of text to audio.
-        Initiates the audio stream playback in a separate thread, allowing the main thread to continue without waiting for the playback to finish.
-        If the engine can't consume generators, it utilizes a player.
-
-        Args:
-        - fast_sentence_fragment: Determines if sentence fragments should be quickly yielded. Useful when a faster response is desired even if a sentence isn't complete.
-        - buffer_threshold_seconds (float): Time in seconds for the buffering threshold, influencing the flow and continuity of audio playback. Set to 0 to deactivate. Default is 0.
-          - How it Works: The system verifies whether there is more audio content in the buffer than the duration defined by buffer_threshold_seconds. If so, it proceeds to synthesize the next sentence, capitalizing on the remaining audio to maintain smooth delivery. A higher value means more audio is pre-buffered, which minimizes pauses during playback. Adjust this upwards if you encounter interruptions.
-        - minimum_sentence_length (int): The minimum number of characters a sentence must have. If a sentence is shorter, it will be concatenated with the following one, improving the overall readability. This parameter does not apply to the first sentence fragment, which is governed by `minimum_first_fragment_length`. Default is 10 characters.
-        - minimum_first_fragment_length (int): The minimum number of characters required for the first sentence fragment before yielding. Default is 10 characters.
-        - log_synthesized_text: If True, logs the synthesized text chunks.
+        Async handling of text to audio synthesis, see play() method.
         """
-        
         self.stream_running = True
-        self.play_thread = threading.Thread(target=self.play, args=(fast_sentence_fragment, buffer_threshold_seconds, minimum_sentence_length, minimum_first_fragment_length, log_synthesized_text, reset_generated_text))
-        self.play_thread.start()        
+        self.play_thread = threading.Thread(target=self.play, args=(fast_sentence_fragment, buffer_threshold_seconds, minimum_sentence_length, minimum_first_fragment_length, log_synthesized_text, reset_generated_text, output_wavfile, on_sentence_synthesized, on_audio_chunk, tokenizer, language, context_size))
+        self.play_thread.start()
 
+    def _on_audio_chunk(self, chunk):
+        format, _, _ = self.engine.get_stream_info()
+        
+        if format == pyaudio.paFloat32:
+            audio_data = np.frombuffer(chunk, dtype=np.float32)
+            audio_data = np.int16(audio_data * 32767)
+            chunk = audio_data.tobytes()
+
+        if self.output_wavfile and self.wf:
+            if self._is_engine_mpeg():
+                self.wf.write(chunk)
+            else:
+                self.wf.writeframes(chunk)
+
+        if self.chunk_callback:
+            self.chunk_callback(chunk)
 
     def play(self,
             fast_sentence_fragment: bool = True,
@@ -130,7 +158,14 @@ class TextToAudioStream:
             minimum_sentence_length: int = 10,
             minimum_first_fragment_length : int = 10,
             log_synthesized_text = False,
-            reset_generated_text: bool = True):
+            reset_generated_text: bool = True,
+            output_wavfile: str = None,
+            on_sentence_synthesized = None,
+            on_audio_chunk = None,
+            tokenizer: str = "nltk",
+            language: str = "en",
+            context_size: int = 12
+            ):
         """
         Handles the synthesis of text to audio.
         Plays the audio stream and waits until it is finished playing.
@@ -140,10 +175,17 @@ class TextToAudioStream:
         - fast_sentence_fragment: Determines if sentence fragments should be quickly yielded. Useful when a faster response is desired even if a sentence isn't complete.
         - buffer_threshold_seconds (float): Time in seconds for the buffering threshold, influencing the flow and continuity of audio playback. Set to 0 to deactivate. Default is 0.
           - How it Works: The system verifies whether there is more audio content in the buffer than the duration defined by buffer_threshold_seconds. If so, it proceeds to synthesize the next sentence, capitalizing on the remaining audio to maintain smooth delivery. A higher value means more audio is pre-buffered, which minimizes pauses during playback. Adjust this upwards if you encounter interruptions.
-        - buffer_threshold_seconds (int): Time in seconds to determine the buffering threshold. Helps to decide when to generate more audio based on buffered content.
+          - Helps to decide when to generate more audio based on buffered content.
         - minimum_sentence_length (int): The minimum number of characters a sentence must have. If a sentence is shorter, it will be concatenated with the following one, improving the overall readability. This parameter does not apply to the first sentence fragment, which is governed by `minimum_first_fragment_length`. Default is 10 characters.
         - minimum_first_fragment_length (int): The minimum number of characters required for the first sentence fragment before yielding. Default is 10 characters.
         - log_synthesized_text: If True, logs the synthesized text chunks.
+        - reset_generated_text: If True, resets the generated text.
+        - output_wavfile: If set, saves the audio to the specified WAV file.
+        - on_sentence_synthesized: Callback function that gets called when a single sentence fragment is synthesized.
+        - on_audio_chunk: Callback function that gets called when a single audio chunk is ready.
+        - tokenizer: Tokenizer to use for sentence splitting (currently "nltk" and "stanza" are supported).
+        - language: Language to use for sentence splitting.
+        - context_size: The number of characters used to establish context for sentence boundary detection. A larger context improves the accuracy of detecting sentence boundaries. Default is 12 characters.
         """
 
         # Log the start of the stream
@@ -151,6 +193,19 @@ class TextToAudioStream:
 
         # Set the stream_running flag to indicate the stream is active
         self.stream_running = True
+
+        self.output_wavfile = output_wavfile
+        self.chunk_callback = on_audio_chunk
+
+        if output_wavfile:
+            if self._is_engine_mpeg():
+                self.wf = open(output_wavfile, 'wb')
+            else:
+                self.wf = wave.open(output_wavfile, 'wb')
+                _, channels, rate = self.engine.get_stream_info()
+                self.wf.setnchannels(channels) 
+                self.wf.setsampwidth(2)
+                self.wf.setframerate(rate)
 
         # Initialize the generated_text variable
         if reset_generated_text:
@@ -166,6 +221,7 @@ class TextToAudioStream:
                 if self.on_audio_stream_start:
                     self.on_audio_stream_start()
 
+                self.engine.on_audio_chunk = self._on_audio_chunk
                 self.engine.synthesize(self.char_iter)
 
                 if self.on_audio_stream_stop:
@@ -184,10 +240,11 @@ class TextToAudioStream:
             try:
                 # Start the audio player to handle playback
                 self.player.start()
+                self.player.on_audio_chunk = self._on_audio_chunk
 
                 # Generate sentences from the characters
-                generate_sentences = s2s.generate_sentences(self.thread_safe_char_iter, minimum_sentence_length=minimum_sentence_length, minimum_first_fragment_length=minimum_first_fragment_length, quick_yield_single_sentence_fragment=fast_sentence_fragment, cleanup_text_links=True, cleanup_text_emojis=True, log_characters=self.log_characters)
-                
+                generate_sentences = s2s.generate_sentences(self.thread_safe_char_iter, context_size=context_size, minimum_sentence_length=minimum_sentence_length, minimum_first_fragment_length=minimum_first_fragment_length, quick_yield_single_sentence_fragment=fast_sentence_fragment, cleanup_text_links=True, cleanup_text_emojis=True, tokenizer=tokenizer, language=language, log_characters=self.log_characters)
+
                 # Create the synthesis chunk generator with the given sentences
                 chunk_generator = self._synthesis_chunk_generator(generate_sentences, buffer_threshold_seconds, log_synthesized_text)
 
@@ -198,7 +255,38 @@ class TextToAudioStream:
                         sentence = sentence_queue.get()
                         if sentence is None:  # Sentinel value to stop the worker
                             break
-                        self.engine.synthesize(sentence)
+
+                        synthesis_successful = False
+                        if log_synthesized_text:
+                            logging.info(f"synthesizing: {sentence}")
+
+                        while not synthesis_successful:
+                            try:
+                                success = self.engine.synthesize(sentence)
+                                if success:
+                                    if on_sentence_synthesized:
+                                        on_sentence_synthesized(sentence)
+                                    synthesis_successful = True
+                                else:
+                                    logging.warning(f"engine {self.engine.engine_name} failed to synthesize sentence \"{sentence}\", unknown error")
+
+                            except Exception as e:
+                                logging.warning(f"engine {self.engine.engine_name} failed to synthesize sentence \"{sentence}\" with error: {e}")
+
+                            if not synthesis_successful:
+                                if len(self.engines) == 1:
+                                    time.sleep(0.2)
+                                    logging.warning(f"engine {self.engine.engine_name} is the only engine available, can't switch to another engine")
+                                    break
+                                else:
+                                    logging.warning(f"fallback engine(s) available, switching to next engine")
+                                    self.engine_index = (self.engine_index + 1) % len(self.engines)
+
+                                    self.player.stop()
+                                    self.load_engine(self.engines[self.engine_index])
+                                    self.player.start()
+                                    self.player.on_audio_chunk = self._on_audio_chunk
+
                         sentence_queue.task_done()
 
 
@@ -208,12 +296,7 @@ class TextToAudioStream:
                 # Iterate through the synthesized chunks and feed them to the engine for audio synthesis
                 for sentence in chunk_generator:
                     sentence = sentence.strip()
-
-                    if log_synthesized_text:
-                        logging.info(f"synthesizing: {sentence}")
-
                     sentence_queue.put(sentence)
-
                     if not self.stream_running:
                         break
 
@@ -232,9 +315,15 @@ class TextToAudioStream:
                 self.stream_running = False
                 logging.info("stream stop")
 
+                if output_wavfile and self.wf:
+                    self.wf.close()
+                    self.wf = None
+
+                self.output_wavfile = None
+                self.chunk_callback = None
+
                 if reset_generated_text and self.on_audio_stream_stop:
                     self.on_audio_stream_stop()
-
 
     def pause(self):
         """
@@ -348,6 +437,18 @@ class TextToAudioStream:
             self.on_character(char)
 
         self.generated_text += char
+
+
+    def _is_engine_mpeg(self):
+        """
+        Checks if the engine is an MPEG engine.
+
+        Returns:
+            Boolean indicating if the engine is an MPEG engine.
+        """
+
+        format, _, _ = self.engine.get_stream_info()
+        return format == pyaudio.paCustomFormat
 
 
     def _synthesis_chunk_generator(self,

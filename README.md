@@ -4,26 +4,36 @@
 
 ## About the Project
 
-RealtimeTTS converts text streams into immediate auditory output by identifying synthesizable sentence fragments. 
-
-It's ideal for:
-
-- **Voice Assistants**
-- Applications requiring **instant** audio feedback
+RealtimeTTS is a state-of-the-art text-to-speech (TTS) library designed for real-time applications. It stands out in its ability to convert text streams fast into high-quality auditory output with minimal latency. 
 
 https://github.com/KoljaB/RealtimeTTS/assets/7604638/87dcd9a5-3a4e-4f57-be45-837fc63237e7
 
-### Features
 
-- **Realtime Streaming**: Synthesis and playback of speech as text is being generated, for example by LLMs
-- **Sentence Segmentation**: Advanced sentence boundary detection, ensuring immediate reaction time by isolating fast-synthesizable fragments.
-- **Modular Engine Design**: System TTS, Azure, Elevenlabs and Coqui supported with the possibility to add custom Text-to-Speech engines
+### Key Features
+
+- **Low Latency**
+  - almost instantaneous text-to-speech conversion
+  - compatible with LLM outputs
+- **High-Quality Audio**
+  - generates clear and natural-sounding speech
+- **Multilingual and Multiple Engine Support**
+  - supports various languages and TTS engines
+- **Robust and Reliable**: 
+  - ensures continuous operation with a fallback mechanism
+  - switches to alternative engines in case of disruptions guaranteeing consistent performance and reliability, which is vital for critical and professional use cases
 
 > **Hint**: *Check out [RealtimeSTT](https://github.com/KoljaB/RealtimeSTT), the input counterpart of this library, for speech-to-text capabilities. Together, they form a powerful realtime audio wrapper around large language models.*
 
 ### Updates
 
-> Please check the [release history](https://github.com/KoljaB/RealtimeTTS/releases) for detailled informations about recent updates.
+Latest Version: v0.3.0
+
+#### New Features:
+1. Expanded language support, including Chinese (details in [tests](https://github.com/KoljaB/RealtimeTTS/blob/master/tests/chinese_test.py) and [speed test](https://github.com/KoljaB/RealtimeTTS/blob/master/tests/pyqt6_speed_test_chinese.py)).
+2. Fallback engines in TextToAudioStream, enhancing reliability for real-time scenarios by switching to alternate engines if one fails.
+3. Audio file saving feature with `output_wavfile` parameter. This allows for the simultaneous saving of real-time synthesized audio, enabling later playback of the live synthesis.
+
+For more details, see the [release history](https://github.com/KoljaB/RealtimeTTS/releases).
 
 ## Tech Stack
 

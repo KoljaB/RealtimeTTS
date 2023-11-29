@@ -10,9 +10,8 @@
 # """
 
 
-import threading
-from collections import deque
 from typing import Union, Iterator
+import threading
 
 class CharIterator:
     """
@@ -109,7 +108,6 @@ class CharIterator:
             # Check if the item is a string
             if isinstance(item, str):
 
-                # If we haven't started iterating over this string yet, initialize the character index
                 if self._char_index is None:
                     self._char_index = 0
 

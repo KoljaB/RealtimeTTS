@@ -1,6 +1,6 @@
 from abc import ABCMeta, ABC, abstractmethod
-import queue
 from typing import Union
+import queue
 
 # Define a meta class that will automatically call the BaseEngine's __init__ method
 # and also the post_init method if it exists.
@@ -23,11 +23,19 @@ class BaseInitMeta(ABCMeta):
 class BaseEngine(ABC, metaclass=BaseInitMeta):
 
     def __init__(self):
+        self.engine_name = "unknown"
+
         # Indicates if the engine can handle generators.
         self.can_consume_generators = False
         
         # Queue to manage tasks or data for the engine.
         self.queue = queue.Queue()
+
+         # Callback to be called when an audio chunk is available.
+        self.on_audio_chunk = None
+
+         # Callback to be called when the engine is starting to synthesize audio.
+        self.on_playback_start = None
 
     def get_stream_info(self):
         """
@@ -42,7 +50,7 @@ class BaseEngine(ABC, metaclass=BaseInitMeta):
         raise NotImplementedError("The get_stream_info method must be implemented by the derived class.")
 
     def synthesize(self, 
-                   text: str):        
+                   text: str) -> bool:
         """
         Synthesizes text to audio stream.
 
@@ -83,3 +91,9 @@ class BaseEngine(ABC, metaclass=BaseInitMeta):
         This method should be overridden by the derived class to set the desired voice parameters.
         """
         raise NotImplementedError("The set_voice_parameters method must be implemented by the derived class.")
+    
+    def shutdown(self):
+        """
+        Shuts down the engine.
+        """
+        pass
