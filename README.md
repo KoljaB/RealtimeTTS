@@ -52,13 +52,26 @@ This library uses:
 
 ## Installation
 
+Simple installation:
+
 ```bash
 pip install RealtimeTTS
 ```
 
-This will install all the necessary dependencies, including a **CPU support only** version of PyTorch (needed for Coqui engine)
+This will install all the necessary dependencies, including a **CPU support only** version of PyTorch (needed for Coqui engine)  
 
-To use Coqui engine it is recommended to upgrade torch to GPU usage (see installation steps under [Coqui Engine](#coquiengine) further below).
+Installation into virtual environment with GPU support:
+
+```bash
+python -m venv env_realtimetts
+env_realtimetts\Scripts\activate.bat
+python.exe -m pip install --upgrade pip
+pip install RealtimeTTS
+pip install torch==2.1.1+cu118 torchaudio==2.1.1+cu118 --index-url https://download.pytorch.org/whl/cu118
+```
+
+Also see [CUDA installation](#cuda_installation) further below
+Also see [CUDA installation](#cuda-installation) further below
 
 ## Engine Requirements
 
@@ -96,72 +109,7 @@ Downloads a neural TTS model first. In most cases it be fast enought for Realtim
 - to clone a voice submit the filename of a wave file containing the source voice as cloning_reference_wav to the CoquiEngine constructor
 - in my experience voice cloning works best with a 24000 Hz mono 16bit WAV file containing a short (~10 sec) sample 
 
-#### GPU-Support (CUDA) for Coqui
-
-Additional steps are needed for a **GPU-optimized** installation. These steps are recommended for those who require **better performance** and have a compatible NVIDIA GPU.
-
-> **Note**: *To check if your NVIDIA GPU supports CUDA, visit the [official CUDA GPUs list](https://developer.nvidia.com/cuda-gpus).*
-
-To use local Coqui Engine with GPU support via CUDA please follow these steps:
-
-1. **Install NVIDIA CUDA Toolkit 11.8**:
-    - Visit [NVIDIA CUDA Toolkit Archive](https://developer.nvidia.com/cuda-11-8-0-download-archive).
-    - Select version 11.
-    - Download and install the software.
-
-2. **Install NVIDIA cuDNN 8.7.0 for CUDA 11.x**:
-    - Visit [NVIDIA cuDNN Archive](https://developer.nvidia.com/rdp/cudnn-archive).
-    - Click on "Download cuDNN v8.7.0 (November 28th, 2022), for CUDA 11.x".
-    - Download and install the software.
-
-3. **Install ffmpeg**:
-
-    You can download an installer for your OS from the [ffmpeg Website](https://ffmpeg.org/download.html).  
-    
-    Or use a package manager:
-
-    - **On Ubuntu or Debian**:
-        ```bash
-        sudo apt update && sudo apt install ffmpeg
-        ```
-
-    - **On Arch Linux**:
-        ```bash
-        sudo pacman -S ffmpeg
-        ```
-
-    - **On MacOS using Homebrew** ([https://brew.sh/](https://brew.sh/)):
-        ```bash
-        brew install ffmpeg
-        ```
-
-    - **On Windows using Chocolatey** ([https://chocolatey.org/](https://chocolatey.org/)):
-        ```bash
-        choco install ffmpeg
-        ```
-
-    - **On Windows using Scoop** ([https://scoop.sh/](https://scoop.sh/)):
-        ```bash
-        scoop install ffmpeg
-        ```    
-
-4. **Install PyTorch with CUDA support**:
-    ```bash
-    pip install torch==2.1.0+cu118 torchaudio==2.1.0+cu118 --index-url https://download.pytorch.org/whl/cu118
-    ```
-
-5. **Fix for to resolve compatility issues**:
-    If you run into library compatility issues, please set these libraries to fixed versions:
-
-    ```bash
-    pip install networkx==2.8.8
-    pip install typing_extensions==4.8.0
-    pip install fsspec==2023.6.0
-    pip install imageio==2.31.6
-    pip install networkx==2.8.8
-    pip install numpy==1.24.3
-    pip install requests==2.31.0
-    ```
+On most systems GPU support will be needed to run fast enough for realtime, otherwise you will experience stuttering.
 
 ## Quick Start
 
@@ -388,29 +336,115 @@ These methods are responsible for executing the text-to-audio synthesis and play
 
 By understanding and setting these parameters and methods appropriately, you can tailor the `TextToAudioStream` to meet the specific needs of your application.
 
+
+### CUDA installation
+
+These steps are recommended for those who require **better performance** and have a compatible NVIDIA GPU.
+
+> **Note**: *To check if your NVIDIA GPU supports CUDA, visit the [official CUDA GPUs list](https://developer.nvidia.com/cuda-gpus).*
+
+To use torch with support via CUDA please follow these steps:
+
+> **Note**: *newer pytorch installations [may](https://stackoverflow.com/a/77069523)(unverified) not need Toolkit (and possibly cuDNN) installation anymore.*
+
+1. **Install NVIDIA CUDA Toolkit**:
+    For example, to install Toolkit 11.8 please  
+    - Visit [NVIDIA CUDA Toolkit Archive](https://developer.nvidia.com/cuda-11-8-0-download-archive).
+    - Select version 11.
+    - Download and install the software.
+
+2. **Install NVIDIA cuDNN**:
+    For example, to install cuDNN 8.7.0 for CUDA 11.x please  
+    - Visit [NVIDIA cuDNN Archive](https://developer.nvidia.com/rdp/cudnn-archive).
+    - Click on "Download cuDNN v8.7.0 (November 28th, 2022), for CUDA 11.x".
+    - Download and install the software.
+
+3. **Install ffmpeg**:
+
+    You can download an installer for your OS from the [ffmpeg Website](https://ffmpeg.org/download.html).  
+    
+    Or use a package manager:
+
+    - **On Ubuntu or Debian**:
+        ```bash
+        sudo apt update && sudo apt install ffmpeg
+        ```
+
+    - **On Arch Linux**:
+        ```bash
+        sudo pacman -S ffmpeg
+        ```
+
+    - **On MacOS using Homebrew** ([https://brew.sh/](https://brew.sh/)):
+        ```bash
+        brew install ffmpeg
+        ```
+
+    - **On Windows using Chocolatey** ([https://chocolatey.org/](https://chocolatey.org/)):
+        ```bash
+        choco install ffmpeg
+        ```
+
+    - **On Windows using Scoop** ([https://scoop.sh/](https://scoop.sh/)):
+        ```bash
+        scoop install ffmpeg
+        ```    
+
+4. **Install PyTorch with CUDA support**:
+    ```bash
+    pip install torch==2.1.1+cu118 torchaudio==2.1.1+cu118 --index-url https://download.pytorch.org/whl/cu118
+    ```
+
+5. **Fix for to resolve compatility issues**:
+    If you run into library compatility issues, try setting these libraries to fixed versions:
+
+    ```bash
+    pip install networkx==2.8.8
+    pip install typing_extensions==4.8.0
+    pip install fsspec==2023.6.0
+    pip install imageio==2.31.6
+    pip install networkx==2.8.8
+    pip install numpy==1.24.3
+    pip install requests==2.31.0
+    ```
+
+## 💖 Acknowledgements
+
+Huge shoutout to:
+- The team behind [coqui](ttps://coqui.ai/) being the first giving us local high quality inference fast enough for realtime, even with a clonable voice
+
 ## Contribution
 
 Contributions are always welcome (e.g. PR to add a new engine).
 
-## License
+## License Information
 
-❗
-While the source of this library is under MIT, some libraries it depends on are not.  
-A lot of external engine providers currently DO NOT ALLOW commercial use together with their free plans.  
-Please read and respect the licenses of the different engine providers.
+### ❗ Important Note:
+While the source of this library is under the MIT License, many of the engines it depends on are not. External engine providers often restrict commercial use in their free plans. This means the engines can be used for noncommercial projects, but commercial usage requires a paid plan.
 
-[CoquiEngine](https://coqui.ai/cpml)
-- non-commercial for free plan, commercial paid plans available
-	
-[ElevenlabsEngine](https://help.elevenlabs.io/hc/en-us/articles/13313564601361-Can-I-publish-the-content-I-generate-on-the-platform-)
-- non-commercial for free plan, commercial for every paid plan  
+### Engine Licenses Summary:
 
-[AzureEngine](https://learn.microsoft.com/en-us/answers/questions/1192398/can-i-use-azure-text-to-speech-for-commercial-usag)
-- non-commercial for free tier, commercial for standard tier upwards  
-	  
-SystemEngine:  
-- GNU Lesser General Public License (LGPL) version 3.0  
-- commercial use allowed
+#### CoquiEngine
+- **License**: Open-source only for noncommercial projects.
+- **Commercial Use**: Requires a paid plan.
+- **Details**: [CoquiEngine License](https://coqui.ai/cpml)
+
+#### ElevenlabsEngine
+- **License**: Open-source only for noncommercial projects.
+- **Commercial Use**: Available with every paid plan.
+- **Details**: [ElevenlabsEngine License](https://help.elevenlabs.io/hc/en-us/articles/13313564601361-Can-I-publish-the-content-I-generate-on-the-platform-)
+
+#### AzureEngine
+- **License**: Open-source only for noncommercial projects.
+- **Commercial Use**: Available from the standard tier upwards.
+- **Details**: [AzureEngine License](https://learn.microsoft.com/en-us/answers/questions/1192398/can-i-use-azure-text-to-speech-for-commercial-usag)
+
+#### SystemEngine
+- **License**: Mozilla Public License 2.0 and GNU Lesser General Public License (LGPL) version 3.0.
+- **Commercial Use**: Allowed under this license.
+- **Details**: [SystemEngine License](https://github.com/nateshmbhat/pyttsx3/blob/master/LICENSE)
+
+**Disclaimer**: This is a summarization of the licenses as understood at the time of writing. It is not legal advice. Please read and respect the licenses of the different engine providers yourself if you plan to use them in a project.
 
 ## Author
 
