@@ -8,8 +8,7 @@ RealtimeTTS is a state-of-the-art text-to-speech (TTS) library designed for real
 
 https://github.com/KoljaB/RealtimeTTS/assets/7604638/87dcd9a5-3a4e-4f57-be45-837fc63237e7
 
-
-### Key Features
+## Key Features
 
 - **Low Latency**
   - almost instantaneous text-to-speech conversion
@@ -24,7 +23,7 @@ https://github.com/KoljaB/RealtimeTTS/assets/7604638/87dcd9a5-3a4e-4f57-be45-837
 
 > **Hint**: *Check out [RealtimeSTT](https://github.com/KoljaB/RealtimeSTT), the input counterpart of this library, for speech-to-text capabilities. Together, they form a powerful realtime audio wrapper around large language models.*
 
-### Updates
+## Updates
 
 Latest Version: v0.3.0
 
