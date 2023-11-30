@@ -70,7 +70,6 @@ pip install RealtimeTTS
 pip install torch==2.1.1+cu118 torchaudio==2.1.1+cu118 --index-url https://download.pytorch.org/whl/cu118
 ```
 
-Also see [CUDA installation](#cuda_installation) further below
 Also see [CUDA installation](#cuda-installation) further below
 
 ## Engine Requirements
