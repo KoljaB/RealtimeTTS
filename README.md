@@ -408,8 +408,7 @@ To use torch with support via CUDA please follow these steps:
 
 ## 💖 Acknowledgements
 
-Huge shoutout to:
-- The team behind [coqui](https://coqui.ai/) being the first giving us local high quality inference fast enough for realtime, even with a clonable voice
+Huge shoutout to the team behind [Coqui AI](https://coqui.ai/) being the first giving us local high quality synthesis with realtime speed and even a clonable voice!
 
 ## Contribution
 
