@@ -21,16 +21,16 @@ https://github.com/KoljaB/RealtimeTTS/assets/7604638/87dcd9a5-3a4e-4f57-be45-837
   - ensures continuous operation with a fallback mechanism
   - switches to alternative engines in case of disruptions guaranteeing consistent performance and reliability, which is vital for critical and professional use cases
 
-> **Hint**: *Check out [RealtimeSTT](https://github.com/KoljaB/RealtimeSTT), the input counterpart of this library, for speech-to-text capabilities. Together, they form a powerful realtime audio wrapper around large language models.*
+> **Hint**: *check out [RealtimeSTT](https://github.com/KoljaB/RealtimeSTT), the input counterpart of this library, for speech-to-text capabilities. Together, they form a powerful realtime audio wrapper around large language models.*
 
 ## Updates
 
 Latest Version: v0.3.1
 
 #### New Features:
-- Expanded language support, including Chinese (details in [tests](https://github.com/KoljaB/RealtimeTTS/blob/master/tests/chinese_test.py) and [speed test](https://github.com/KoljaB/RealtimeTTS/blob/master/tests/pyqt6_speed_test_chinese.py)).
-- Fallback engines in TextToAudioStream, enhancing reliability for real-time scenarios by switching to alternate engines if one fails.
-- Audio file saving feature with `output_wavfile` parameter. This allows for the simultaneous saving of real-time synthesized audio, enabling later playback of the live synthesis.
+- expanded language support, including Chinese (details in [tests](https://github.com/KoljaB/RealtimeTTS/blob/master/tests/chinese_test.py) and [speed test](https://github.com/KoljaB/RealtimeTTS/blob/master/tests/pyqt6_speed_test_chinese.py)).
+- fallback engines in TextToAudioStream, enhancing reliability for real-time scenarios by switching to alternate engines if one fails.
+- audio file saving feature with `output_wavfile` parameter. This allows for the simultaneous saving of real-time synthesized audio, enabling later playback of the live synthesis.
 
 For more details, see the [release history](https://github.com/KoljaB/RealtimeTTS/releases).
 
@@ -69,7 +69,7 @@ pip install RealtimeTTS
 pip install torch==2.1.1+cu118 torchaudio==2.1.1+cu118 --index-url https://download.pytorch.org/whl/cu118
 ```
 
-Also see [CUDA installation](#cuda-installation) further below
+More information about [CUDA installation](#cuda-installation).
 
 ## Engine Requirements
 
@@ -339,11 +339,11 @@ By understanding and setting these parameters and methods appropriately, you can
 
 These steps are recommended for those who require **better performance** and have a compatible NVIDIA GPU.
 
-> **Note**: *To check if your NVIDIA GPU supports CUDA, visit the [official CUDA GPUs list](https://developer.nvidia.com/cuda-gpus).*
+> **Note**: *to check if your NVIDIA GPU supports CUDA, visit the [official CUDA GPUs list](https://developer.nvidia.com/cuda-gpus).*
 
 To use torch with support via CUDA please follow these steps:
 
-> **Note**: *newer pytorch installations [may](https://stackoverflow.com/a/77069523)(unverified) not need Toolkit (and possibly cuDNN) installation anymore.*
+> **Note**: *newer pytorch installations [may](https://stackoverflow.com/a/77069523) (unverified) not need Toolkit (and possibly cuDNN) installation anymore.*
 
 1. **Install NVIDIA CUDA Toolkit**:
     For example, to install Toolkit 11.8 please  
@@ -409,7 +409,7 @@ To use torch with support via CUDA please follow these steps:
 ## 💖 Acknowledgements
 
 Huge shoutout to:
-- The team behind [coqui](ttps://coqui.ai/) being the first giving us local high quality inference fast enough for realtime, even with a clonable voice
+- The team behind [coqui](https://coqui.ai/) being the first giving us local high quality inference fast enough for realtime, even with a clonable voice
 
 ## Contribution
 
