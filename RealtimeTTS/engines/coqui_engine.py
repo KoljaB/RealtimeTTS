@@ -1,5 +1,6 @@
 from multiprocessing import Process, Pipe, Event
 from .base_engine import BaseEngine
+from threading import Lock
 from tqdm import tqdm
 import numpy as np
 import traceback
@@ -62,6 +63,7 @@ class CoquiEngine(BaseEngine):
             prepare_text_for_synthesis_callback (function): Function to prepare text for synthesis. If not specified, a default sentence parser will be used. 
         """
 
+        self._synthesize_lock = Lock()
         self.model_name = model_name
         self.language = language
         self.cloning_reference_wav = cloning_reference_wav
@@ -77,15 +79,7 @@ class CoquiEngine(BaseEngine):
         # Start the worker process
         self.main_synthesize_ready_event = Event()
         self.parent_synthesize_pipe, child_synthesize_pipe = Pipe()
-
         self.voices_path = voices_path
-        # if not self.voices_path:
-        #     os.makedirs("voices", exist_ok=True)
-        #     self.voices_path = "voices"
-
-            # current_dir = os.path.dirname(os.path.realpath(__file__))
-            # voices_path = os.path.join(current_dir, DEFAULT_VOICES_PATH)
-            # self.voices_path = voices_path 
 
         # download coqui model
         self.local_model_path = None
@@ -435,26 +429,27 @@ class CoquiEngine(BaseEngine):
             text (str): Text to synthesize.
         """
 
-        text = self._prepare_text_for_synthesis(text)
+        with self._synthesize_lock:
+            text = self._prepare_text_for_synthesis(text)
 
-        if len(text) < 1:
-            return
+            if len(text) < 1:
+                return
 
-        data = {'text': text, 'language': self.language}
-        self.send_command('synthesize', data)
+            data = {'text': text, 'language': self.language}
+            self.send_command('synthesize', data)
 
-        status, result = self.parent_synthesize_pipe.recv()
-
-        while not 'finished' in status:
-            if 'shutdown' in status or 'error' in status:
-                if 'error' in status:
-                    logging.error(f'Error synthesizing text: {text}')
-                    logging.error(f'Error: {result}')
-                return False
-            self.queue.put(result)
             status, result = self.parent_synthesize_pipe.recv()
 
-        return True
+            while not 'finished' in status:
+                if 'shutdown' in status or 'error' in status:
+                    if 'error' in status:
+                        logging.error(f'Error synthesizing text: {text}')
+                        logging.error(f'Error: {result}')
+                    return False
+                self.queue.put(result)
+                status, result = self.parent_synthesize_pipe.recv()
+
+            return True
     
     @staticmethod
     def download_file(url, destination):

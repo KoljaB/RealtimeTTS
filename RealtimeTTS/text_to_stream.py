@@ -134,9 +134,9 @@ class TextToAudioStream:
         """
         self.stream_running = True
 
-        play_thread = threading.Thread(target=self.play, args=(fast_sentence_fragment, buffer_threshold_seconds, minimum_sentence_length, minimum_first_fragment_length, log_synthesized_text, reset_generated_text, output_wavfile, on_sentence_synthesized, on_audio_chunk, tokenizer, language, context_size))
-        play_thread.daemon = True
-        play_thread.start()
+        self.play_thread = threading.Thread(target=self.play, args=(fast_sentence_fragment, buffer_threshold_seconds, minimum_sentence_length, minimum_first_fragment_length, log_synthesized_text, reset_generated_text, output_wavfile, on_sentence_synthesized, on_audio_chunk, tokenizer, language, context_size))
+        self.play_thread.daemon = True
+        self.play_thread.start()
 
     def _on_audio_chunk(self, chunk):
         format, _, _ = self.engine.get_stream_info()
@@ -379,6 +379,10 @@ class TextToAudioStream:
             else:
                 self.player.stop(immediate=True)
                 self.stream_running = False
+
+        if self.play_thread is not None:
+            self.play_thread.join()
+
         self._create_iterators()    
 
     def text(self):
