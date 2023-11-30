@@ -50,6 +50,7 @@ class TextToAudioStream:
         self.output_wavfile = None
         self.chunk_callback = None
         self.wf = None
+        self.abort_events = []
 
         self._create_iterators()
         
@@ -132,8 +133,10 @@ class TextToAudioStream:
         Async handling of text to audio synthesis, see play() method.
         """
         self.stream_running = True
-        self.play_thread = threading.Thread(target=self.play, args=(fast_sentence_fragment, buffer_threshold_seconds, minimum_sentence_length, minimum_first_fragment_length, log_synthesized_text, reset_generated_text, output_wavfile, on_sentence_synthesized, on_audio_chunk, tokenizer, language, context_size))
-        self.play_thread.start()
+
+        play_thread = threading.Thread(target=self.play, args=(fast_sentence_fragment, buffer_threshold_seconds, minimum_sentence_length, minimum_first_fragment_length, log_synthesized_text, reset_generated_text, output_wavfile, on_sentence_synthesized, on_audio_chunk, tokenizer, language, context_size))
+        play_thread.daemon = True
+        play_thread.start()
 
     def _on_audio_chunk(self, chunk):
         format, _, _ = self.engine.get_stream_info()
@@ -193,6 +196,8 @@ class TextToAudioStream:
 
         # Set the stream_running flag to indicate the stream is active
         self.stream_running = True
+        abort_event = threading.Event()
+        self.abort_events.append(abort_event)
 
         self.output_wavfile = output_wavfile
         self.chunk_callback = on_audio_chunk
@@ -251,7 +256,7 @@ class TextToAudioStream:
                 sentence_queue = queue.Queue()
 
                 def synthesize_worker():
-                    while True:
+                    while not abort_event.is_set():
                         sentence = sentence_queue.get()
                         if sentence is None:  # Sentinel value to stop the worker
                             break
@@ -262,6 +267,8 @@ class TextToAudioStream:
 
                         while not synthesis_successful:
                             try:
+                                if abort_event.is_set():
+                                    break
                                 success = self.engine.synthesize(sentence)
                                 if success:
                                     if on_sentence_synthesized:
@@ -295,6 +302,8 @@ class TextToAudioStream:
 
                 # Iterate through the synthesized chunks and feed them to the engine for audio synthesis
                 for sentence in chunk_generator:
+                    if abort_event.is_set():
+                        break
                     sentence = sentence.strip()
                     sentence_queue.put(sentence)
                     if not self.stream_running:
@@ -302,9 +311,13 @@ class TextToAudioStream:
 
                 # Signal to the worker to stop
                 sentence_queue.put(None)
-                worker_thread.join()                    
+                worker_thread.join()   
+
+            except Exception as e:
+                logging.warning(f"error in play() with engine {self.engine.engine_name}: {e}")
 
             finally:
+                self.abort_events.remove(abort_event)
                 self.player.stop()
 
                 if self.stream_running and len(self.char_iter.items) > 0 and self.char_iter.iterated_text == "":
@@ -354,6 +367,10 @@ class TextToAudioStream:
         """
         Stops the playback of the synthesized audio stream immediately.
         """
+
+        for abort_event in self.abort_events:
+            abort_event.set()
+    
         if self.is_playing():
             self.char_iter.stop()
             if self.engine.can_consume_generators:
@@ -362,7 +379,7 @@ class TextToAudioStream:
             else:
                 self.player.stop(immediate=True)
                 self.stream_running = False
-    
+        self._create_iterators()    
 
     def text(self):
         """

@@ -228,6 +228,8 @@ class StreamPlayer:
 
         if immediate:
             self.immediate_stop.set()
+            while self.playback_active:
+                time.sleep(0.1)
             return
 
         self.playback_active = False
