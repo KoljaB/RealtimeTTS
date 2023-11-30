@@ -277,7 +277,7 @@ class CoquiEngine(BaseEngine):
 
                 if command == 'shutdown':
                     logging.info('Shutdown command received. Exiting worker process.')
-                    conn.send({'status': 'shutdown'})
+                    conn.send(('shutdown', 'shutdown'))
                     break  # This exits the loop, effectively stopping the worker process.
 
                 elif command == 'synthesize':
@@ -333,7 +333,7 @@ class CoquiEngine(BaseEngine):
         
         except KeyboardInterrupt:
             logging.info('Keyboard interrupt received. Exiting worker process.')
-            conn.send({'shutdown': 'shutdown'})
+            conn.send(('shutdown', 'shutdown'))
 
         except Exception as e:
             logging.error(f"General synthesis error: {e} occured trying to synthesize text {text}")
@@ -447,6 +447,9 @@ class CoquiEngine(BaseEngine):
 
         while not 'finished' in status:
             if 'shutdown' in status or 'error' in status:
+                if 'error' in status:
+                    logging.error(f'Error synthesizing text: {text}')
+                    logging.error(f'Error: {result}')
                 return False
             self.queue.put(result)
             status, result = self.parent_synthesize_pipe.recv()
@@ -550,8 +553,8 @@ class CoquiEngine(BaseEngine):
         
         # Wait for the worker process to acknowledge the shutdown
         try:
-            response = self.parent_synthesize_pipe.recv()
-            if response.get('status') == 'shutdown':
+            status, _ = self.parent_synthesize_pipe.recv()
+            if 'shutdown' in status:
                 logging.info('Worker process acknowledged shutdown')
         except EOFError:
             # Pipe was closed, meaning the process is already down
@@ -567,4 +570,3 @@ class CoquiEngine(BaseEngine):
         # Wait for the process to terminate
         self.synthesize_process.join()
         logging.info('Worker process has been terminated')
-

@@ -5,3 +5,4 @@ stream2sentence==0.2.0
 azure-cognitiveservices-speech==1.33.0
 elevenlabs==0.2.26
 TTS==0.21.1
+tqdm==4.66.1
