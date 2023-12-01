@@ -1,4 +1,4 @@
-from RealtimeTTS import TextToAudioStream, SystemEngine, AzureEngine, ElevenlabsEngine, CoquiEngine
+from RealtimeTTS import TextToAudioStream, SystemEngine, AzureEngine, ElevenlabsEngine, CoquiEngine, OpenAIEngine
 from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QComboBox, QTextEdit, QLabel
 from PyQt6.QtCore import pyqtSlot
 import time
@@ -15,14 +15,16 @@ class TTSApp(QMainWindow):
         self.engine_azure = AzureEngine(os.environ.get("AZURE_SPEECH_KEY"), os.environ.get("AZURE_SPEECH_REGION"))
         self.engine_elevenlabs = ElevenlabsEngine(os.environ.get("ELEVENLABS_API_KEY"))
         self.engine_coqui = CoquiEngine()
+        self.engine_openai = OpenAIEngine()
         print ("TTS Engines initialized.")
 
         # Add a dictionary to map engine names to engine instances
         self.engines = {
             "System Engine": self.engine_system,
-            "Azure Engine": self.engine_azure,
+            "OpenAI Engine": self.engine_openai,
             "Elevenlabs Engine": self.engine_elevenlabs,
-            "Coqui Engine": self.engine_coqui
+            "Coqui Engine": self.engine_coqui,
+            "Azure Engine": self.engine_azure,
         }        
 
         # Initialize TTS Stream
@@ -35,7 +37,8 @@ class TTSApp(QMainWindow):
 
         # Dropdown for TTS Engine Selection
         self.tts_engine_dropdown = QComboBox(self)
-        self.tts_engine_dropdown.addItems(["System Engine", "Azure Engine", "Elevenlabs Engine", "Coqui Engine"])
+        for engine_name in self.engines.keys():
+            self.tts_engine_dropdown.addItem(engine_name)
         self.tts_engine_dropdown.currentTextChanged.connect(self.tts_engine_changed)
         self.layout.addWidget(self.tts_engine_dropdown)
 

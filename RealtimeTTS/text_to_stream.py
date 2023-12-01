@@ -5,6 +5,7 @@ from .engines import BaseEngine
 import stream2sentence as s2s
 import numpy as np
 import threading
+import traceback
 import logging
 import pyaudio
 import queue
@@ -21,6 +22,8 @@ class TextToAudioStream:
                  on_audio_stream_start=None,
                  on_audio_stream_stop=None,
                  on_character=None,
+                 tokenizer: str = "nltk",
+                 language: str = "en",
                  level=logging.WARNING,
                  ):
         """
@@ -51,8 +54,13 @@ class TextToAudioStream:
         self.chunk_callback = None
         self.wf = None
         self.abort_events = []
+        self.tokenizer = tokenizer
+        self.language = language
 
         self._create_iterators()
+
+        logging.info(f"Initializing tokenizer {tokenizer} for language {language}")
+        s2s.init_tokenizer(tokenizer, language)
         
         # Initialize the play_thread attribute (used for playing audio in a separate thread)
         self.play_thread = None
@@ -94,9 +102,9 @@ class TextToAudioStream:
 
         # Check if the engine doesn't support consuming generators directly
         if not self.engine.can_consume_generators:
-            self.player = StreamPlayer(self.engine.queue, AudioConfiguration(format, channels, rate), on_playback_start=self.on_audio_stream_start)
+            self.player = StreamPlayer(self.engine.queue, AudioConfiguration(format, channels, rate), on_playback_start=self._on_audio_stream_start)
         else:
-            self.engine.on_playback_start = self.on_audio_stream_start
+            self.engine.on_playback_start = self._on_audio_stream_start
 
         logging.info(f"loaded engine {self.engine.engine_name}")
 
@@ -115,6 +123,7 @@ class TextToAudioStream:
         self.char_iter.add(text_or_iterator)
         return self
 
+
     def play_async(self,   
                    fast_sentence_fragment: bool = True,
                    buffer_threshold_seconds: float = 0.0,
@@ -125,8 +134,8 @@ class TextToAudioStream:
                    output_wavfile: str = None,
                    on_sentence_synthesized = None,
                    on_audio_chunk = None,
-                   tokenizer: str = "nltk",
-                   language: str = "en",
+                   tokenizer: str = "",
+                   language: str = "",
                    context_size: int = 12
                    ):
         """
@@ -137,23 +146,6 @@ class TextToAudioStream:
         self.play_thread = threading.Thread(target=self.play, args=(fast_sentence_fragment, buffer_threshold_seconds, minimum_sentence_length, minimum_first_fragment_length, log_synthesized_text, reset_generated_text, output_wavfile, on_sentence_synthesized, on_audio_chunk, tokenizer, language, context_size))
         self.play_thread.daemon = True
         self.play_thread.start()
-
-    def _on_audio_chunk(self, chunk):
-        format, _, _ = self.engine.get_stream_info()
-        
-        if format == pyaudio.paFloat32:
-            audio_data = np.frombuffer(chunk, dtype=np.float32)
-            audio_data = np.int16(audio_data * 32767)
-            chunk = audio_data.tobytes()
-
-        if self.output_wavfile and self.wf:
-            if self._is_engine_mpeg():
-                self.wf.write(chunk)
-            else:
-                self.wf.writeframes(chunk)
-
-        if self.chunk_callback:
-            self.chunk_callback(chunk)
 
     def play(self,
             fast_sentence_fragment: bool = True,
@@ -194,7 +186,11 @@ class TextToAudioStream:
         # Log the start of the stream
         logging.info(f"stream start")
 
+        tokenizer = tokenizer if tokenizer else self.tokenizer 
+        language = language if language else self.language
+
         # Set the stream_running flag to indicate the stream is active
+        self.stream_start_time = time.time()
         self.stream_running = True
         abort_event = threading.Event()
         self.abort_events.append(abort_event)
@@ -222,9 +218,6 @@ class TextToAudioStream:
             try:
                 # Directly synthesize audio using the character iterator
                 self.char_iter.log_characters = self.log_characters
-
-                if self.on_audio_stream_start:
-                    self.on_audio_stream_start()
 
                 self.engine.on_audio_chunk = self._on_audio_chunk
                 self.engine.synthesize(self.char_iter)
@@ -279,6 +272,9 @@ class TextToAudioStream:
 
                             except Exception as e:
                                 logging.warning(f"engine {self.engine.engine_name} failed to synthesize sentence \"{sentence}\" with error: {e}")
+                                tb_str = traceback.format_exc()
+                                print (f"Traceback: {tb_str}")
+                                print (f"Error: {e}")                                
 
                             if not synthesis_successful:
                                 if len(self.engines) == 1:
@@ -315,15 +311,13 @@ class TextToAudioStream:
 
             except Exception as e:
                 logging.warning(f"error in play() with engine {self.engine.engine_name}: {e}")
+                tb_str = traceback.format_exc()
+                print (f"Traceback: {tb_str}")
+                print (f"Error: {e}")
 
             finally:
                 self.abort_events.remove(abort_event)
                 self.player.stop()
-
-                if self.stream_running and len(self.char_iter.items) > 0 and self.char_iter.iterated_text == "":
-                    # new text was feeded while playing audio but after the last character was processed
-                    # we need to start another play() call
-                    self.play(fast_sentence_fragment, buffer_threshold_seconds, minimum_sentence_length, log_synthesized_text, reset_generated_text=False)
 
                 self.stream_running = False
                 logging.info("stream stop")
@@ -337,6 +331,12 @@ class TextToAudioStream:
 
                 if reset_generated_text and self.on_audio_stream_stop:
                     self.on_audio_stream_stop()
+
+            if self.stream_running and len(self.char_iter.items) > 0 and self.char_iter.iterated_text == "":
+                # new text was feeded while playing audio but after the last character was processed
+                # we need to start another play() call
+                self.play(fast_sentence_fragment, buffer_threshold_seconds, minimum_sentence_length, log_synthesized_text, reset_generated_text=False)
+
 
     def pause(self):
         """
@@ -385,6 +385,7 @@ class TextToAudioStream:
 
         self._create_iterators()    
 
+
     def text(self):
         """
         Retrieves the text that has been fed into the stream.
@@ -407,6 +408,49 @@ class TextToAudioStream:
         return self.stream_running
 
 
+    
+
+    def _on_audio_stream_start(self):
+        """
+        Handles the start of the audio stream.
+
+        This method is called when the audio stream starts. It calculates and logs the latency from the stream's start time to the time when the first chunk of audio is received. If a callback for handling the start of the audio stream is set (on_audio_stream_start), it is executed.
+
+        No parameters or returns.
+        """
+        latency = time.time() - self.stream_start_time
+        logging.info(f"Audio stream start, latency to first chunk: {latency:.2f}s")
+
+        if self.on_audio_stream_start:
+            self.on_audio_stream_start()
+
+
+    def _on_audio_chunk(self, chunk):
+        """
+        Postprocessing of single chunks of audio data.
+        This method is called for each chunk of audio data processed. It first determines the audio stream format.
+        If the format is `pyaudio.paFloat32`, we convert to paInt16. 
+
+        Args:
+            chunk (bytes): The audio data chunk to be processed.
+        """        
+        format, _, _ = self.engine.get_stream_info()
+        
+        if format == pyaudio.paFloat32:
+            audio_data = np.frombuffer(chunk, dtype=np.float32)
+            audio_data = np.int16(audio_data * 32767)
+            chunk = audio_data.tobytes()
+
+        if self.output_wavfile and self.wf:
+            if self._is_engine_mpeg():
+                self.wf.write(chunk)
+            else:
+                self.wf.writeframes(chunk)
+
+        if self.chunk_callback:
+            self.chunk_callback(chunk)
+
+
     def _on_last_character(self):
         """
         This method is invoked when the last character of the text stream has been processed.
@@ -422,7 +466,6 @@ class TextToAudioStream:
             print()    
 
         self._create_iterators()
-
 
 
     def _create_iterators(self):
@@ -467,10 +510,9 @@ class TextToAudioStream:
         Returns:
             Boolean indicating if the engine is an MPEG engine.
         """
-
-        format, _, _ = self.engine.get_stream_info()
-        return format == pyaudio.paCustomFormat
-
+        format, channel, rate = self.engine.get_stream_info()
+        return format == pyaudio.paCustomFormat and channel == -1 and rate == -1
+    
 
     def _synthesis_chunk_generator(self,
                                   generator: Iterator[str],

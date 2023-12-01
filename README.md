@@ -15,8 +15,9 @@ https://github.com/KoljaB/RealtimeTTS/assets/7604638/87dcd9a5-3a4e-4f57-be45-837
   - compatible with LLM outputs
 - **High-Quality Audio**
   - generates clear and natural-sounding speech
-- **Multilingual and Multiple Engine Support**
-  - supports [various languages](https://youtu.be/WHgj5etX5Zw) and TTS engines
+- **Multiple TTS Engine Support**
+  - supports OpenAI TTS, Elevenlabs, Azure Speech Services, Coqui TTS and System TTS
+- **Multilingual**
 - **Robust and Reliable**: 
   - ensures continuous operation with a fallback mechanism
   - switches to alternative engines in case of disruptions guaranteeing consistent performance and reliability, which is vital for critical and professional use cases
@@ -25,9 +26,10 @@ https://github.com/KoljaB/RealtimeTTS/assets/7604638/87dcd9a5-3a4e-4f57-be45-837
 
 ## Updates
 
-Latest Version: v0.3.2
+Latest Version: v0.3.3
 
 #### New Features:
+- new Engine: OpenAI TTS
 - expanded language support, including Chinese (details in [tests](https://github.com/KoljaB/RealtimeTTS/blob/master/tests/chinese_test.py) and [speed test](https://github.com/KoljaB/RealtimeTTS/blob/master/tests/pyqt6_speed_test_chinese.py)).
 - fallback engines in TextToAudioStream, enhancing reliability for real-time scenarios by switching to alternate engines if one fails.
 - audio file saving feature with `output_wavfile` parameter. This allows for the simultaneous saving of real-time synthesized audio, enabling later playback of the live synthesis.
@@ -39,6 +41,7 @@ For more details, see the [release history](https://github.com/KoljaB/RealtimeTT
 This library uses:
 
 - **Text-to-Speech Engines**
+  - **OpenAIEngine**: OpenAI's TTS system offers 6 natural sounding voices.
   - **CoquiEngine**: High quality local neural TTS.
   - **AzureEngine**: Microsoft's leading TTS technology. 250000 chars free per month.
   - **ElevenlabsEngine**: Offer the best sounding voices available.
@@ -77,6 +80,11 @@ Different engines supported by RealtimeTTS have unique requirements. Ensure you 
 
 ### SystemEngine
 The `SystemEngine` works out of the box using your system's built-in TTS capabilities. No additional setup is needed.
+
+### OpenAIEingine
+To use the `OpenAIEngine`:_
+- set environment variable OPENAI_API_KEY
+- install ffmpeg (see [CUDA installation](#cuda-installation) point 3)
 
 ### AzureEngine
 To use the `AzureEngine`, you will need:

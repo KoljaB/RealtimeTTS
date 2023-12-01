@@ -76,7 +76,7 @@ class ElevenlabsEngine(BaseEngine):
                   - Channels (int): The number of audio channels. 1 represents mono audio.
                   - Sample Rate (int): The sample rate of the audio in Hz. 16000 represents 16kHz sample rate.
         """        
-        return pyaudio.paCustomFormat, 1, 16000
+        return pyaudio.paCustomFormat, -1, -1
     
     def pause(self):
         """Pauses playback of the synthesized audio stream (won't work properly with elevenlabs)."""
@@ -192,24 +192,6 @@ class ElevenlabsEngine(BaseEngine):
         self.mpv_process.wait()
 
         return audio            
-    
-    def is_installed(self, lib_name: str) -> bool:
-        """
-        Check if the given library or software is installed and accessible.
-
-        This method uses shutil.which to determine if the given library or software is
-        installed and available in the system's PATH.
-
-        Args:
-            lib_name (str): Name of the library or software to check.
-
-        Returns:
-            bool: True if the library is installed, otherwise False.
-        """        
-        lib = shutil.which(lib_name)
-        if lib is None:
-            return False
-        return True    
     
     def get_voices(self):
         """

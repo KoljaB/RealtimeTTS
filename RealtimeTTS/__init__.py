@@ -4,3 +4,4 @@ from .engines import SystemEngine, SystemVoice
 from .engines import AzureEngine, AzureVoice
 from .engines import ElevenlabsEngine, ElevenlabsVoice
 from .engines import CoquiEngine
+from .engines import OpenAIEngine

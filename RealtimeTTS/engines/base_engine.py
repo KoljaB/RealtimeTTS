@@ -1,5 +1,6 @@
 from abc import ABCMeta, ABC, abstractmethod
 from typing import Union
+import shutil
 import queue
 
 # Define a meta class that will automatically call the BaseEngine's __init__ method
@@ -97,3 +98,21 @@ class BaseEngine(ABC, metaclass=BaseInitMeta):
         Shuts down the engine.
         """
         pass
+
+    def is_installed(self, lib_name: str) -> bool:
+        """
+        Check if the given library or software is installed and accessible.
+
+        This method uses shutil.which to determine if the given library or software is
+        installed and available in the system's PATH.
+
+        Args:
+            lib_name (str): Name of the library or software to check.
+
+        Returns:
+            bool: True if the library is installed, otherwise False.
+        """        
+        lib = shutil.which(lib_name)
+        if lib is None:
+            return False
+        return True       

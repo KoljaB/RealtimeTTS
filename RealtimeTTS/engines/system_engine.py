@@ -25,7 +25,7 @@ class SystemEngine(BaseEngine):
                  voice: str = "Zira",
                  print_installed_voices: bool = False):
         """
-        Initializes a system voice realtime text to speech engine object.
+        Initializes a system realtime text to speech engine object.
 
         Args:
             voice (str, optional): Voice name. Defaults to "Zira".
@@ -72,7 +72,7 @@ class SystemEngine(BaseEngine):
             audio_data = wf.readframes(wf.getnframes())
             self.queue.put(audio_data)
 
-        return True           
+        return True
 
     def get_voices(self):
         """
