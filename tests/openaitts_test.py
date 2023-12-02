@@ -1,10 +1,15 @@
-if __name__ == '__main__':
-    from RealtimeTTS import TextToAudioStream, OpenAIEngine
+from RealtimeTTS import TextToAudioStream, OpenAIEngine
 
-    def dummy_generator():
-        yield "Hey guys! These here are realtime spoken words based on openai tts text synthesis. "
+def dummy_generator():
+    yield "Hey guys! "
+    yield "These here are "
+    yield "realtime spoken words "
+    yield "based on openai "
+    yield "tts text synthesis."
 
-    stream = TextToAudioStream(OpenAIEngine(model="tts-1-hd"))
-    
-    print ("Starting to play stream")
-    stream.feed(dummy_generator()).play(output_wavfile="synthesis_openai.wav")
+engine = OpenAIEngine(model="tts-1", voice="nova")
+stream = TextToAudioStream(engine)
+stream.feed(dummy_generator())
+
+print ("Synthesizing...")
+stream.play()

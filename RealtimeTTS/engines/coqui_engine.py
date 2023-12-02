@@ -138,7 +138,7 @@ class CoquiEngine(BaseEngine):
                 filename_wav = filename + "wav"
             elif filename.endswith(".wav"):
                 filename_json = filename[:-3] + "json"
-                filename = filename[:-4]
+                filename = filename[:-3]
                 filename_wav = filename + "wav"
             else:
                 filename_json = filename + ".json"

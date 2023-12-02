@@ -381,7 +381,9 @@ class TextToAudioStream:
                 self.stream_running = False
 
         if self.play_thread is not None:
-            self.play_thread.join()
+            if self.play_thread.is_alive():
+                self.play_thread.join()
+            self.play_thread = None
 
         self._create_iterators()    
 
