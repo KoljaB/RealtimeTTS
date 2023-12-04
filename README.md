@@ -425,7 +425,7 @@ Contributions are always welcome (e.g. PR to add a new engine).
 ## License Information
 
 ### ❗ Important Note:
-While the source of this library is under the MIT License, many of the engines it depends on are not. External engine providers often restrict commercial use in their free plans. This means the engines can be used for noncommercial projects, but commercial usage requires a paid plan.
+While the source of this library is open-source, the usage of many of the engines it depends on are not: External engine providers often restrict commercial use in their free plans. This means the engines can be used for noncommercial projects, but commercial usage requires a paid plan.
 
 ### Engine Licenses Summary:
 
