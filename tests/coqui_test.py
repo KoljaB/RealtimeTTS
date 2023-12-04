@@ -7,12 +7,12 @@ if __name__ == '__main__':
 
 
     # for normal use with minimal logging:
-    # engine = CoquiEngine()
+    engine = CoquiEngine()
 
     # test with extended logging:
-    import logging
-    logging.basicConfig(level=logging.DEBUG)    
-    engine = CoquiEngine(level=logging.DEBUG)
+    # import logging
+    # logging.basicConfig(level=logging.DEBUG)    
+    # engine = CoquiEngine(level=logging.DEBUG)
 
 
     stream = TextToAudioStream(engine)

@@ -136,14 +136,15 @@ class TextToAudioStream:
                    on_audio_chunk = None,
                    tokenizer: str = "",
                    language: str = "",
-                   context_size: int = 12
+                   context_size: int = 12,
+                   muted: bool = False,
                    ):
         """
         Async handling of text to audio synthesis, see play() method.
         """
         self.stream_running = True
 
-        self.play_thread = threading.Thread(target=self.play, args=(fast_sentence_fragment, buffer_threshold_seconds, minimum_sentence_length, minimum_first_fragment_length, log_synthesized_text, reset_generated_text, output_wavfile, on_sentence_synthesized, on_audio_chunk, tokenizer, language, context_size))
+        self.play_thread = threading.Thread(target=self.play, args=(fast_sentence_fragment, buffer_threshold_seconds, minimum_sentence_length, minimum_first_fragment_length, log_synthesized_text, reset_generated_text, output_wavfile, on_sentence_synthesized, on_audio_chunk, tokenizer, language, context_size, muted))
         self.play_thread.daemon = True
         self.play_thread.start()
 
@@ -159,7 +160,8 @@ class TextToAudioStream:
             on_audio_chunk = None,
             tokenizer: str = "nltk",
             language: str = "en",
-            context_size: int = 12
+            context_size: int = 12,
+            muted: bool = False,
             ):
         """
         Handles the synthesis of text to audio.
@@ -181,6 +183,7 @@ class TextToAudioStream:
         - tokenizer: Tokenizer to use for sentence splitting (currently "nltk" and "stanza" are supported).
         - language: Language to use for sentence splitting.
         - context_size: The number of characters used to establish context for sentence boundary detection. A larger context improves the accuracy of detecting sentence boundaries. Default is 12 characters.
+        - muted: If True, disables audio playback via local speakers (in case you want to synthesize to file or process audio chunks). Default is False.
         """
 
         # Log the start of the stream
@@ -194,6 +197,7 @@ class TextToAudioStream:
         self.stream_running = True
         abort_event = threading.Event()
         self.abort_events.append(abort_event)
+        self.player.mute(muted)
 
         self.output_wavfile = output_wavfile
         self.chunk_callback = on_audio_chunk

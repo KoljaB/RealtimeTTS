@@ -151,7 +151,7 @@ class StreamPlayer:
     Manages audio playback operations such as start, stop, pause, and resume.
     """
 
-    def __init__(self, audio_buffer: queue.Queue, config: AudioConfiguration, on_playback_start=None, on_playback_stop=None, on_audio_chunk=None):
+    def __init__(self, audio_buffer: queue.Queue, config: AudioConfiguration, on_playback_start=None, on_playback_stop=None, on_audio_chunk=None, muted = False):
         """
         Args:
             audio_buffer (queue.Queue): Queue to be used as the audio buffer.
@@ -169,6 +169,7 @@ class StreamPlayer:
         self.on_playback_stop = on_playback_stop
         self.on_audio_chunk = on_audio_chunk
         self.first_chunk_played = False
+        self.muted = muted
 
     def _play_chunk(self, chunk):
         """
@@ -190,7 +191,8 @@ class StreamPlayer:
         for i in range(0, len(chunk), sub_chunk_size):
             sub_chunk = chunk[i:i + sub_chunk_size]
 
-            self.audio_stream.stream.write(sub_chunk)
+            if not self.muted:
+                self.audio_stream.stream.write(sub_chunk)
 
             if self.on_audio_chunk:
                 self.on_audio_chunk(sub_chunk)
@@ -274,3 +276,7 @@ class StreamPlayer:
     def resume(self):
         """Resumes paused audio playback."""
         self.pause_event.clear()
+
+    def mute(self, muted: bool = True):
+        """Mutes audio playback."""
+        self.muted = muted

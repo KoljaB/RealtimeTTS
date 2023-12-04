@@ -269,7 +269,11 @@ class CoquiEngine(BaseEngine):
                     gpt_cond_latent, speaker_embedding = get_conditioning_latents(new_wav_path)
                     conn.send(('success', 'Reference updated successfully'))
 
-                if command == 'shutdown':
+                elif command == 'set_speed':
+                    speed = data['speed']
+                    conn.send(('success', 'Speed updated successfully'))
+
+                elif command == 'shutdown':
                     logging.info('Shutdown command received. Exiting worker process.')
                     conn.send(('shutdown', 'shutdown'))
                     break  # This exits the loop, effectively stopping the worker process.
@@ -359,7 +363,22 @@ class CoquiEngine(BaseEngine):
             logging.error(f'Error updating reference WAV: {cloning_reference_wav}')
 
         return status, result
+    
+    def set_speed(self, speed: float):
+        """
+        Sets the speed of the speech synthesis.
+        """
+        self.send_command('set_speed', {'speed': speed})
 
+        # Wait for the response from the worker process
+        status, result = self.parent_synthesize_pipe.recv()
+        if status == 'success':
+            logging.info('Speed updated successfully')
+        else:
+            logging.error(f'Error updating speed')
+
+        return status, result
+    
     def get_stream_info(self):
         """
         Returns the PyAudio stream configuration information suitable for Coqui Engine.

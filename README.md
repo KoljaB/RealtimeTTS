@@ -26,7 +26,7 @@ https://github.com/KoljaB/RealtimeTTS/assets/7604638/87dcd9a5-3a4e-4f57-be45-837
 
 ## Updates
 
-Latest Version: v0.3.3
+Latest Version: v0.3.32
 
 #### New Features:
 - new Engine: OpenAI TTS
@@ -82,7 +82,7 @@ Different engines supported by RealtimeTTS have unique requirements. Ensure you 
 The `SystemEngine` works out of the box using your system's built-in TTS capabilities. No additional setup is needed.
 
 ### OpenAIEingine
-To use the `OpenAIEngine`:_
+To use the `OpenAIEngine`:
 - set environment variable OPENAI_API_KEY
 - install ffmpeg (see [CUDA installation](#cuda-installation) point 3)
 
@@ -448,6 +448,9 @@ While the source of this library is under the MIT License, many of the engines i
 - **License**: Mozilla Public License 2.0 and GNU Lesser General Public License (LGPL) version 3.0.
 - **Commercial Use**: Allowed under this license.
 - **Details**: [SystemEngine License](https://github.com/nateshmbhat/pyttsx3/blob/master/LICENSE)
+
+#### OpenAIEngine
+- **License**: please read [OpenAI Terms of Use](https://openai.com/policies/terms-of-use)
 
 **Disclaimer**: This is a summarization of the licenses as understood at the time of writing. It is not legal advice. Please read and respect the licenses of the different engine providers yourself if you plan to use them in a project.
 
