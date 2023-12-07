@@ -166,9 +166,9 @@ class CoquiEngine(BaseEngine):
 
                 if not os.path.exists(filename_voice_json) and not os.path.exists(filename_voice_wav):
                     if len(filename) > 0:
-                        logging.info(f"Using default female voice, both {filename_voice_json} and {filename_voice_wav} not found.")
+                        logging.info(f"Using default voice, both {filename_voice_json} and {filename_voice_wav} not found.")
                     else:
-                        logging.info(f"Using default female voice, no cloning source specified.")
+                        logging.info(f"Using default voice, no cloning source specified.")
                     
                     # Get the directory of the current script
                     current_dir = os.path.dirname(os.path.realpath(__file__))
