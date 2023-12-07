@@ -26,7 +26,7 @@ https://github.com/KoljaB/RealtimeTTS/assets/7604638/87dcd9a5-3a4e-4f57-be45-837
 
 ## Updates
 
-Latest Version: v0.3.32
+Latest Version: v0.3.34
 
 #### New Features:
 - new Engine: OpenAI TTS

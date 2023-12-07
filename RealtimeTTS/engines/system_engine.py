@@ -1,4 +1,6 @@
 from .base_engine import BaseEngine
+from pydub.utils import mediainfo
+from pydub import AudioSegment
 from typing import Union
 import tempfile
 import pyaudio
@@ -54,9 +56,8 @@ class SystemEngine(BaseEngine):
                   - Sample Rate (int): The sample rate of the audio in Hz. 16000 represents 16kHz sample rate.
         """        
         return pyaudio.paInt16, 1, 22050
-
-    def synthesize(self, 
-                   text: str) -> bool:
+    
+    def synthesize(self, text: str) -> bool:
         """
         Synthesizes text to audio stream.
 
@@ -67,12 +68,22 @@ class SystemEngine(BaseEngine):
         self.engine.save_to_file(text, self.file_path)
         self.engine.runAndWait()
 
-        # Open the saved WAV file
+        # Get media info of the file
+        info = mediainfo(self.file_path)
+
+        # Check if the file format is AIFF and convert to WAV if necessary
+        if info['format_name'] == 'aiff':
+            audio = AudioSegment.from_file(self.file_path, format="aiff")
+            audio.export(self.file_path, format="wav")
+
+        # Now open the WAV file
         with wave.open(self.file_path, 'rb') as wf:
             audio_data = wf.readframes(wf.getnframes())
             self.queue.put(audio_data)
+            return True
 
-        return True
+        # Return False if the process failed
+        return False
 
     def get_voices(self):
         """

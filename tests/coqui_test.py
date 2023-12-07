@@ -7,17 +7,17 @@ if __name__ == '__main__':
 
 
     # for normal use with minimal logging:
-    engine = CoquiEngine()
+    # engine = CoquiEngine()
 
     # test with extended logging:
-    # import logging
-    # logging.basicConfig(level=logging.DEBUG)    
-    # engine = CoquiEngine(level=logging.DEBUG)
+    import logging
+    logging.basicConfig(level=logging.INFO)    
+    engine = CoquiEngine(level=logging.INFO)
 
 
     stream = TextToAudioStream(engine)
     
     print ("Starting to play stream")
-    stream.feed(dummy_generator()).play()
+    stream.feed(dummy_generator()).play(log_synthesized_text=True)
 
     engine.shutdown()
