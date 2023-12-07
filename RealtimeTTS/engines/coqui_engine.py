@@ -1,5 +1,6 @@
 from multiprocessing import Process, Pipe, Event
 from .base_engine import BaseEngine
+from typing import Union, List
 from threading import Lock
 from tqdm import tqdm
 import numpy as np
@@ -19,7 +20,7 @@ class CoquiEngine(BaseEngine):
                  specific_model = "2.0.2",
                  local_models_path = None, # specify a global model path here (otherwise it will create a directory "models" in the script directory)
                  voices_path = None,
-                 cloning_reference_wav: str = "",
+                 cloning_reference_wav: Union[str, List[str]] = "",
                  language = "en",
                  speed = 1.0,
                  thread_count = 6,
@@ -102,7 +103,7 @@ class CoquiEngine(BaseEngine):
         self.engine_name = "coqui"
 
     @staticmethod
-    def _synthesize_worker(conn, model_name, cloning_reference_wav, language, ready_event, loglevel, speed, thread_count, stream_chunk_size, full_sentences, overlap_wav_len, temperature, length_penalty, repetition_penalty, top_k, top_p, enable_text_splitting, use_mps, local_model_path, use_deepspeed, voices_path):
+    def _synthesize_worker(conn, model_name, cloning_reference_wav: Union[str, List[str]], language, ready_event, loglevel, speed, thread_count, stream_chunk_size, full_sentences, overlap_wav_len, temperature, length_penalty, repetition_penalty, top_k, top_p, enable_text_splitting, use_mps, local_model_path, use_deepspeed, voices_path):
         """
         Worker process for the coqui text to speech synthesis model.
 
@@ -125,68 +126,116 @@ class CoquiEngine(BaseEngine):
         logging.info(f"Starting CoquiEngine")
 
 
-        def get_conditioning_latents(filename):
+        def get_conditioning_latents(filenames: Union[str, List[str]]):
+            """
+            Whoever reads this method.
+            I am sorry, it's a mess and in a terrible state.
+            It needs urgent rework but currently have other more important things to do.
+            """
+            if not isinstance(filenames, list):
+                filenames = [filenames]
+
             logging.debug(f"Computing speaker latents")
 
-            if not filename or len(filename) == 0:
-                filename = "coqui_default_voice.wav"
+            if len(filenames) == 0 or not filenames[0]:
+                logging.debug(f"Using coqui_default_voice.wav as default voice")
+                filenames = ["coqui_default_voice.wav"]
 
-            # verify that filename ends with .wav
-            if filename.endswith(".json"):
-                filename_json = filename
-                filename = filename[:-5]
-                filename_wav = filename + "wav"
-            elif filename.endswith(".wav"):
-                filename_json = filename[:-3] + "json"
-                filename = filename[:-3]
-                filename_wav = filename + "wav"
-            else:
-                filename_json = filename + ".json"
-                filename_wav = filename + ".wav"
-
-            if voices_path:
-                filename_voice_wav = os.path.join(voices_path, filename_wav)
-                filename_voice_json = os.path.join(voices_path, filename_json)
-            else:
-                filename_voice_wav = filename_wav
-                filename_voice_json = filename_json
-
-            if not os.path.exists(filename_voice_json) and not os.path.exists(filename_voice_wav):
-                if len(filename) > 0:
-                    logging.info(f"Using default female voice, both {filename_voice_json} and {filename_voice_wav} not found.")
+            if len(filenames) == 1:
+                logging.debug(f"Old handling one voice file")
+                # verify that filename ends with .wav
+                filename = filenames[0]
+                if filename.endswith(".json"):
+                    filename_json = filename
+                    filename = filename[:-5]
+                    filename_wav = filename + "wav"
+                elif filename.endswith(".wav"):
+                    filename_json = filename[:-3] + "json"
+                    filename = filename[:-3]
+                    filename_wav = filename + "wav"
                 else:
-                    logging.info(f"Using default female voice, no cloning source specified.")
+                    filename_json = filename + ".json"
+                    filename_wav = filename + ".wav"
+
+                if voices_path:
+                    filename_voice_wav = os.path.join(voices_path, filename_wav)
+                    filename_voice_json = os.path.join(voices_path, filename_json)
+                else:
+                    filename_voice_wav = filename_wav
+                    filename_voice_json = filename_json
+
+                if not os.path.exists(filename_voice_json) and not os.path.exists(filename_voice_wav):
+                    if len(filename) > 0:
+                        logging.info(f"Using default female voice, both {filename_voice_json} and {filename_voice_wav} not found.")
+                    else:
+                        logging.info(f"Using default female voice, no cloning source specified.")
+                    
+                    # Get the directory of the current script
+                    current_dir = os.path.dirname(os.path.realpath(__file__))
+                    filename_voice_json = os.path.join(current_dir, "coqui_default_voice.json")
+                    if not os.path.exists(filename_voice_json):
+                        raise ValueError(f"Default voice file {filename_voice_json} not found.")                
+
+                # check if latents are already computed
+                if os.path.exists(filename_voice_json):
+                    logging.debug(f"Latents already computed, reading from {filename_voice_json}")
+                    with open(filename_voice_json, "r") as new_file:
+                        latents = json.load(new_file)
+
+                    speaker_embedding = (torch.tensor(latents["speaker_embedding"]).unsqueeze(0).unsqueeze(-1))
+                    gpt_cond_latent = (torch.tensor(latents["gpt_cond_latent"]).reshape((-1, 1024)).unsqueeze(0))                
+
+                    return gpt_cond_latent, speaker_embedding                
                 
-                # Get the directory of the current script
-                current_dir = os.path.dirname(os.path.realpath(__file__))
-                filename_voice_json = os.path.join(current_dir, "coqui_default_voice.json")
-                if not os.path.exists(filename_voice_json):
-                    raise ValueError(f"Default voice file {filename_voice_json} not found.")                
+                # compute and write latents to json file
+                logging.debug(f"Computing latents for {filename}")
 
-            # check if latents are already computed
-            if os.path.exists(filename_voice_json):
-                logging.debug(f"Latents already computed, reading from {filename_voice_json}")
-                with open(filename_voice_json, "r") as new_file:
-                    latents = json.load(new_file)
+                gpt_cond_latent, speaker_embedding = tts.get_conditioning_latents(audio_path=filename_voice_wav, gpt_cond_len=30, max_ref_length=60)
 
-                speaker_embedding = (torch.tensor(latents["speaker_embedding"]).unsqueeze(0).unsqueeze(-1))
-                gpt_cond_latent = (torch.tensor(latents["gpt_cond_latent"]).reshape((-1, 1024)).unsqueeze(0))                
+                latents = {
+                    "gpt_cond_latent": gpt_cond_latent.cpu().squeeze().half().tolist(),
+                    "speaker_embedding": speaker_embedding.cpu().squeeze().half().tolist(),
+                }
+                with open(filename_voice_json, "w") as new_file:
+                    json.dump(latents, new_file)
 
                 return gpt_cond_latent, speaker_embedding
 
-            # compute and write latents to json file
-            logging.debug(f"Computing latents for {filename}")
+            else:
+                audio_path_list = []
+                for filename in filenames:
+                    # verify that filename ends with .wav
+                    if filename.endswith(".wav"):
+                        if voices_path:
+                            filename_voice_wav = os.path.join(voices_path, filename)
+                        else:
+                            filename_voice_wav = filename
+                        audio_path_list.append(filename_voice_wav)
+                        logging.debug(f"Added {filename_voice_wav} (#{len(audio_path_list)}) to audio_path_list")
 
-            gpt_cond_latent, speaker_embedding = tts.get_conditioning_latents(audio_path=filename_voice_wav, gpt_cond_len=30, max_ref_length=60)
+                if len(audio_path_list) == 0:
+                    logging.info(f"Using default female voice, no cloning source specified.")
+                    
+                    # Get the directory of the current script
+                    current_dir = os.path.dirname(os.path.realpath(__file__))
+                    filename_voice_json = os.path.join(current_dir, "coqui_default_voice.json")
+                    if not os.path.exists(filename_voice_json):
+                        raise ValueError(f"Default voice file {filename_voice_json} not found.")                
 
-            latents = {
-                "gpt_cond_latent": gpt_cond_latent.cpu().squeeze().half().tolist(),
-                "speaker_embedding": speaker_embedding.cpu().squeeze().half().tolist(),
-            }
-            with open(filename_voice_json, "w") as new_file:
-                json.dump(latents, new_file)
+                # compute and write latents to json file
+                logging.debug(f"Computing latents for {filename}")
 
-            return gpt_cond_latent, speaker_embedding
+                gpt_cond_latent, speaker_embedding = tts.get_conditioning_latents(audio_path=audio_path_list, gpt_cond_len=30, max_ref_length=60)
+
+                latents = {
+                    "gpt_cond_latent": gpt_cond_latent.cpu().squeeze().half().tolist(),
+                    "speaker_embedding": speaker_embedding.cpu().squeeze().half().tolist(),
+                }
+                filename_voice_json = audio_path_list[0][:-3] + "json"
+                with open(filename_voice_json, "w") as new_file:
+                    json.dump(latents, new_file)
+
+                return gpt_cond_latent, speaker_embedding
 
         def postprocess_wave(chunk):
             """Post process the output waveform"""
@@ -266,6 +315,7 @@ class CoquiEngine(BaseEngine):
 
                 if command == 'update_reference':
                     new_wav_path = data['cloning_reference_wav']
+                    logging.info(f'Updating reference WAV to {new_wav_path}')                    
                     gpt_cond_latent, speaker_embedding = get_conditioning_latents(new_wav_path)
                     conn.send(('success', 'Reference updated successfully'))
 
@@ -353,6 +403,8 @@ class CoquiEngine(BaseEngine):
         """
         Send an 'update_reference' command and wait for a response.
         """
+        if not isinstance(cloning_reference_wav, list):
+            cloning_reference_wav = [cloning_reference_wav]        
         self.send_command('update_reference', {'cloning_reference_wav': cloning_reference_wav})
         
         # Wait for the response from the worker process

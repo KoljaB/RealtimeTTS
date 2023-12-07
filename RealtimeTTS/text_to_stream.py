@@ -324,21 +324,23 @@ class TextToAudioStream:
                 print (f"Error: {e}")
 
             finally:
-                self.abort_events.remove(abort_event)
-                self.player.stop()
+                try:
+                   
+                    self.player.stop()
 
-                self.stream_running = False
-                logging.info("stream stop")
+                    self.abort_events.remove(abort_event)
+                    self.stream_running = False
+                    logging.info("stream stop")
 
-                if output_wavfile and self.wf:
-                    self.wf.close()
-                    self.wf = None
+                    self.output_wavfile = None
+                    self.chunk_callback = None
 
-                self.output_wavfile = None
-                self.chunk_callback = None
-
-                if reset_generated_text and self.on_audio_stream_stop:
-                    self.on_audio_stream_stop()
+                    if reset_generated_text and self.on_audio_stream_stop:
+                        self.on_audio_stream_stop()
+                finally:
+                    if output_wavfile and self.wf:
+                        self.wf.close()
+                        self.wf = None
 
             if self.stream_running and len(self.char_iter.items) > 0 and self.char_iter.iterated_text == "":
                 # new text was feeded while playing audio but after the last character was processed

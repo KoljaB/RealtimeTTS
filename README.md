@@ -26,13 +26,13 @@ https://github.com/KoljaB/RealtimeTTS/assets/7604638/87dcd9a5-3a4e-4f57-be45-837
 
 ## Updates
 
-Latest Version: v0.3.34
+Latest Version: v0.3.35
 
 #### New Features:
-- new Engine: OpenAI TTS
-- expanded language support, including Chinese (details in [tests](https://github.com/KoljaB/RealtimeTTS/blob/master/tests/chinese_test.py) and [speed test](https://github.com/KoljaB/RealtimeTTS/blob/master/tests/pyqt6_speed_test_chinese.py)).
-- fallback engines in TextToAudioStream, enhancing reliability for real-time scenarios by switching to alternate engines if one fails.
-- audio file saving feature with `output_wavfile` parameter. This allows for the simultaneous saving of real-time synthesized audio, enabling later playback of the live synthesis.
+- 💥NEW: multiple cloning files for ✨Coqui Engine✨
+- OpenAI TTS support
+- more languages ([chinese](https://github.com/KoljaB/RealtimeTTS/blob/master/tests/chinese_test.py) etc)
+- fallback engines (define alternate engines if one fails)
 
 For more details, see the [release history](https://github.com/KoljaB/RealtimeTTS/releases).
 
