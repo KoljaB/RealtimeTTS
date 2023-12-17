@@ -1,5 +1,5 @@
-from multiprocessing import Process, Pipe, Event
 from .base_engine import BaseEngine
+import torch.multiprocessing as mp
 from typing import Union, List
 from threading import Lock
 from tqdm import tqdm
@@ -78,8 +78,9 @@ class CoquiEngine(BaseEngine):
         self.prepare_text_for_synthesis_callback = prepare_text_for_synthesis_callback
 
         # Start the worker process
-        self.main_synthesize_ready_event = Event()
-        self.parent_synthesize_pipe, child_synthesize_pipe = Pipe()
+        mp.set_start_method("spawn")
+        self.main_synthesize_ready_event = mp.Event()
+        self.parent_synthesize_pipe, child_synthesize_pipe = mp.Pipe()
         self.voices_path = voices_path
 
         # download coqui model
@@ -92,7 +93,7 @@ class CoquiEngine(BaseEngine):
             logging.info(f"Local XTTS Model: \"{specific_model}\" specified")
             self.local_model_path = self.download_model(specific_model, local_models_path)
 
-        self.synthesize_process = Process(target=CoquiEngine._synthesize_worker, args=(child_synthesize_pipe, model_name, cloning_reference_wav, language, self.main_synthesize_ready_event, level, self.speed, thread_count, stream_chunk_size, full_sentences, overlap_wav_len, temperature, length_penalty, repetition_penalty, top_k, top_p, enable_text_splitting, use_mps, self.local_model_path, use_deepspeed, self.voices_path))
+        self.synthesize_process = mp.Process(target=CoquiEngine._synthesize_worker, args=(child_synthesize_pipe, model_name, cloning_reference_wav, language, self.main_synthesize_ready_event, level, self.speed, thread_count, stream_chunk_size, full_sentences, overlap_wav_len, temperature, length_penalty, repetition_penalty, top_k, top_p, enable_text_splitting, use_mps, self.local_model_path, use_deepspeed, self.voices_path))
         self.synthesize_process.start()
 
         logging.debug('Waiting for coqui text to speech synthesize model to start')
