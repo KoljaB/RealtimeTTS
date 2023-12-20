@@ -93,7 +93,13 @@ class CoquiEngine(BaseEngine):
             self.local_model_path = self.download_model(specific_model, local_models_path)
 
         # Start the worker process
-        mp.set_start_method("spawn")
+        try:
+            # Only set the start method if it hasn't been set already
+            if mp.get_start_method(allow_none=True) is None:
+                mp.set_start_method("spawn")
+        except RuntimeError as e:
+            print("Start method has already been set. Details:", e)
+
         self.main_synthesize_ready_event = mp.Event()
         self.parent_synthesize_pipe, child_synthesize_pipe = mp.Pipe()
         self.retrieve_coqui_voices()
