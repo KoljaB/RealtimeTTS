@@ -59,9 +59,7 @@ class OpenAIEngine(BaseEngine):
         """
         Retrieves the installed voices available for the Coqui TTS engine.
         """
-        # since we currently can't retrieve the voices from the engine api, we return an empty list
-        # we do NOT track the voices manually, since these are the types of maintenance tasks that add up long term
-        voice_objects = []
+        voice_objects = ["alloy", "echo", "fable", "onyx", "nova", "shimmer"]
         return voice_objects
     
     def set_voice(self, voice: Union[str, object]):
@@ -71,7 +69,7 @@ class OpenAIEngine(BaseEngine):
         Args:
             voice (Union[str, SystemVoice]): The voice to be used for speech synthesis.
         """
-        pass
+        self.voice = voice
 
     def set_voice_parameters(self, **voice_parameters):
         """
