@@ -1,3 +1,6 @@
+"""
+NOTE: Write to file does not work with Elevenlabs Engine due to their api working with mpeg instead of chunks (and also encapsulates their chunk handling)
+"""
 if __name__ == '__main__':
     from RealtimeTTS import TextToAudioStream, CoquiEngine, AzureEngine, SystemEngine
     import os
