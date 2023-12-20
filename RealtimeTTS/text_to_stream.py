@@ -342,7 +342,7 @@ class TextToAudioStream:
                         self.wf.close()
                         self.wf = None
 
-            if self.stream_running and len(self.char_iter.items) > 0 and self.char_iter.iterated_text == "":
+            if len(self.char_iter.items) > 0 and self.char_iter.iterated_text == "":
                 # new text was feeded while playing audio but after the last character was processed
                 # we need to start another play() call
                 self.play(fast_sentence_fragment, buffer_threshold_seconds, minimum_sentence_length, log_synthesized_text, reset_generated_text=False)
