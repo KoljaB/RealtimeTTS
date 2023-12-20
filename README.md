@@ -26,10 +26,10 @@ https://github.com/KoljaB/RealtimeTTS/assets/7604638/87dcd9a5-3a4e-4f57-be45-837
 
 ## Updates
 
-Latest Version: v0.3.35
+Latest Version: v0.3.40
 
 #### New Features:
-- 💥NEW: multiple cloning files for ✨Coqui Engine✨
+- 💥NEW: predefined voices ✨Coqui Engine✨
 - OpenAI TTS support
 - more languages ([chinese](https://github.com/KoljaB/RealtimeTTS/blob/master/tests/chinese_test.py) etc)
 - fallback engines (define alternate engines if one fails)
