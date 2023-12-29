@@ -43,7 +43,7 @@ This library uses:
 - **Text-to-Speech Engines**
   - **OpenAIEngine**: OpenAI's TTS system offers 6 natural sounding voices.
   - **CoquiEngine**: High quality local neural TTS.
-  - **AzureEngine**: Microsoft's leading TTS technology. 250000 chars free per month.
+  - **AzureEngine**: Microsoft's leading TTS technology. 500000 chars free per month.
   - **ElevenlabsEngine**: Offer the best sounding voices available.
   - **SystemEngine**: Native engine for quick setup.
 
