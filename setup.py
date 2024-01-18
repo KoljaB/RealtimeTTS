@@ -1,11 +1,22 @@
 import setuptools
+import os
 
 with open("README.md", "r", encoding='utf-8') as fh:
     long_description = fh.read()
 
+
 # Read requirements.txt
 with open('requirements.txt') as f:
     requirements = f.read().splitlines()
+## detect if os is debian or ubuntu
+if os.path.exists("/etc/debian_version") or os.path.exists("/etc/lsb-release"):
+    ## install with apt install python3-pyaudio
+    os.system("sudo apt install python3-pyaudio")
+    ## remove pyaudio from requirements.txt
+    requirements.remove("pyaudio")
+
+## install with apt install python3-pyaudio
+os.system("python3 -m pip install python3-pyaudio")
 
 setuptools.setup(
     name="RealTimeTTS", 
