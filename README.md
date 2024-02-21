@@ -26,7 +26,7 @@ https://github.com/KoljaB/RealtimeTTS/assets/7604638/87dcd9a5-3a4e-4f57-be45-837
 
 ## Updates
 
-Latest Version: v0.3.41
+Latest Version: v0.3.42
 
 #### New Features:
 - 💥NEW: predefined voices ✨Coqui Engine✨
