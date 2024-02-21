@@ -15,28 +15,3 @@ while stream.is_playing():
     time.sleep(0.1)
 
 engine.shutdown()
-
-
-
-# if __name__ == '__main__':
-#     from RealtimeTTS import TextToAudioStream, CoquiEngine
-#     import time
-
-
-#     def dummy_generator():
-#         yield "我喜欢读书。天气很好。我们去公园吧。今天是星期五。早上好。这是我的朋友。请帮我。吃饭了吗？我在学中文。晚安。"
-
-
-#     def on_audio_chunk_callback(chunk):
-#         print(f"Chunk received, len: {len(chunk)}")
-
-
-#     engine = CoquiEngine(language="zh")
-#     stream = TextToAudioStream(engine).feed(dummy_generator())
-#     stream.play_async(tokenizer="stanza", language="zh", on_audio_chunk=on_audio_chunk_callback, muted=True)
-#     #stream.play_async(tokenizer="stanza", language="zh")
-
-#     while stream.is_playing():
-#         time.sleep(0.1)
-
-#     engine.shutdown()
