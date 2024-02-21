@@ -2,6 +2,23 @@
 
 *Easy to use, low-latency text-to-speech library for realtime applications*
 
+---
+
+❗ **Coqui shutdown and its impact**
+
+Coqui, a significant player in the voice technology industry, is unfortunately shutting down. Their groundbreaking work has not only been a source of inspiration for me personally but has also significantly influenced the development of RealtimeTTS library. Their closure marks a poignant moment in the voice technology community.
+
+While this shutdown is a loss of a pioneering company, it also affects the practical aspects of work. Those using the CoquiEngine may already be encountering errors such as "Failed to resolve 'coqui.gateway.scarf.sh'." There is nothing I can do immediately about this, but I am confident to find solutions to these issues in the future as the Coqui XTTS model has some exceptional capabilities. 
+
+In the interim, I am exploring alternatives like myshell-ai/OpenVoice and StyleTTS2 as potential engines to integrate into the library. These options show promise, although they are currently more English-centric. I'll keep you updated as I am trying to adapt to these changes.
+
+Please give the community some time to navigate this transition. 
+
+Thank you for your support and understanding.
+
+---
+
+
 ## About the Project
 
 RealtimeTTS is a state-of-the-art text-to-speech (TTS) library designed for real-time applications. It stands out in its ability to convert text streams fast into high-quality auditory output with minimal latency. 
