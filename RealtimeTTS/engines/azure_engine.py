@@ -45,6 +45,7 @@ class AzureVoice:
         end_index = locale.find("-")
         return locale[:end_index]
 
+
 class AzureEngine(BaseEngine):
 
     def __init__(self, 

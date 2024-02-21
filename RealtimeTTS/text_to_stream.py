@@ -1,4 +1,7 @@
-from .threadsafe_generators import CharIterator, AccumulatingThreadSafeGenerator
+from .threadsafe_generators import (
+     CharIterator,
+     AccumulatingThreadSafeGenerator
+)
 from .stream_player import StreamPlayer, AudioConfiguration
 from typing import Union, Iterator, List
 from .engines import BaseEngine
@@ -12,9 +15,10 @@ import queue
 import time
 import wave
 
+
 class TextToAudioStream:
 
-    def __init__(self, 
+    def __init__(self,
                  engine: Union[BaseEngine, List[BaseEngine]],
                  log_characters: bool = False,
                  on_text_stream_start=None,
@@ -31,20 +35,20 @@ class TextToAudioStream:
 
         Args:
             engine (BaseEngine): The engine used for text to audio synthesis.
-            log_characters (bool, optional): If True, logs the characters processed for synthesis.
-            on_text_stream_start (callable, optional): Callback function that gets called when the text stream starts.
-            on_text_stream_stop (callable, optional): Callback function that gets called when the text stream stops.
-            on_audio_stream_start (callable, optional): Callback function that gets called when the audio stream starts.
-            on_audio_stream_stop (callable, optional): Callback function that gets called when the audio stream stops.
-            on_character (callable, optional): Callback function that gets called when a single character is processed.
+            log_characters (bool, optional): If True, logs the characters
+              processed for synthesis.
+            on_text_stream_start (callable, optional): Callback function that
+              gets called when the text stream starts.
+            on_text_stream_stop (callable, optional): Callback function that
+              gets called when the text stream stops.
+            on_audio_stream_start (callable, optional): Callback function that
+              gets called when the audio stream starts.
+            on_audio_stream_stop (callable, optional): Callback function that
+              gets called when the audio stream stops.
+            on_character (callable, optional): Callback function that gets
+              called when a single character is processed.
             level (int, optional): Logging level. Defaults to logging.WARNING.
         """
-
-        # Initialize the logging configuration with the specified level
-        logging.basicConfig(format='RealTimeTTS: %(message)s', level=level)
-
-        logging.info(f"Starting RealTimeTTS")
-
         self.log_characters = log_characters
         self.on_text_stream_start = on_text_stream_start
         self.on_text_stream_stop = on_text_stream_stop
@@ -60,10 +64,12 @@ class TextToAudioStream:
 
         self._create_iterators()
 
-        logging.info(f"Initializing tokenizer {tokenizer} for language {language}")
+        logging.info(f"Initializing tokenizer {tokenizer} "
+                     f"for language {language}")
         s2s.init_tokenizer(tokenizer, language)
-        
-        # Initialize the play_thread attribute (used for playing audio in a separate thread)
+
+        # Initialize the play_thread attribute
+        # (used for playing audio in a separate thread)
         self.play_thread = None
 
         # Initialize an attribute to store generated text
@@ -80,13 +86,13 @@ class TextToAudioStream:
             self.engines = engine
         else:
             # Handle the case where engine is a single BaseEngine instance
-            self.engines = [engine]        
+            self.engines = [engine]
 
         self.load_engine(self.engines[self.engine_index])
 
-
-    def load_engine(self, 
-             engine: BaseEngine):
+    def load_engine(
+            self,
+            engine: BaseEngine):
         """
         Loads the synthesis engine and prepares the audio player for stream playback.
         This method sets up the engine that will be used for text-to-audio conversion, extracts the necessary stream information like format, channels, and rate from the engine, and initializes the StreamPlayer if the engine does not support consuming generators directly.
@@ -335,8 +341,6 @@ class TextToAudioStream:
                     self.output_wavfile = None
                     self.chunk_callback = None
 
-                    if reset_generated_text and self.on_audio_stream_stop:
-                        self.on_audio_stream_stop()
                 finally:
                     if output_wavfile and self.wf:
                         self.wf.close()
@@ -345,7 +349,23 @@ class TextToAudioStream:
             if len(self.char_iter.items) > 0 and self.char_iter.iterated_text == "":
                 # new text was feeded while playing audio but after the last character was processed
                 # we need to start another play() call
-                self.play(fast_sentence_fragment, buffer_threshold_seconds, minimum_sentence_length, log_synthesized_text, reset_generated_text=False)
+                self.play(
+                    fast_sentence_fragment=fast_sentence_fragment,
+                    buffer_threshold_seconds=buffer_threshold_seconds,
+                    minimum_sentence_length=minimum_sentence_length,
+                    minimum_first_fragment_length=minimum_first_fragment_length,
+                    log_synthesized_text=log_synthesized_text,
+                    reset_generated_text=False,
+                    output_wavfile=output_wavfile,
+                    on_sentence_synthesized=on_sentence_synthesized,
+                    on_audio_chunk=on_audio_chunk,
+                    tokenizer=tokenizer,
+                    language=language,
+                    context_size=context_size,
+                    muted=muted)
+            else:
+                if self.on_audio_stream_stop:
+                    self.on_audio_stream_stop()
 
 
     def pause(self):

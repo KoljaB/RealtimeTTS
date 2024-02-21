@@ -16,7 +16,11 @@ class AudioConfiguration:
     Defines the configuration for an audio stream.
     """
 
-    def __init__(self, format: int = pyaudio.paInt16, channels: int = 1, rate: int = 16000):
+    def __init__(
+            self,
+            format: int = pyaudio.paInt16,
+            channels: int = 1,
+            rate: int = 16000):
         """
         Args:
             format (int): Audio format, defaults to pyaudio.paInt16
@@ -30,7 +34,8 @@ class AudioConfiguration:
 
 class AudioStream:
     """
-    Handles audio stream operations such as opening, starting, stopping, and closing.
+    Handles audio stream operations
+    - opening, starting, stopping, and closing
     """
 
     def __init__(self, config: AudioConfiguration):
@@ -51,12 +56,20 @@ class AudioStream:
 
         if self.config.format == pyaudio.paCustomFormat:
             pyFormat = self.pyaudio_instance.get_format_from_width(2)
-            logging.debug(f"Opening stream for mpeg audio chunks, pyFormat: {pyFormat}, pyChannels: {pyChannels}, pySampleRate: {pySampleRate}")
+            logging.debug("Opening stream for mpeg audio chunks, "
+                          f"pyFormat: {pyFormat}, pyChannels: {pyChannels}, "
+                          f"pySampleRate: {pySampleRate}")
         else:
             pyFormat = self.config.format
-            logging.debug(f"Opening stream for wave audio chunks, pyFormat: {pyFormat}, pyChannels: {pyChannels}, pySampleRate: {pySampleRate}")
+            logging.debug("Opening stream for wave audio chunks, "
+                          f"pyFormat: {pyFormat}, pyChannels: {pyChannels}, "
+                          f"pySampleRate: {pySampleRate}")
 
-        self.stream = self.pyaudio_instance.open(format=pyFormat, channels=pyChannels, rate=pySampleRate, output=True)
+        self.stream = self.pyaudio_instance.open(
+            format=pyFormat,
+            channels=pyChannels,
+            rate=pySampleRate,
+            output=True)
 
     def start_stream(self):
         """Starts the audio stream."""
@@ -121,7 +134,8 @@ class AudioBufferManager:
         Retrieves audio data from the buffer.
 
         Args:
-            timeout (float): Time (in seconds) to wait before raising a queue.Empty exception.
+            timeout (float): Time (in seconds) to wait
+              before raising a queue.Empty exception.
 
         Returns:
             The audio data chunk or None if the buffer is empty.
@@ -151,13 +165,22 @@ class StreamPlayer:
     Manages audio playback operations such as start, stop, pause, and resume.
     """
 
-    def __init__(self, audio_buffer: queue.Queue, config: AudioConfiguration, on_playback_start=None, on_playback_stop=None, on_audio_chunk=None, muted = False):
+    def __init__(
+            self,
+            audio_buffer: queue.Queue,
+            config: AudioConfiguration,
+            on_playback_start=None,
+            on_playback_stop=None,
+            on_audio_chunk=None,
+            muted=False):
         """
         Args:
             audio_buffer (queue.Queue): Queue to be used as the audio buffer.
             config (AudioConfiguration): Object containing audio settings.
-            on_playback_start (Callable, optional): Callback function to be called at the start of playback. Defaults to None.
-            on_playback_stop (Callable, optional): Callback function to be called at the stop of playback. Defaults to None.
+            on_playback_start (Callable, optional): Callback function to be
+              called at the start of playback. Defaults to None.
+            on_playback_stop (Callable, optional): Callback function to be
+              called at the stop of playback. Defaults to None.
         """
         self.buffer_manager = AudioBufferManager(audio_buffer)
         self.audio_stream = AudioStream(config)
@@ -187,7 +210,7 @@ class StreamPlayer:
             chunk = segment.raw_data
 
         sub_chunk_size = 1024
-        
+
         for i in range(0, len(chunk), sub_chunk_size):
             sub_chunk = chunk[i:i + sub_chunk_size]
 
@@ -199,7 +222,7 @@ class StreamPlayer:
 
             if not self.first_chunk_played and self.on_playback_start:
                 self.on_playback_start()
-                self.first_chunk_played = True            
+                self.first_chunk_played = True
 
             # Pause playback if the event is set
             while self.pause_event.is_set():
@@ -209,8 +232,13 @@ class StreamPlayer:
                 break
 
     def _process_buffer(self):
-        """Processes and plays audio data from the buffer until it's empty or playback is stopped."""
-        while self.playback_active or not self.buffer_manager.audio_buffer.empty():
+        """
+        Processes and plays audio data from the buffer
+        until it's empty or playback is stopped.
+        """
+        while (self.playback_active or
+               not self.buffer_manager.audio_buffer.empty()):
+
             chunk = self.buffer_manager.get_from_buffer()
             if chunk:
                 self._play_chunk(chunk)
@@ -220,7 +248,7 @@ class StreamPlayer:
                 break
         if self.on_playback_stop:
             self.on_playback_stop()
-            
+
     def get_buffered_seconds(self) -> float:
         """
         Calculates the duration (in seconds) of the buffered audio data.
@@ -228,7 +256,10 @@ class StreamPlayer:
         Returns:
             float: Duration of buffered audio in seconds.
         """
-        total_samples = sum(len(chunk) // 2 for chunk in list(self.buffer_manager.audio_buffer.queue))
+        total_samples = sum(
+            len(chunk) // 2
+            for chunk in list(self.buffer_manager.audio_buffer.queue)
+        )
         return total_samples / self.audio_stream.config.rate
 
     def start(self):
@@ -245,7 +276,8 @@ class StreamPlayer:
         Stops audio playback.
 
         Args:
-            immediate (bool): If True, stops playback immediately without waiting for buffer to empty.
+            immediate (bool): If True, stops playback immediately
+              without waiting for buffer to empty.
         """
         if not self.playback_thread:
             logging.warn("No playback thread found, cannot stop playback")
