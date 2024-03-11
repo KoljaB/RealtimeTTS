@@ -208,6 +208,7 @@ class CoquiEngine(BaseEngine):
         self.output_worker_thread = Thread(
             target=output_worker,
             args=(self.output_queue,))
+        self.output_worker_thread.daemon = True
         self.output_worker_thread.start()
 
         self.main_synthesize_ready_event = mp.Event()
