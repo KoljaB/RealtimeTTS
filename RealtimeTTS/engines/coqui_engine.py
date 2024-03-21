@@ -346,10 +346,12 @@ class CoquiEngine(BaseEngine):
                     filename_voice_wav = filename_wav
                     filename_voice_json = filename_json
 
-                if not os.path.exists(filename_voice_json) and not os.path.exists(filename_voice_wav):
+                if (not os.path.exists(filename_voice_json)
+                        and not os.path.exists(filename_voice_wav)):
                     for predefined_voice in predefined_voices:
                         if filename.lower() in predefined_voice.lower():
-                            speaker_file_path = os.path.join(checkpoint, "speakers_xtts.pth")
+                            speaker_file_path = os.path.join(
+                                checkpoint, "speakers_xtts.pth")
                             speaker_manager = SpeakerManager(speaker_file_path)
                             gpt_cond_latent, speaker_embedding = speaker_manager.speakers[predefined_voice].values()
                             return gpt_cond_latent, speaker_embedding
@@ -460,6 +462,8 @@ class CoquiEngine(BaseEngine):
 
             config = load_config((os.path.join(checkpoint, "config.json")))
             tts = setup_tts_model(config)
+            logging.debug(f"  xtts load_checkpoint({checkpoint})")
+
             tts.load_checkpoint(
                 config,
                 checkpoint_dir=checkpoint,
@@ -560,11 +564,15 @@ class CoquiEngine(BaseEngine):
                     # Send silent audio
                     sample_rate = config.audio.sample_rate
 
-                    if text[-1] in [","]:
-                        # add small speaking pause in case of comma
+                    end_sentence_delimeters = ".!?…。¡¿"
+                    mid_sentence_delimeters = ";:,\n()[]{}-“”„”—/|《》"
+
+                    if text[-1] in end_sentence_delimeters:
+                        silence_duration = sentence_silence_duration
+                    elif text[-1] in mid_sentence_delimeters:
                         silence_duration = comma_silence_duration
                     else:
-                        silence_duration = sentence_silence_duration
+                        silence_duration = 0
 
                     silent_samples = int(sample_rate * silence_duration)
                     silent_chunk = np.zeros(silent_samples, dtype=np.float32)
@@ -578,8 +586,8 @@ class CoquiEngine(BaseEngine):
             conn.send(('shutdown', 'shutdown'))
 
         except Exception as e:
-            logging.error(f"General synthesis error: {e} occured "
-                          f"trying to synthesize text {text}")
+            logging.error(f"General synthesis error: {e} occured in "
+                          "synthesize worker thread of coqui engine.")
 
             tb_str = traceback.format_exc()
             print(f"Traceback: {tb_str}")
@@ -776,7 +784,7 @@ class CoquiEngine(BaseEngine):
         for file_name, url in files.items():
             file_path = os.path.join(model_folder, file_name)
             if not os.path.exists(file_path):
-                logging.info(f"Downloading {file_name}...")
+                print(f"Downloading {file_name} to {file_path}...")
                 CoquiEngine.download_file(url, file_path)
                 logging.info(f"{file_name} downloaded successfully.")
             else:

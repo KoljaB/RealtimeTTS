@@ -52,7 +52,7 @@ class AzureEngine(BaseEngine):
                  speech_key: str = "", 
                  service_region: str = "", 
                  voice: str = "en-US-AshleyNeural", 
-                 rate: float = 20.0,
+                 rate: float = 0.0,
                  pitch: float = 0.0):
         """
         Initializes an azure voice realtime text to speech engine object.

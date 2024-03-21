@@ -9,7 +9,7 @@ if __name__ == '__main__':
         yield "Hey guys! These here are realtime spoken sentences based on local text synthesis. "
         yield "With a local, neuronal, cloned voice. So every spoken sentence sounds unique."
 
-    print ("Starting engines")
+    print("Starting engines")
     coqui_engine = CoquiEngine()
     azure_engine = AzureEngine(os.environ.get("AZURE_SPEECH_KEY"), os.environ.get("AZURE_SPEECH_REGION"))
     system_engine = SystemEngine()
@@ -17,12 +17,12 @@ if __name__ == '__main__':
     stream = TextToAudioStream(azure_engine)
     stream.feed(dummy_generator())
     stream.play(output_wavfile=stream.engine.engine_name + "_output.wav")
-    coqui_engine.shutdown()
 
     stream.load_engine(coqui_engine)
     stream.feed(dummy_generator())
     stream.play(output_wavfile=stream.engine.engine_name + "_output.wav")
+    coqui_engine.shutdown()
 
     stream.load_engine(system_engine)
     stream.feed(dummy_generator())
-    stream.play(output_wavfile=stream.engine.engine_name + "_output.wav")   
+    stream.play(output_wavfile=stream.engine.engine_name + "_output.wav")

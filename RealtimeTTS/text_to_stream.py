@@ -146,30 +146,35 @@ class TextToAudioStream:
                    language: str = "",
                    context_size: int = 12,
                    muted: bool = False,
+                   sentence_fragment_delimiters: str = ".?!;:,\n…)]}。-",
+                   force_first_fragment_after_words=15,
                    ):
         """
         Async handling of text to audio synthesis, see play() method.
         """
         self.stream_running = True
 
-        self.play_thread = threading.Thread(target=self.play, args=(fast_sentence_fragment, buffer_threshold_seconds, minimum_sentence_length, minimum_first_fragment_length, log_synthesized_text, reset_generated_text, output_wavfile, on_sentence_synthesized, on_audio_chunk, tokenizer, language, context_size, muted))
+        self.play_thread = threading.Thread(target=self.play, args=(fast_sentence_fragment, buffer_threshold_seconds, minimum_sentence_length, minimum_first_fragment_length, log_synthesized_text, reset_generated_text, output_wavfile, on_sentence_synthesized, on_audio_chunk, tokenizer, language, context_size, muted, sentence_fragment_delimiters, force_first_fragment_after_words))
         self.play_thread.daemon = True
         self.play_thread.start()
 
-    def play(self,
+    def play(
+            self,
             fast_sentence_fragment: bool = True,
             buffer_threshold_seconds: float = 0.0,
             minimum_sentence_length: int = 10,
-            minimum_first_fragment_length : int = 10,
-            log_synthesized_text = False,
+            minimum_first_fragment_length: int = 10,
+            log_synthesized_text=False,
             reset_generated_text: bool = True,
             output_wavfile: str = None,
-            on_sentence_synthesized = None,
-            on_audio_chunk = None,
+            on_sentence_synthesized=None,
+            on_audio_chunk=None,
             tokenizer: str = "nltk",
             language: str = "en",
             context_size: int = 12,
             muted: bool = False,
+            sentence_fragment_delimiters: str = ".?!;:,\n…)]}。-",
+            force_first_fragment_after_words=15,
             ):
         """
         Handles the synthesis of text to audio.
@@ -192,6 +197,11 @@ class TextToAudioStream:
         - language: Language to use for sentence splitting.
         - context_size: The number of characters used to establish context for sentence boundary detection. A larger context improves the accuracy of detecting sentence boundaries. Default is 12 characters.
         - muted: If True, disables audio playback via local speakers (in case you want to synthesize to file or process audio chunks). Default is False.
+        - sentence_fragment_delimiters (str): A string of characters that are
+            considered sentence delimiters. Default is ".?!;:,\n…)]}。-".
+        - force_first_fragment_after_words (int): The number of words after
+            which the first sentence fragment is forced to be yielded.
+            Default is 15 words.
         """
 
         # Log the start of the stream
@@ -255,7 +265,7 @@ class TextToAudioStream:
                 self.player.on_audio_chunk = self._on_audio_chunk
 
                 # Generate sentences from the characters
-                generate_sentences = s2s.generate_sentences(self.thread_safe_char_iter, context_size=context_size, minimum_sentence_length=minimum_sentence_length, minimum_first_fragment_length=minimum_first_fragment_length, quick_yield_single_sentence_fragment=fast_sentence_fragment, cleanup_text_links=True, cleanup_text_emojis=True, tokenizer=tokenizer, language=language, log_characters=self.log_characters)
+                generate_sentences = s2s.generate_sentences(self.thread_safe_char_iter, context_size=context_size, minimum_sentence_length=minimum_sentence_length, minimum_first_fragment_length=minimum_first_fragment_length, quick_yield_single_sentence_fragment=fast_sentence_fragment, cleanup_text_links=True, cleanup_text_emojis=True, tokenizer=tokenizer, language=language, log_characters=self.log_characters, sentence_fragment_delimiters=sentence_fragment_delimiters, force_first_fragment_after_words=force_first_fragment_after_words)
 
                 # Create the synthesis chunk generator with the given sentences
                 chunk_generator = self._synthesis_chunk_generator(generate_sentences, buffer_threshold_seconds, log_synthesized_text)
