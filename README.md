@@ -231,7 +231,9 @@ stream.stop()
 
 ## Requirements Explained
 
-- Python 3.6+
+- **Python Version**: 
+  - **Required**: Python >= 3.9, < 3.12
+  - **Reason**: The library depends on the GitHub library "TTS" from coqui, which requires Python versions in this range.
 
 - **requests (>=2.31.0)**: to send HTTP requests for API calls and voice list retrieval
   
