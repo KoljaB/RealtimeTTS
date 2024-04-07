@@ -28,7 +28,9 @@ class TextToAudioStream:
                  on_character=None,
                  tokenizer: str = "nltk",
                  language: str = "en",
+                 output_device: int = None,
                  level=logging.WARNING,
+                 
                  ):
         """
         Initializes the TextToAudioStream.
@@ -61,6 +63,7 @@ class TextToAudioStream:
         self.tokenizer = tokenizer
         self.language = language
         self.player = None
+        self.output_device = output_device
 
         self._create_iterators()
 
@@ -109,7 +112,7 @@ class TextToAudioStream:
 
         # Check if the engine doesn't support consuming generators directly
         if not self.engine.can_consume_generators:
-            self.player = StreamPlayer(self.engine.queue, AudioConfiguration(format, channels, rate), on_playback_start=self._on_audio_stream_start)
+            self.player = StreamPlayer(self.engine.queue, AudioConfiguration(format, channels, rate, self.output_device), on_playback_start=self._on_audio_stream_start)
         else:
             self.engine.on_playback_start = self._on_audio_stream_start
             self.player = None

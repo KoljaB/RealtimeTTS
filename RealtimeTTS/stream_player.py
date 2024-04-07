@@ -20,7 +20,8 @@ class AudioConfiguration:
             self,
             format: int = pyaudio.paInt16,
             channels: int = 1,
-            rate: int = 16000):
+            rate: int = 16000,
+            output_device: int = None):
         """
         Args:
             format (int): Audio format, defaults to pyaudio.paInt16
@@ -30,6 +31,7 @@ class AudioConfiguration:
         self.format = format
         self.channels = channels
         self.rate = rate
+        self.output_device = output_device
 
 
 class AudioStream:
@@ -53,6 +55,7 @@ class AudioStream:
         # check for mpeg format
         pyChannels = self.config.channels
         pySampleRate = self.config.rate
+        pyOutputDevice = self.config.output_device
 
         if self.config.format == pyaudio.paCustomFormat:
             pyFormat = self.pyaudio_instance.get_format_from_width(2)
@@ -69,7 +72,8 @@ class AudioStream:
             format=pyFormat,
             channels=pyChannels,
             rate=pySampleRate,
-            output=True)
+            output=True,
+            output_device_index=pyOutputDevice)
 
     def start_stream(self):
         """Starts the audio stream."""
