@@ -20,16 +20,19 @@ class AudioConfiguration:
             self,
             format: int = pyaudio.paInt16,
             channels: int = 1,
-            rate: int = 16000):
+            rate: int = 16000,
+            output_device_index=None):
         """
         Args:
             format (int): Audio format, defaults to pyaudio.paInt16
             channels (int): Number of channels, defaults to 1 (mono)
             rate (int): Sample rate, defaults to 16000
+            output_device_index (int): Output device index, defaults to None
         """
         self.format = format
         self.channels = channels
         self.rate = rate
+        self.output_device_index = output_device_index
 
 
 class AudioStream:
@@ -53,6 +56,7 @@ class AudioStream:
         # check for mpeg format
         pyChannels = self.config.channels
         pySampleRate = self.config.rate
+        pyOutput_device_index = self.config.output_device_index
 
         if self.config.format == pyaudio.paCustomFormat:
             pyFormat = self.pyaudio_instance.get_format_from_width(2)
@@ -65,11 +69,16 @@ class AudioStream:
                           f"pyFormat: {pyFormat}, pyChannels: {pyChannels}, "
                           f"pySampleRate: {pySampleRate}")
 
-        self.stream = self.pyaudio_instance.open(
-            format=pyFormat,
-            channels=pyChannels,
-            rate=pySampleRate,
-            output=True)
+        try:
+            self.stream = self.pyaudio_instance.open(
+                format=pyFormat,
+                channels=pyChannels,
+                rate=pySampleRate,
+                output_device_index=pyOutput_device_index,
+                output=True)
+        except Exception as e:
+            print(f"Error opening stream: {e}")
+            exit(0)
 
     def start_stream(self):
         """Starts the audio stream."""

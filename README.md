@@ -26,7 +26,7 @@ https://github.com/KoljaB/RealtimeTTS/assets/7604638/87dcd9a5-3a4e-4f57-be45-837
 
 ## Updates
 
-Latest Version: v0.3.43
+Latest Version: v0.3.44
 
 See [release history](https://github.com/KoljaB/RealtimeTTS/releases).
 
@@ -283,6 +283,24 @@ When you initialize the `TextToAudioStream` class, you have various options to c
 - **Type**: Callable function
 - **Required**: No
 - **Description**: This optional callback function is called when a single character is processed.
+
+#### `output_device_index` (int)
+- **Type**: Integer
+- **Required**: No
+- **Default**: None
+- **Description**: Specifies the output device index to use. None uses the default device.
+
+#### `tokenizer` (string)
+- **Type**: String
+- **Required**: No
+- **Default**: nltk
+- **Description**: Tokenizer to use for sentence splitting (currently "nltk" and "stanza" are supported).
+
+#### `language` (string)
+- **Type**: String
+- **Required**: No
+- **Default**: en
+- **Description**: Language to use for sentence splitting.
 
 #### `level` (int)
 - **Type**: Integer

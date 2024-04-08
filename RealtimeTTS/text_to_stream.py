@@ -26,6 +26,7 @@ class TextToAudioStream:
                  on_audio_stream_start=None,
                  on_audio_stream_stop=None,
                  on_character=None,
+                 output_device_index=None,
                  tokenizer: str = "nltk",
                  language: str = "en",
                  level=logging.WARNING,
@@ -47,6 +48,11 @@ class TextToAudioStream:
               gets called when the audio stream stops.
             on_character (callable, optional): Callback function that gets
               called when a single character is processed.
+            output_device_index (int, optional): The index of the output device
+                to use for audio playback.
+            tokenizer (str, optional): Tokenizer to use for sentence splitting
+                (currently "nltk" and "stanza" are supported).
+            language (str, optional): Language to use for sentence splitting.
             level (int, optional): Logging level. Defaults to logging.WARNING.
         """
         self.log_characters = log_characters
@@ -54,6 +60,7 @@ class TextToAudioStream:
         self.on_text_stream_stop = on_text_stream_stop
         self.on_audio_stream_start = on_audio_stream_start
         self.on_audio_stream_stop = on_audio_stream_stop
+        self.output_device_index = output_device_index
         self.output_wavfile = None
         self.chunk_callback = None
         self.wf = None
@@ -109,7 +116,14 @@ class TextToAudioStream:
 
         # Check if the engine doesn't support consuming generators directly
         if not self.engine.can_consume_generators:
-            self.player = StreamPlayer(self.engine.queue, AudioConfiguration(format, channels, rate), on_playback_start=self._on_audio_stream_start)
+            self.player = StreamPlayer(
+                self.engine.queue,
+                AudioConfiguration(
+                    format,
+                    channels,
+                    rate,
+                    self.output_device_index),
+                on_playback_start=self._on_audio_stream_start)
         else:
             self.engine.on_playback_start = self._on_audio_stream_start
             self.player = None

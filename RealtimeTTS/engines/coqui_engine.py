@@ -9,11 +9,15 @@ import requests
 import logging
 import pyaudio
 import torch
+import time
 import json
 import sys
 import io
 import os
 import re
+
+
+TIME_SLEEP_DEVICE_RESET = 2
 
 
 class QueueWriter(io.TextIOBase):
@@ -69,8 +73,9 @@ class CoquiEngine(BaseEngine):
                  prepare_text_for_synthesis_callback=None,
                  add_sentence_filter=False,
                  pretrained=False,
-                 comma_silence_duration=0.15,
-                 sentence_silence_duration=0.35,
+                 comma_silence_duration=0.3,
+                 sentence_silence_duration=0.6,
+                 default_silence_duration=0.3
                  ):
         """
         Initializes a coqui voice realtime text to speech engine object.
@@ -153,6 +158,7 @@ class CoquiEngine(BaseEngine):
         self.add_sentence_filter = add_sentence_filter
         self.comma_silence_duration = comma_silence_duration
         self.sentence_silence_duration = sentence_silence_duration
+        self.default_silence_duration = default_silence_duration
 
         self.cloning_reference_wav = voice
         self.speed = speed
@@ -243,7 +249,8 @@ class CoquiEngine(BaseEngine):
                 self.voices_list,
                 self.pretrained,
                 self.comma_silence_duration,
-                self.sentence_silence_duration
+                self.sentence_silence_duration,
+                self.default_silence_duration
             ))
         self.synthesize_process.start()
 
@@ -281,7 +288,8 @@ class CoquiEngine(BaseEngine):
             predefined_voices,
             pretrained,
             comma_silence_duration,
-            sentence_silence_duration):
+            sentence_silence_duration,
+            default_silence_duration):
         """
         Worker process for the coqui text to speech synthesis model.
 
@@ -441,39 +449,43 @@ class CoquiEngine(BaseEngine):
 
         def load_model(checkpoint, tts):
             global config
-            if tts:
-                import gc
-                del tts
-                torch.cuda.empty_cache()
-                gc.collect()
-                from numba import cuda
-                current_device = cuda.get_current_device()
-                current_device.reset()
-                tts = None
-                import time
-                time.sleep(10)
+            try:
+                if tts:
+                    import gc
+                    del tts
+                    torch.cuda.empty_cache()
+                    gc.collect()
+                    from numba import cuda
+                    current_device = cuda.get_current_device()
+                    current_device.reset()
+                    tts = None
+                    import time
+                    time.sleep(TIME_SLEEP_DEVICE_RESET)
 
-            torch.set_num_threads(int(str(thread_count)))
-            if torch.cuda.is_available():
-                device = torch.device("cuda")
-            elif use_mps and torch.backends.mps.is_available() and torch.backends.mps.is_built():
-                device = torch.device("mps")
-            else:
-                device = torch.device("cpu")
+                torch.set_num_threads(int(str(thread_count)))
+                if torch.cuda.is_available():
+                    device = torch.device("cuda")
+                elif use_mps and torch.backends.mps.is_available() and torch.backends.mps.is_built():
+                    device = torch.device("mps")
+                else:
+                    device = torch.device("cpu")
 
-            config = load_config((os.path.join(checkpoint, "config.json")))
-            tts = setup_tts_model(config)
-            logging.debug(f"  xtts load_checkpoint({checkpoint})")
+                config = load_config((os.path.join(checkpoint, "config.json")))
+                tts = setup_tts_model(config)
+                logging.debug(f"  xtts load_checkpoint({checkpoint})")
 
-            tts.load_checkpoint(
-                config,
-                checkpoint_dir=checkpoint,
-                checkpoint_path=None,
-                vocab_path=None,
-                eval=True,
-                use_deepspeed=use_deepspeed,
-            )
-            tts.to(device)
+                tts.load_checkpoint(
+                    config,
+                    checkpoint_dir=checkpoint,
+                    checkpoint_path=None,
+                    vocab_path=None,
+                    eval=True,
+                    use_deepspeed=use_deepspeed,
+                )
+                tts.to(device)
+            except Exception as e:
+                print(f"Error loading model for checkpoint {checkpoint}: {e}")
+                raise
             return tts
 
         logging.debug(f"Initializing coqui model {model_name}")
@@ -532,6 +544,13 @@ class CoquiEngine(BaseEngine):
 
                     logging.debug(f'Starting inference for text: {text}')
 
+                    print(f"XTTS Synthesizing: {text}")
+                    time_start = time.time()
+                    seconds_to_first_chunk = 0.0
+                    full_generated_seconds = 0.0
+                    raw_inference_start = 0.0
+                    first_chunk_length_seconds = 0.0
+
                     chunks = tts.inference_stream(
                         text,
                         language,
@@ -553,6 +572,17 @@ class CoquiEngine(BaseEngine):
 
                         for i, chunk in enumerate(chunks):
                             chunk = postprocess_wave(chunk)
+                            chunk_bytes = chunk.tobytes()
+                            chunklist.append(chunk_bytes)
+                            chunk_duration = len(chunk_bytes) / (4 * 24000)
+                            full_generated_seconds += chunk_duration
+                            if i == 0:
+                                first_chunk_length_seconds = chunk_duration
+                                raw_inference_start = time.time()
+                                seconds_to_first_chunk = raw_inference_start - time_start
+
+                        for i, chunk in enumerate(chunks):
+                            chunk = postprocess_wave(chunk)
                             chunklist.append(chunk.tobytes())
 
                         for chunk in chunklist:
@@ -560,7 +590,33 @@ class CoquiEngine(BaseEngine):
                     else:
                         for i, chunk in enumerate(chunks):
                             chunk = postprocess_wave(chunk)
-                            conn.send(('success', chunk.tobytes()))
+                            chunk_bytes = chunk.tobytes()
+                            conn.send(('success', chunk_bytes))
+                            chunk_duration = len(chunk_bytes) / (4 * 24000)  # 4 bytes per sample, 24000 Hz
+                            full_generated_seconds += chunk_duration
+                            if i == 0:
+                                first_chunk_length_seconds = chunk_duration
+                                raw_inference_start = time.time()
+                                seconds_to_first_chunk = raw_inference_start - time_start
+
+                    time_end = time.time()
+                    seconds = time_end - time_start
+
+                    if full_generated_seconds > 0 and (full_generated_seconds - first_chunk_length_seconds) > 0:
+
+                        realtime_factor = seconds / full_generated_seconds
+                        raw_inference_time = seconds - seconds_to_first_chunk
+                        raw_inference_factor = raw_inference_time / (full_generated_seconds - first_chunk_length_seconds) 
+
+                        # print(
+                        #     f"XTTS synthesized {full_generated_seconds:.2f}s"
+                        #     f" audio in {seconds:.2f}s"
+                        #     f" realtime factor: {realtime_factor:.2f}x"
+                        # )
+                        # print(
+                        #     f"seconds to first chunk: {seconds_to_first_chunk:.2f}s"
+                        #     f" raw_inference_factor: {raw_inference_factor:.2f}x"
+                        # )
 
                     # Send silent audio
                     sample_rate = config.audio.sample_rate
@@ -573,7 +629,7 @@ class CoquiEngine(BaseEngine):
                     elif text[-1] in mid_sentence_delimeters:
                         silence_duration = comma_silence_duration
                     else:
-                        silence_duration = 0
+                        silence_duration = default_silence_duration
 
                     silent_samples = int(sample_rate * silence_duration)
                     silent_chunk = np.zeros(silent_samples, dtype=np.float32)
