@@ -42,7 +42,7 @@ If stuttering occurs:
 ` (adjust 2.2.2 to your desired torch version and 118 to your desired CUDA version)     
   2. If the system is too slow for realtime synthesis, set "full_sentences=True" as a parameter for the CoquiEngine constructor which prevents mid-sentence stuttering.
 
-## Use an UI Like in the Showcase Video
+## Use an UI like in the Showcase Video
 
 Check out the code used for the video on the front page of the repository [here](https://github.com/KoljaB/RealtimeTTS/blob/master/tests/pyqt6_speed_test.py).
 
