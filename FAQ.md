@@ -17,7 +17,6 @@ Welcome to the RealtimeTTS frequently answered questions and troubleshooting gui
 11. [Realtime Generated Audiochunks](#work-with-the-realtime-generated-audiochunks)
 12. [Use RealtimeTTS in Another Language](#use-realtimetts-in-another-language)
 
-Let's dive into each of these issues and their solutions.
 
 ## Stream to Web Browser
 
