@@ -14,7 +14,7 @@ class TTSApp(QMainWindow):
         self.engine_system = SystemEngine(voice = "Huihui")
         self.engine_azure = AzureEngine(os.environ.get("AZURE_SPEECH_KEY"), os.environ.get("AZURE_SPEECH_REGION"), voice="zh-CN-XiaoxiaoNeural")
         self.engine_elevenlabs = ElevenlabsEngine(os.environ.get("ELEVENLABS_API_KEY"))
-        self.engine_coqui = CoquiEngine(cloning_reference_wav="female_chinese.wav", language = "zh")
+        self.engine_coqui = CoquiEngine(voice="female_chinese.wav", language = "zh")
         print ("TTS Engines initialized.")
 
         # Add a dictionary to map engine names to engine instances
