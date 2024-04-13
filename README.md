@@ -24,6 +24,10 @@ https://github.com/KoljaB/RealtimeTTS/assets/7604638/87dcd9a5-3a4e-4f57-be45-837
 
 > **Hint**: *check out [RealtimeSTT](https://github.com/KoljaB/RealtimeSTT), the input counterpart of this library, for speech-to-text capabilities. Together, they form a powerful realtime audio wrapper around large language models.*
 
+## FAQ
+
+Check the [FAQ page](./FAQ.md) for answers to a lot of questions around the usage of RealtimeTTS.
+
 ## Updates
 
 Latest Version: v0.3.44
@@ -107,7 +111,7 @@ Delivers high quality, local, neural TTS with voice-cloning.
 Downloads a neural TTS model first. In most cases it be fast enought for Realtime using GPU synthesis. Needs around 4-5 GB VRAM.
 
 - to clone a voice submit the filename of a wave file containing the source voice as "voice" parameter to the CoquiEngine constructor
-- in my experience voice cloning works best with a 22050 Hz mono 16bit WAV file containing a short (~10-30 sec) sample 
+- voice cloning works best with a 22050 Hz mono 16bit WAV file containing a short (~5-30 sec) sample 
 
 On most systems GPU support will be needed to run fast enough for realtime, otherwise you will experience stuttering.
 
