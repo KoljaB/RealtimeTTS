@@ -16,7 +16,8 @@ Welcome to the RealtimeTTS frequently answered questions and troubleshooting gui
 10. [Change Output Device](#i-want-to-use-another-output-device)
 11. [Realtime Generated Audiochunks](#work-with-the-realtime-generated-audiochunks)
 12. [Use RealtimeTTS in Another Language](#use-realtimetts-in-another-language)
-
+13. [How to use Voices](#how-to-use-voices)
+14. [Script won't Terminate](#script-won't-terminate)
 
 ## Stream to Web Browser
 
@@ -175,3 +176,20 @@ When selecting a tokenizer for your application, consider the following factors:
 3. **Performance**: NLTK is lightweight and easy to use, making it suitable for simple applications where performance is not a critical factor. However, for more demanding real-time applications or applications involving multiple languages, Stanza's performance and versatility make it a preferred choice.
 
 In summary, choose the NLTK tokenizer for straightforward text-to-speech tasks in English or when simplicity is preferred. Opt for the Stanza tokenizer when working with multilingual text or when higher accuracy and performance are required.
+
+## How to use voices
+
+Every engine has a corresponding Voice class. So to AzureEngine there is AzureVoice, for ElevenlabsEngine ElevenlabsVoice exists etc. All these Voice classes have a "name" parameter implemented, which you can use to set the voice on the engine (or to show the name of the voice to the user).
+
+### Retrieve voices
+
+Every engine has a method named get_voices() implemented, which returns a list of objects of the voice class depending to the engine. So if you call get_voices() on an instance of the AzureEngine for example, you would get a list of AzureVoice objects representing the available voices for this engine.
+
+### Set voices
+
+Every engine also has a method named set_voice, which takes either a string with a voice name (or a part of a voice name) or an instance of the voice class of this engine. 
+
+## Script won't terminate
+
+When you are using the CoquiEngine you need to call the shutdown method before closing the application to close multiprocessing pipe connections and terminate the worker process.
+
