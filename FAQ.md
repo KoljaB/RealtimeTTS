@@ -17,7 +17,7 @@ Welcome to the RealtimeTTS frequently answered questions and troubleshooting gui
 11. [Realtime Generated Audiochunks](#work-with-the-realtime-generated-audiochunks)
 12. [Use RealtimeTTS in Another Language](#use-realtimetts-in-another-language)
 13. [How to use Voices](#how-to-use-voices)
-14. [Script won't Terminate](#script-won't-terminate)
+14. [Script won't Terminate](#script-wont-terminate)
 
 ## Stream to Web Browser
 
