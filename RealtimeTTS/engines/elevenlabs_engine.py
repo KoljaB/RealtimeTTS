@@ -179,8 +179,9 @@ class ElevenlabsEngine(BaseEngine):
                     if not self.on_playback_started and self.on_playback_start:
                         self.on_playback_start()
                     self.on_playback_started = True
-                    self.mpv_process.stdin.write(chunk)
-                    self.mpv_process.stdin.flush()
+                    if not self.muted:
+                        self.mpv_process.stdin.write(chunk)
+                        self.mpv_process.stdin.flush()
                     audio += chunk
                     if self.on_audio_chunk: 
                         self.on_audio_chunk(chunk)
