@@ -544,7 +544,7 @@ class CoquiEngine(BaseEngine):
 
                     logging.debug(f'Starting inference for text: {text}')
 
-                    print(f"XTTS Synthesizing: {text}")
+                    logging.info(f"XTTS Synthesizing: {text}")
                     time_start = time.time()
                     seconds_to_first_chunk = 0.0
                     full_generated_seconds = 0.0
