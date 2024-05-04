@@ -297,8 +297,6 @@ class TextToAudioStream:
                 self._create_iterators()
                 self.is_playing_flag = False
         else:
-            synthesis_processed = False
-
             try:
                 # Start the audio player to handle playback
                 self.player.start()
@@ -331,7 +329,6 @@ class TextToAudioStream:
                                     if on_sentence_synthesized:
                                         on_sentence_synthesized(sentence)
                                     synthesis_successful = True
-                                    synthesis_processed = True
                                 else:
                                     logging.warning(f"engine {self.engine.engine_name} failed to synthesize sentence \"{sentence}\", unknown error")
 
@@ -363,7 +360,6 @@ class TextToAudioStream:
 
                 # Iterate through the synthesized chunks and feed them to the engine for audio synthesis
                 for sentence in chunk_generator:
-                    # print(f"Sentence extracted from stream: {sentence}")
                     if abort_event.is_set():
                         break
                     sentence = sentence.strip()
@@ -399,7 +395,7 @@ class TextToAudioStream:
                         self.wf.close()
                         self.wf = None
 
-            if len(self.char_iter.items) > 0 and self.char_iter.iterated_text == "" and synthesis_processed:
+            if len(self.char_iter.items) > 0 and self.char_iter.iterated_text == "":
                 # new text was feeded while playing audio but after the last character was processed
                 # we need to start another play() call
                 self.play(
@@ -554,7 +550,7 @@ class TextToAudioStream:
 
         # If log_characters flag is True, print a new line for better log readability
         if self.log_characters:
-            print()    
+            print()
 
         self._create_iterators()
 

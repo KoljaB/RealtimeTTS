@@ -95,6 +95,7 @@ class AudioStream:
         if self.stream:
             self.stop_stream()
             self.stream.close()
+            self.stream = None
 
     def is_stream_active(self) -> bool:
         """
@@ -223,15 +224,16 @@ class StreamPlayer:
         for i in range(0, len(chunk), sub_chunk_size):
             sub_chunk = chunk[i:i + sub_chunk_size]
 
+            # print("Playing/yielding chunk")
+            if not self.first_chunk_played and self.on_playback_start:
+                self.on_playback_start()
+                self.first_chunk_played = True
+
             if not self.muted:
                 self.audio_stream.stream.write(sub_chunk)
 
             if self.on_audio_chunk:
                 self.on_audio_chunk(sub_chunk)
-
-            if not self.first_chunk_played and self.on_playback_start:
-                self.on_playback_start()
-                self.first_chunk_played = True
 
             # Pause playback if the event is set
             while self.pause_event.is_set():
@@ -275,10 +277,14 @@ class StreamPlayer:
         """Starts audio playback."""
         self.first_chunk_played = False
         self.playback_active = True
-        self.audio_stream.open_stream()
+        if not self.audio_stream.stream:
+            self.audio_stream.open_stream()
+
         self.audio_stream.start_stream()
-        self.playback_thread = threading.Thread(target=self._process_buffer)
-        self.playback_thread.start()
+
+        if not self.playback_thread or not self.playback_thread.is_alive():
+            self.playback_thread = threading.Thread(target=self._process_buffer)
+            self.playback_thread.start()
 
     def stop(self, immediate: bool = False):
         """
