@@ -32,7 +32,7 @@ Check the [FAQ page](./FAQ.md) for answers to a lot of questions around the usag
 
 ## Updates
 
-Latest Version: v0.3.44
+Latest Version: v0.3.45
 
 See [release history](https://github.com/KoljaB/RealtimeTTS/releases).
 
