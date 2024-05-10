@@ -57,6 +57,7 @@ class ElevenlabsEngine(BaseEngine):
         self.pause_event = threading.Event()
         self.immediate_stop = threading.Event()
         self.on_audio_chunk = None
+        self.muted = False
         self.on_playback_started = False
 
         self.set_api_key(api_key)
@@ -81,6 +82,10 @@ class ElevenlabsEngine(BaseEngine):
     def pause(self):
         """Pauses playback of the synthesized audio stream (won't work properly with elevenlabs)."""
         self.pause_event.set()
+
+    def set_muted(self, muted: bool):
+        """Mutes the audio stream."""
+        self.muted = muted
 
     def resume(self):
         """Resumes a previously paused playback of the synthesized audio stream (won't work properly with elevenlabs)."""
@@ -163,13 +168,14 @@ class ElevenlabsEngine(BaseEngine):
             )
             raise ValueError(message)
 
-        mpv_command = ["mpv", "--no-cache", "--no-terminal", "--", "fd://0"]
-        self.mpv_process = subprocess.Popen(
-            mpv_command,
-            stdin=subprocess.PIPE,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
+        if not self.muted:
+            mpv_command = ["mpv", "--no-cache", "--no-terminal", "--", "fd://0"]
+            self.mpv_process = subprocess.Popen(
+                mpv_command,
+                stdin=subprocess.PIPE,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
 
         audio = b""
 
@@ -188,9 +194,10 @@ class ElevenlabsEngine(BaseEngine):
         except BrokenPipeError:
             pass
 
-        if self.mpv_process.stdin:
-            self.mpv_process.stdin.close()
-        self.mpv_process.wait()
+        if not self.muted:
+            if self.mpv_process.stdin:
+                self.mpv_process.stdin.close()
+            self.mpv_process.wait()
 
         return audio            
     
@@ -241,7 +248,7 @@ class ElevenlabsEngine(BaseEngine):
                     self.id = installed_voice.voice_id
                     self.category = installed_voice.category
                     return
-                
+
         logging.warning(f"Voice {voice} not found.")
 
     def set_voice_parameters(self, **voice_parameters):

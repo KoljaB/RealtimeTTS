@@ -32,7 +32,7 @@ Check the [FAQ page](./FAQ.md) for answers to a lot of questions around the usag
 
 ## Updates
 
-Latest Version: v0.3.44
+Latest Version: v0.3.46
 
 See [release history](https://github.com/KoljaB/RealtimeTTS/releases).
 
@@ -307,6 +307,12 @@ When you initialize the `TextToAudioStream` class, you have various options to c
 - **Required**: No
 - **Default**: en
 - **Description**: Language to use for sentence splitting.
+
+#### `muted` (bool)
+- **Type**: Bool
+- **Required**: No
+- **Default**: False
+- **Description**: Global muted parameter. If True, no pyAudio stream will be opened. Disables audio playback via local speakers (in case you want to synthesize to file or process audio chunks) and overrides the play parameters muted setting.
 
 #### `level` (int)
 - **Type**: Integer

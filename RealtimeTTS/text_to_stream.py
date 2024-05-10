@@ -29,6 +29,7 @@ class TextToAudioStream:
                  output_device_index=None,
                  tokenizer: str = "nltk",
                  language: str = "en",
+                 muted: bool = False,
                  level=logging.WARNING,
                  ):
         """
@@ -53,6 +54,11 @@ class TextToAudioStream:
             tokenizer (str, optional): Tokenizer to use for sentence splitting
                 (currently "nltk" and "stanza" are supported).
             language (str, optional): Language to use for sentence splitting.
+            muted (bool, optional): If True, disables audio playback via local
+                speakers (in case you want to synthesize to file or process
+                audio chunks). Default is False.
+                If set to True it will override the play parameters muted
+                setting.
             level (int, optional): Logging level. Defaults to logging.WARNING.
         """
         self.log_characters = log_characters
@@ -67,6 +73,7 @@ class TextToAudioStream:
         self.abort_events = []
         self.tokenizer = tokenizer
         self.language = language
+        self.global_muted = muted
         self.player = None
         self.play_lock = threading.Lock()
         self.is_playing_flag = False
@@ -118,13 +125,16 @@ class TextToAudioStream:
 
         # Check if the engine doesn't support consuming generators directly
         if not self.engine.can_consume_generators:
+            config = AudioConfiguration(
+                format,
+                channels,
+                rate,
+                self.output_device_index,
+                muted=self.global_muted)
+
             self.player = StreamPlayer(
                 self.engine.queue,
-                AudioConfiguration(
-                    format,
-                    channels,
-                    rate,
-                    self.output_device_index),
+                config,
                 on_playback_start=self._on_audio_stream_start)
         else:
             self.engine.on_playback_start = self._on_audio_stream_start
@@ -231,6 +241,8 @@ class TextToAudioStream:
             which the first sentence fragment is forced to be yielded.
             Default is 15 words.
         """
+        if self.global_muted:
+            muted = True
 
         if is_external_call:
             if not self.play_lock.acquire(blocking=False):
@@ -295,10 +307,12 @@ class TextToAudioStream:
                 self.generated_text += self.char_iter.iterated_text
 
                 self._create_iterators()
-                self.is_playing_flag = False
-        else:
-            synthesis_processed = False
 
+                if is_external_call:
+
+                    self.is_playing_flag = False
+                    self.play_lock.release()
+        else:
             try:
                 # Start the audio player to handle playback
                 self.player.start()
@@ -331,7 +345,6 @@ class TextToAudioStream:
                                     if on_sentence_synthesized:
                                         on_sentence_synthesized(sentence)
                                     synthesis_successful = True
-                                    synthesis_processed = True
                                 else:
                                     logging.warning(f"engine {self.engine.engine_name} failed to synthesize sentence \"{sentence}\", unknown error")
 
@@ -363,7 +376,6 @@ class TextToAudioStream:
 
                 # Iterate through the synthesized chunks and feed them to the engine for audio synthesis
                 for sentence in chunk_generator:
-                    # print(f"Sentence extracted from stream: {sentence}")
                     if abort_event.is_set():
                         break
                     sentence = sentence.strip()
@@ -399,7 +411,7 @@ class TextToAudioStream:
                         self.wf.close()
                         self.wf = None
 
-            if len(self.char_iter.items) > 0 and self.char_iter.iterated_text == "" and synthesis_processed:
+            if len(self.char_iter.items) > 0 and self.char_iter.iterated_text == "":
                 # new text was feeded while playing audio but after the last character was processed
                 # we need to start another play() call
                 self.play(
@@ -554,7 +566,7 @@ class TextToAudioStream:
 
         # If log_characters flag is True, print a new line for better log readability
         if self.log_characters:
-            print()    
+            print()
 
         self._create_iterators()
 

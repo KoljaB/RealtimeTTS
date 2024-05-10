@@ -21,7 +21,8 @@ class AudioConfiguration:
             format: int = pyaudio.paInt16,
             channels: int = 1,
             rate: int = 16000,
-            output_device_index=None):
+            output_device_index=None,
+            muted: bool = False):
         """
         Args:
             format (int): Audio format, defaults to pyaudio.paInt16
@@ -33,6 +34,7 @@ class AudioConfiguration:
         self.channels = channels
         self.rate = rate
         self.output_device_index = output_device_index
+        self.muted = muted
 
 
 class AudioStream:
@@ -58,27 +60,33 @@ class AudioStream:
         pySampleRate = self.config.rate
         pyOutput_device_index = self.config.output_device_index
 
-        if self.config.format == pyaudio.paCustomFormat:
-            pyFormat = self.pyaudio_instance.get_format_from_width(2)
-            logging.debug("Opening stream for mpeg audio chunks, "
-                          f"pyFormat: {pyFormat}, pyChannels: {pyChannels}, "
-                          f"pySampleRate: {pySampleRate}")
-        else:
-            pyFormat = self.config.format
-            logging.debug("Opening stream for wave audio chunks, "
-                          f"pyFormat: {pyFormat}, pyChannels: {pyChannels}, "
-                          f"pySampleRate: {pySampleRate}")
+        if self.config.muted:
+            print("Muted mode, no opening stream")
+            logging.debug("Muted mode, no opening stream")
 
-        try:
-            self.stream = self.pyaudio_instance.open(
-                format=pyFormat,
-                channels=pyChannels,
-                rate=pySampleRate,
-                output_device_index=pyOutput_device_index,
-                output=True)
-        except Exception as e:
-            print(f"Error opening stream: {e}")
-            exit(0)
+        else:
+            print("Opening stream")
+            if self.config.format == pyaudio.paCustomFormat:
+                pyFormat = self.pyaudio_instance.get_format_from_width(2)
+                logging.debug("Opening stream for mpeg audio chunks, "
+                            f"pyFormat: {pyFormat}, pyChannels: {pyChannels}, "
+                            f"pySampleRate: {pySampleRate}")
+            else:
+                pyFormat = self.config.format
+                logging.debug("Opening stream for wave audio chunks, "
+                            f"pyFormat: {pyFormat}, pyChannels: {pyChannels}, "
+                            f"pySampleRate: {pySampleRate}")
+
+            try:
+                self.stream = self.pyaudio_instance.open(
+                    format=pyFormat,
+                    channels=pyChannels,
+                    rate=pySampleRate,
+                    output_device_index=pyOutput_device_index,
+                    output=True)
+            except Exception as e:
+                print(f"Error opening stream: {e}")
+                exit(0)
 
     def start_stream(self):
         """Starts the audio stream."""
@@ -95,6 +103,7 @@ class AudioStream:
         if self.stream:
             self.stop_stream()
             self.stream.close()
+            self.stream = None
 
     def is_stream_active(self) -> bool:
         """
@@ -223,15 +232,15 @@ class StreamPlayer:
         for i in range(0, len(chunk), sub_chunk_size):
             sub_chunk = chunk[i:i + sub_chunk_size]
 
+            if not self.first_chunk_played and self.on_playback_start:
+                self.on_playback_start()
+                self.first_chunk_played = True
+
             if not self.muted:
                 self.audio_stream.stream.write(sub_chunk)
 
             if self.on_audio_chunk:
                 self.on_audio_chunk(sub_chunk)
-
-            if not self.first_chunk_played and self.on_playback_start:
-                self.on_playback_start()
-                self.first_chunk_played = True
 
             # Pause playback if the event is set
             while self.pause_event.is_set():
@@ -275,10 +284,14 @@ class StreamPlayer:
         """Starts audio playback."""
         self.first_chunk_played = False
         self.playback_active = True
-        self.audio_stream.open_stream()
+        if not self.audio_stream.stream:
+            self.audio_stream.open_stream()
+
         self.audio_stream.start_stream()
-        self.playback_thread = threading.Thread(target=self._process_buffer)
-        self.playback_thread.start()
+
+        if not self.playback_thread or not self.playback_thread.is_alive():
+            self.playback_thread = threading.Thread(target=self._process_buffer)
+            self.playback_thread.start()
 
     def stop(self, immediate: bool = False):
         """
