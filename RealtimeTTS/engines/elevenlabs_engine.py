@@ -1,13 +1,11 @@
-from elevenlabs import voices, generate, stream
-from elevenlabs.api import Voice, VoiceSettings
-from typing import Iterator, Union, Optional
+from elevenlabs.client import ElevenLabs
+from elevenlabs import Voice, VoiceSettings, play
+from typing import Iterator, Union
 from .base_engine import BaseEngine
-import elevenlabs
 import subprocess
 import threading
 import logging
 import pyaudio
-import shutil
 
 class ElevenlabsVoice:
     def __init__(self, name, voice_id, category, description, labels):
@@ -60,8 +58,10 @@ class ElevenlabsEngine(BaseEngine):
         self.muted = False
         self.on_playback_started = False
 
-        self.set_api_key(api_key)
-        
+        self.client = ElevenLabs(
+            api_key=api_key
+        )
+
     def post_init(self):
         """ Information that this engine can handle generators directly """ 
         self.can_consume_generators = True
@@ -108,17 +108,19 @@ class ElevenlabsEngine(BaseEngine):
         self.on_playback_started = False
         self.immediate_stop.clear()
 
-        voice_object = Voice.from_id(self.id)
-        voice_object.settings = VoiceSettings(
-            stability=self.stability / 100,
-            similarity_boost=self.clarity / 100,
-            style=self.style_exxageration / 100,
-            use_speaker_boost=True
+        voice = Voice(
+            voice_id=self.id,
+            settings=VoiceSettings(
+                stability=self.stability / 100,
+                similarity_boost=self.clarity / 100,
+                style=self.style_exxageration / 100,
+                use_speaker_boost=True
+            )
         )
 
-        self.audio_stream = generate(
+        self.audio_stream = self.client.generate(
             text=generator,
-            voice=voice_object,
+            voice=voice,
             model=self.model,
             stream=True
         )
@@ -135,9 +137,10 @@ class ElevenlabsEngine(BaseEngine):
             api_key (str): Elevenlabs API key. (TTS API key)
         """
         self.api_key = api_key
-        if api_key: 
-            elevenlabs.set_api_key(api_key)
-
+        if api_key:
+            self.client = ElevenLabs(
+               api_key=api_key
+            )
 
     def stream(self, audio_stream: Iterator[bytes]) -> bytes:
         """
@@ -217,8 +220,8 @@ class ElevenlabsEngine(BaseEngine):
         Note:
             This method relies on the `voices()` function to obtain the raw voice data. Ensure that the 
             `voices()` function is accessible and functional before calling this method.
-        """        
-        fetched_voices = voices()
+        """
+        fetched_voices = self.client.voices.get_all()
 
         voice_objects = []
         for voice in fetched_voices:
