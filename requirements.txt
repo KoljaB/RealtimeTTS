@@ -3,7 +3,7 @@ PyAudio==0.2.14
 pyttsx3==2.90
 stream2sentence==0.2.3
 azure-cognitiveservices-speech==1.36.0
-elevenlabs==0.2.27
+elevenlabs==1.2.2
 TTS==0.22.0
 tqdm==4.66.2
 pydub==0.25.1
