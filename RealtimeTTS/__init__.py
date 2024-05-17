@@ -5,3 +5,4 @@ from .engines import AzureEngine, AzureVoice  # noqa: F401
 from .engines import ElevenlabsEngine, ElevenlabsVoice  # noqa: F401
 from .engines import CoquiEngine, CoquiVoice  # noqa: F401
 from .engines import OpenAIEngine, OpenAIVoice  # noqa: F401
+from .engines import GTTSEngine, GTTSVoice

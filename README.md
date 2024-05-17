@@ -18,7 +18,7 @@ https://github.com/KoljaB/RealtimeTTS/assets/7604638/87dcd9a5-3a4e-4f57-be45-837
 - **High-Quality Audio**
   - generates clear and natural-sounding speech
 - **Multiple TTS Engine Support**
-  - supports OpenAI TTS, Elevenlabs, Azure Speech Services, Coqui TTS and System TTS
+  - supports OpenAI TTS, Elevenlabs, Azure Speech Services, Coqui TTS, gTTS and System TTS
 - **Multilingual**
 - **Robust and Reliable**: 
   - ensures continuous operation with a fallback mechanism
@@ -32,7 +32,7 @@ Check the [FAQ page](./FAQ.md) for answers to a lot of questions around the usag
 
 ## Updates
 
-Latest Version: v0.3.47 (switched to new elevenlabs api)
+Latest Version: v0.4.0 (added GTTS engine)
 
 See [release history](https://github.com/KoljaB/RealtimeTTS/releases).
 
@@ -45,6 +45,7 @@ This library uses:
   - **CoquiEngine**: High quality local neural TTS.
   - **AzureEngine**: Microsoft's leading TTS technology. 500000 chars free per month.
   - **ElevenlabsEngine**: Offer the best sounding voices available.
+  - **GTTSEngine**: Free to use and doesn't require setting up a local GPU.
   - **SystemEngine**: Native engine for quick setup.
 
 - **Sentence Boundary Detection**
@@ -69,7 +70,7 @@ python -m venv env_realtimetts
 env_realtimetts\Scripts\activate.bat
 python.exe -m pip install --upgrade pip
 pip install RealtimeTTS
-pip install torch==2.2.1+cu118 torchaudio==2.2.1 --index-url https://download.pytorch.org/whl/cu118
+pip install torch==2.3.0+cu118 torchaudio==2.3.0 --index-url https://download.pytorch.org/whl/cu118
 ```
 
 More information about [CUDA installation](#cuda-installation).
@@ -80,6 +81,9 @@ Different engines supported by RealtimeTTS have unique requirements. Ensure you 
 
 ### SystemEngine
 The `SystemEngine` works out of the box using your system's built-in TTS capabilities. No additional setup is needed.
+
+### GTTSEngine
+The `GTTSEngine` works out of the box using Google Translate's text-to-speech API. No additional setup is needed.
 
 ### OpenAIEingine
 To use the `OpenAIEngine`:
@@ -241,17 +245,27 @@ stream.stop()
   - **Required**: Python >= 3.9, < 3.12
   - **Reason**: The library depends on the GitHub library "TTS" from coqui, which requires Python versions in this range.
 
-- **requests (>=2.31.0)**: to send HTTP requests for API calls and voice list retrieval
+- **requests**: to send HTTP requests for API calls and voice list retrieval
   
-- **PyAudio (>=0.2.13)**: to create an output audio stream
+- **PyAudio**: to create an output audio stream
   
-- **stream2sentence (>=0.1.1)**: to split the incoming text stream into sentences 
+- **stream2sentence**: to split the incoming text stream into sentences 
 
-- **pyttsx3 (>=2.90)**: System text-to-speech conversion engine
+- **pyttsx3**: System text-to-speech conversion engine
 
-- **azure-cognitiveservices-speech (>=1.31.0)**: Azure text-to-speech conversion engine
+- **tqdm (>=4.66.2)**: to display progress bars in the command line
+
+- **pydub (>=0.25.1)**: to convert audio chunk formats
+
+- **azure-cognitiveservices-speech**: Azure text-to-speech conversion engine
   
-- **elevenlabs (>=0.2.24)**: Elevenlabs text-to-speech conversion engine
+- **elevenlabs**: Elevenlabs text-to-speech conversion engine
+
+- **TTS**: Coqui's XTTS text-to-speech library for high-quality local neural TTS
+
+- **openai**: to interact with OpenAI's TTS API
+
+- **gtts (>=2.5.1)**: Google translate text-to-speech conversion
 
 
 ## Configuration
@@ -442,7 +456,9 @@ To use torch with support via CUDA please follow these steps:
 
 ## 💖 Acknowledgements
 
-Huge shoutout to the team behind [Coqui AI](https://coqui.ai/) being the first giving us local high quality synthesis with realtime speed and even a clonable voice!
+Huge shoutout to the team behind [Coqui AI](https://coqui.ai/) - especially the brillant [Eren Gölge](https://github.com/erogol) - for being the first giving us local high quality synthesis with realtime speed and even a clonable voice!
+
+Thank you [Pierre Nicolas Durette](https://github.com/pndurette) for giving us a free tts to use without GPU using Google Translate with his gtts python library.
 
 ## Contribution
 
@@ -474,6 +490,11 @@ While the source of this library is open-source, the usage of many of the engine
 - **License**: Mozilla Public License 2.0 and GNU Lesser General Public License (LGPL) version 3.0.
 - **Commercial Use**: Allowed under this license.
 - **Details**: [SystemEngine License](https://github.com/nateshmbhat/pyttsx3/blob/master/LICENSE)
+
+#### GTTSEngine
+- **License**: MIT license
+- **Commercial Use**: It's under the MIT license, so it should be possible in theory. Since it utilizes undocumented Google Translate speech functionality, some caution might be necessary.
+- **Details**: [GTTS MIT License](https://github.com/pndurette/gTTS/blob/main/LICENSE)
 
 #### OpenAIEngine
 - **License**: please read [OpenAI Terms of Use](https://openai.com/policies/terms-of-use)
