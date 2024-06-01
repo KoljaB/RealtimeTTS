@@ -6,6 +6,8 @@
 
 RealtimeTTS is a state-of-the-art text-to-speech (TTS) library designed for real-time applications. It stands out in its ability to convert text streams fast into high-quality auditory output with minimal latency. 
 
+> **Note:** Please run `pip install transformers==4.38.2` after installation. Latest transformers version isn't compatible to Coqui TTS anymore. I'll provide a better solution soon. 
+
 > **Hint:** *<strong>Check out [Linguflex](https://github.com/KoljaB/Linguflex)</strong>, the original project from which RealtimeTTS is spun off. It lets you control your environment by speaking and is one of the most capable and sophisticated open-source assistants currently available.*
 
 https://github.com/KoljaB/RealtimeTTS/assets/7604638/87dcd9a5-3a4e-4f57-be45-837fc63237e7
