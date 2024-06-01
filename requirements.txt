@@ -1,11 +1,11 @@
-requests==2.31.0
+requests==2.32.3
 PyAudio==0.2.14
 pyttsx3==2.90
 stream2sentence==0.2.3
-azure-cognitiveservices-speech==1.36.0
+azure-cognitiveservices-speech==1.37.0
 elevenlabs==1.2.2
-TTS==0.22.0
-tqdm==4.66.2
+tqdm==4.66.4
 pydub==0.25.1
-openai==1.13.3
+openai==1.30.5
 gtts==2.5.1
+coqui_tts==0.24.1

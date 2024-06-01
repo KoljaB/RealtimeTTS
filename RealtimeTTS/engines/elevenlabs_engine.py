@@ -223,12 +223,21 @@ class ElevenlabsEngine(BaseEngine):
         """
         fetched_voices = self.client.voices.get_all()
 
+        voices_list = fetched_voices.voices
+
         voice_objects = []
-        for voice in fetched_voices:
-            voice_object = ElevenlabsVoice(voice.name, voice.voice_id, voice.category, voice.description, voice.labels)
+        for voice in voices_list:
+            voice_object = ElevenlabsVoice(
+                name=voice.name,
+                voice_id=voice.voice_id,
+                category=voice.category,
+                description=voice.description,
+                labels=voice.labels
+            )
             voice_objects.append(voice_object)
+
         return voice_objects
-    
+
     def set_voice(self, voice: Union[str, ElevenlabsVoice]):
         """
         Sets the voice to be used for speech synthesis.

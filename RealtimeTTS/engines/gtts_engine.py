@@ -13,12 +13,20 @@ SYNTHESIS_FILE = 'gtts_speech_synthesis.wav'
 
 
 class GTTSVoice:
-    def __init__(self, language: str, tld: str = 'com'):
+    def __init__(self, 
+                 language: str = 'en',
+                 tld: str = 'com',
+                 chunk_length: int = 100,
+                 crossfade_length: int = 10,
+                 speed_increase: float = 1.0):
         self.language = language
         self.tld = tld
+        self.chunk_length = chunk_length
+        self.crossfade_length = crossfade_length
+        self.speed_increase = speed_increase
 
     def __repr__(self):
-        return f"{self.language} ({self.tld})"
+        return f"{self.language} ({self.tld}), Chunk: {self.chunk_length}, Crossfade: {self.crossfade_length}, Speedup: {self.speed_increase}"
 
 
 class GTTSEngine(BaseEngine):
@@ -64,12 +72,21 @@ class GTTSEngine(BaseEngine):
         try:
             # Generate audio with gTTS
             with io.BytesIO() as f:
-                tts = gTTS(text=text, lang=self.language, tld=self.tld)
+                tts = gTTS(
+                    text=text,
+                    lang=self.voice.language,
+                    tld=self.voice.tld)
                 tts.write_to_fp(f)
                 f.seek(0)
-                # Load the audio into Pydub
+                
                 audio = AudioSegment.from_file(f, format="mp3")
-                # Export as WAV
+
+                if self.voice.speed_increase != 1.0:
+                    audio = audio.speedup(
+                        playback_speed=self.voice.speed_increase,
+                        chunk_size=self.voice.chunk_length,
+                        crossfade=self.voice.crossfade_length)
+
                 audio.export(self.file_path, format="wav")
 
             # Now open the WAV file and read the chunks
@@ -107,8 +124,6 @@ class GTTSEngine(BaseEngine):
             voice (Union[str, GTTSVoice]): The voice to be used for speech synthesis.
         """
         if isinstance(voice, GTTSVoice):
-            self.language = voice.language
-            self.tld = voice.tld
+            self.voice = voice
         else:
-            self.language = voice
-            self.tld = 'com'
+            self.voice = GTTSVoice(language=voice, tld = 'com')

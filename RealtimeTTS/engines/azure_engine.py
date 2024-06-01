@@ -48,10 +48,10 @@ class AzureVoice:
 
 class AzureEngine(BaseEngine):
 
-    def __init__(self, 
+    def __init__(self,
                  speech_key: str = "", 
                  service_region: str = "", 
-                 voice: str = "en-US-AshleyNeural", 
+                 voice: str = "en-US-AshleyNeural",
                  rate: float = 0.0,
                  pitch: float = 0.0):
         """
@@ -71,6 +71,30 @@ class AzureEngine(BaseEngine):
         self.voice_name = voice
         self.rate = rate
         self.pitch = pitch
+        self.emotion = "neutral"
+        self.emotion_degree = 1.0
+        self.emotion_role = "YoungAdultFemale"
+        self.emotion_roles = [
+            "Girl",
+            "Boy",
+            "YoungAdultFemale",
+            "YoungAdultMale",
+            "OlderAdultFemale",
+            "OlderAdultMale",
+            "SeniorFemale",
+            "SeniorMale"
+        ]
+        self.emotions = [
+            "advertisement_upbeat", "affectionate", "angry", "assistant",
+            "calm", "chat", "cheerful", "customerservice", "depressed",
+            "disgruntled", "documentary-narration", "embarrassed",
+            "empathetic", "envious", "excited", "fearful", "friendly",
+            "gentle", "hopeful", "lyrical", "narration-professional",
+            "narration-relaxed", "neutral", "newscast", "newscast-casual",
+            "newscast-formal", "poetry-reading", "sad", "serious", "shouting",
+            "sports_commentary", "sports_commentary_excited", "whispering",
+            "terrified", "unfriendly"
+        ]
 
     def post_init(self):
         self.engine_name = "azure"
@@ -103,13 +127,20 @@ class AzureEngine(BaseEngine):
         stream_config = tts.audio.AudioOutputConfig(stream=push_stream)
         speech_synthesizer = tts.SpeechSynthesizer(speech_config=speech_config, audio_config=stream_config)
 
-        # Construct the SSML string
+        emotion_start_tag = f'<mstts:express-as style="{self.emotion}" styledegree="{self.emotion_degree}" role="{self.emotion_role}">'
+        emotion_end_tag = "</mstts:express-as>"
+        if self.emotion not in self.emotions or self.emotion == "neutral":
+            emotion_start_tag = ""
+            emotion_end_tag = ""
+
         ssml_string = f"""
-        <speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="{self.language}">
+        <speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xmlns:mstts="https://www.w3.org/2001/mstts" xml:lang="{self.language}">
             <voice name="{self.voice_name}">
-                <prosody rate="{self.rate}%" pitch="{self.pitch}%">
-                    {text}
-                </prosody>
+                {emotion_start_tag}
+                    <prosody rate="{self.rate}%" pitch="{self.pitch}%">
+                        {text}
+                    </prosody>
+                {emotion_end_tag}
             </voice>
         </speak>
         """
@@ -133,7 +164,35 @@ class AzureEngine(BaseEngine):
         else:
             print(f"Speech synthesis failed: {result.reason}")
             print(f"Result: {result}")
-        
+
+    def set_emotion(
+            self,
+            emotion: str,
+            emotion_role: str = "YoungAdultFemale",
+            emotion_degree: float = 1.0,
+            ):
+        """
+        Sets the emotion to be used for speech synthesis.
+
+        Args:
+            emotion (str): The emotion to be used for speech synthesis.
+            emotion_degree (float, optional): The degree of the emotion. Defaults to 1.0.
+            emotion_role (str, optional): The role of the emotion. Defaults to "YoungAdultFemale".
+        """
+        # https://learn.microsoft.com/en-us/azure/ai-services/speech-service/speech-synthesis-markup-voice
+        self.emotion = emotion
+        self.emotion_degree = emotion_degree
+        self.emotion_role = emotion_role
+
+    def get_emotions(self):
+        """
+        Retrieves the available emotions for the Azure Speech engine.
+
+        Returns:
+            list[str]: A list containing the available emotions for the Azure Speech engine.
+        """
+        return self.emotions
+
     def set_speech_key(self, speech_key: str):
         """
         Sets the azure subscription key. 

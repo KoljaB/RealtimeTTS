@@ -512,13 +512,13 @@ class CoquiEngine(BaseEngine):
 
         try:
             while True:
-                message = conn.recv()  
+                message = conn.recv()
                 command = message['command']
                 data = message['data']
 
                 if command == 'update_reference':
                     new_wav_path = data['cloning_reference_wav']
-                    logging.info(f'Updating reference WAV to {new_wav_path}')                    
+                    logging.info(f'Updating reference WAV to {new_wav_path}')
                     gpt_cond_latent, speaker_embedding = get_conditioning_latents(new_wav_path, tts)
                     conn.send(('success', 'Reference updated successfully'))
 
@@ -544,7 +544,6 @@ class CoquiEngine(BaseEngine):
 
                     logging.debug(f'Starting inference for text: {text}')
 
-                    print(f"XTTS Synthesizing: {text}")
                     time_start = time.time()
                     seconds_to_first_chunk = 0.0
                     full_generated_seconds = 0.0
@@ -608,15 +607,6 @@ class CoquiEngine(BaseEngine):
                         raw_inference_time = seconds - seconds_to_first_chunk
                         raw_inference_factor = raw_inference_time / (full_generated_seconds - first_chunk_length_seconds) 
 
-                        # print(
-                        #     f"XTTS synthesized {full_generated_seconds:.2f}s"
-                        #     f" audio in {seconds:.2f}s"
-                        #     f" realtime factor: {realtime_factor:.2f}x"
-                        # )
-                        # print(
-                        #     f"seconds to first chunk: {seconds_to_first_chunk:.2f}s"
-                        #     f" raw_inference_factor: {raw_inference_factor:.2f}x"
-                        # )
 
                     # Send silent audio
                     sample_rate = config.audio.sample_rate
@@ -952,6 +942,10 @@ class CoquiEngine(BaseEngine):
 
         speaker_file_path = os.path.join(
             local_models_path, "speakers_xtts.pth")
+        if not os.path.exists(speaker_file_path):
+            speaker_file_path = os.path.join(
+                local_models_path, self.specific_model, "speakers_xtts.pth")
+
         speaker_manager = SpeakerManager(speaker_file_path)
         self.voices_list = []
         for speaker_name in speaker_manager.name_to_id:

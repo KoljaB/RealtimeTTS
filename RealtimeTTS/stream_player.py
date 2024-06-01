@@ -61,11 +61,9 @@ class AudioStream:
         pyOutput_device_index = self.config.output_device_index
 
         if self.config.muted:
-            print("Muted mode, no opening stream")
             logging.debug("Muted mode, no opening stream")
 
         else:
-            print("Opening stream")
             if self.config.format == pyaudio.paCustomFormat:
                 pyFormat = self.pyaudio_instance.get_format_from_width(2)
                 logging.debug("Opening stream for mpeg audio chunks, "

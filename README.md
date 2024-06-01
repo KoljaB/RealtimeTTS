@@ -32,7 +32,11 @@ Check the [FAQ page](./FAQ.md) for answers to a lot of questions around the usag
 
 ## Updates
 
-Latest Version: v0.4.0 (added GTTS engine)
+Latest Version: v0.4.1 
+- switched coquiengine to [Idiap Research Institute](https://github.com/idiap)'s maintained [fork of coqui tts](https://github.com/idiap/coqui-ai-TTS) (thank you)
+- added emotions to Azure engine
+- added speed to GTTS engine
+- bugfix for ElevenlabsEngine get_voices method
 
 See [release history](https://github.com/KoljaB/RealtimeTTS/releases).
 
@@ -253,19 +257,21 @@ stream.stop()
 
 - **pyttsx3**: System text-to-speech conversion engine
 
-- **tqdm (>=4.66.2)**: to display progress bars in the command line
+- **tqdm**: to display progress bars in the command line
 
-- **pydub (>=0.25.1)**: to convert audio chunk formats
+- **pydub**: to convert audio chunk formats
 
 - **azure-cognitiveservices-speech**: Azure text-to-speech conversion engine
   
 - **elevenlabs**: Elevenlabs text-to-speech conversion engine
 
-- **TTS**: Coqui's XTTS text-to-speech library for high-quality local neural TTS
+- **coqui-TTS**: Coqui's XTTS text-to-speech library for high-quality local neural TTS
+
+  Shoutout to [Idiap Research Institute](https://github.com/idiap) for maintaining a [fork of coqui tts](https://github.com/idiap/coqui-ai-TTS).
 
 - **openai**: to interact with OpenAI's TTS API
 
-- **gtts (>=2.5.1)**: Google translate text-to-speech conversion
+- **gtts**: Google translate text-to-speech conversion
 
 
 ## Configuration
