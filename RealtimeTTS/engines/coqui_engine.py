@@ -68,8 +68,8 @@ class CoquiEngine(BaseEngine):
                  enable_text_splitting=True,
                  full_sentences=False,
                  level=logging.WARNING,
-                 use_mps=False,
                  use_deepspeed=False,
+                 device: str = None,
                  prepare_text_for_synthesis_callback=None,
                  add_sentence_filter=False,
                  pretrained=False,
@@ -120,10 +120,11 @@ class CoquiEngine(BaseEngine):
               Enable full sentences for the coqui model.
             level (int):
               Logging level for the coqui model.
-            use_mps (bool):
-              Enable MPS for the coqui model.
             use_deepspeed (bool):
               Enable deepspeed for the coqui model.
+            device (str):
+              Specify the device to use for model inference ("cuda", "mps", "cpu").
+              If not specified or invalid, the device will be automatically selected.
             prepare_text_for_synthesis_callback (function):
               Function to prepare text for synthesis.
               If not specified, a default sentence parser will be used.
@@ -153,8 +154,8 @@ class CoquiEngine(BaseEngine):
         self.top_p = top_p
         self.enable_text_splitting = enable_text_splitting
         self.full_sentences = full_sentences
-        self.use_mps = use_mps
         self.use_deepspeed = use_deepspeed
+        self.device = device
         self.add_sentence_filter = add_sentence_filter
         self.comma_silence_duration = comma_silence_duration
         self.sentence_silence_duration = sentence_silence_duration
@@ -242,9 +243,9 @@ class CoquiEngine(BaseEngine):
                 self.top_k,
                 self.top_p,
                 self.enable_text_splitting,
-                self.use_mps,
                 self.model_path,
                 self.use_deepspeed,
+                self.device,
                 self.voices_path,
                 self.voices_list,
                 self.pretrained,
@@ -281,9 +282,9 @@ class CoquiEngine(BaseEngine):
             top_k,
             top_p,
             enable_text_splitting,
-            use_mps,
             local_model_path,
             use_deepspeed,
+            device,
             voices_path,
             predefined_voices,
             pretrained,
@@ -463,12 +464,12 @@ class CoquiEngine(BaseEngine):
                     time.sleep(TIME_SLEEP_DEVICE_RESET)
 
                 torch.set_num_threads(int(str(thread_count)))
-                if torch.cuda.is_available():
-                    device = torch.device("cuda")
-                elif use_mps and torch.backends.mps.is_available() and torch.backends.mps.is_built():
-                    device = torch.device("mps")
-                else:
-                    device = torch.device("cpu")
+                torch_device = torch.device(
+                    "cuda" if device == "cuda" and torch.cuda.is_available() else
+                    "mps" if device == "mps" and torch.backends.mps.is_available() and torch.backends.mps.is_built() else
+                    "cuda" if torch.cuda.is_available() else
+                    "cpu"
+                )
 
                 config = load_config((os.path.join(checkpoint, "config.json")))
                 tts = setup_tts_model(config)
@@ -480,9 +481,9 @@ class CoquiEngine(BaseEngine):
                     checkpoint_path=None,
                     vocab_path=None,
                     eval=True,
-                    use_deepspeed=use_deepspeed,
+                    use_deepspeed=use_deepspeed
                 )
-                tts.to(device)
+                tts.to(torch_device)
             except Exception as e:
                 print(f"Error loading model for checkpoint {checkpoint}: {e}")
                 raise
