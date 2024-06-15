@@ -4,6 +4,12 @@
 
 This repository contains a FastAPI server that serves as a wrapper for Realtime Text-to-Speech (TTS) functionality. It allows users to synthesize text into speech in real-time. The server handles various routes for managing engines, voices, and synthesizing text.
 
+## Installation
+
+```
+pip install fastapi
+```
+
 ## Components
 
 ### `server.py`
