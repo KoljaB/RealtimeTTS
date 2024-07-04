@@ -448,14 +448,17 @@ To use torch with support via CUDA please follow these steps:
 
     To upgrade your PyTorch installation to enable GPU support with CUDA, follow these instructions based on your specific CUDA version. This is useful if you wish to enhance the performance of RealtimeSTT with CUDA capabilities.
 
-    - For CUDA 11.8:
+    - **For CUDA 11.8:**  
+
         To update PyTorch and Torchaudio to support CUDA 11.8, use the following commands:
 
         ```bash
         pip install torch==2.3.1+cu118 torchaudio==2.3.1 --index-url https://download.pytorch.org/whl/cu118
         ```
 
-    - For CUDA 12.X:
+    - **For CUDA 12.X:**  
+    
+        
         To update PyTorch and Torchaudio to support CUDA 12.X, execute the following:
 
         ```bash
