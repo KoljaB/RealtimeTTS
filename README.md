@@ -69,15 +69,10 @@ The RealtimeTTS library provides installation options to various dependencies fo
 
 ### Full Installation
 
-To install RealtimeTTS with support for all TTS engines for CUDA 12.X:
+To install RealtimeTTS with support for all TTS engines:
 
 ```bash
-pip install -U realtimetts[all] --index-url https://download.pytorch.org/whl/cu121
-```
-
-To install RealtimeTTS with support for all TTS engines for CUDA 11.8:
-```bash
-pip install -U realtimetts[all] --index-url https://download.pytorch.org/whl/cu118
+pip install -U realtimetts[all]
 ```
 
 ### Custom Installation
@@ -93,13 +88,13 @@ RealtimeTTS allows for custom installation with minimal library installations. H
 - **minimal**: Installs only the base requirements with no engine (only needed if you want to develop an own engine)
 
 
-Say you want to install RealtimeTTS only for local neuronal Coqui TTS usage and you have CUDA 12.4 installed. Then you should use:
+Say you want to install RealtimeTTS only for local neuronal Coqui TTS usage, then you should use:
 
 ```bash
-pip install realtimetts[coqui] --index-url https://download.pytorch.org/whl/cu121
+pip install realtimetts[coqui]
 ```
 
-If for example you want to install RealtimeTTS with only Azure Cognitive Services Speech, ElevenLabs, and OpenAI support (then you would not need CUDA):
+If for example you want to install RealtimeTTS with only Azure Cognitive Services Speech, ElevenLabs, and OpenAI support:
 
 ```bash
 pip install realtimetts[azure,elevenlabs,openai]
@@ -107,13 +102,13 @@ pip install realtimetts[azure,elevenlabs,openai]
 
 ### Virtual Environment Installation
 
-For those who want to perform a full installation with CUDA 12.X within a virtual environment, follow these steps:
+For those who want to perform a full installation within a virtual environment, follow these steps:
 
 ```bash
 python -m venv env_realtimetts
 env_realtimetts\Scripts\activate.bat
 python.exe -m pip install --upgrade pip
-pip install -U realtimetts[all] --index-url https://download.pytorch.org/whl/cu121
+pip install -U realtimetts[all]
 ```
 
 More information about [CUDA installation](#cuda-installation).
