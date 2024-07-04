@@ -283,15 +283,11 @@ stream.stop()
   - **Required**: Python >= 3.9, < 3.13
   - **Reason**: The library depends on the GitHub library "TTS" from coqui, which requires Python versions in this range.
 
-- **requests**: to send HTTP requests for API calls and voice list retrieval
-  
 - **PyAudio**: to create an output audio stream
   
 - **stream2sentence**: to split the incoming text stream into sentences 
 
 - **pyttsx3**: System text-to-speech conversion engine
-
-- **tqdm**: to display progress bars in the command line
 
 - **pydub**: to convert audio chunk formats
 
