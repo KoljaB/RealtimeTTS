@@ -735,7 +735,7 @@ class CoquiEngine(BaseEngine):
         text = text.replace("</s>", "")
         text = re.sub("```.*```", "", text, flags=re.DOTALL)
         text = re.sub("`.*`", "", text, flags=re.DOTALL)
-        text = re.sub("\(.*\)", "", text, flags=re.DOTALL)
+        text = re.sub("\\(.*?\\)", "", text, flags=re.DOTALL)
         text = text.replace("```", "")
         text = text.replace("...", " ")
         text = text.replace("»", "")
