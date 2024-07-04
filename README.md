@@ -6,6 +6,8 @@
 
 RealtimeTTS is a state-of-the-art text-to-speech (TTS) library designed for real-time applications. It stands out in its ability to convert text streams fast into high-quality auditory output with minimal latency. 
 
+> **Important:** ❗️ [Installation](#installation) has changed. Please use `pip install realtimetts[all]` instead of `pip install realtimetts` now. More [info here](#installation).
+
 > **Hint:** *<strong>Check out [Linguflex](https://github.com/KoljaB/Linguflex)</strong>, the original project from which RealtimeTTS is spun off. It lets you control your environment by speaking and is one of the most capable and sophisticated open-source assistants currently available.*
 
 > **Note:** If you run into 'General synthesis error: isin() received an invalid combination of arguments' error, this is due to new transformers library introducing an incompatibility to Coqui TTS (see [here](https://github.com/KoljaB/RealtimeTTS/issues/85)). Should not occur with latest version, but if it does, please downgrade to an older transformers version: `pip install transformers==4.38.2`.
@@ -61,22 +63,57 @@ This library uses:
 
 ## Installation
 
-Simple installation:
+> **Note:** Basic Installation with `pip install realtimetts` is not recommended anymore, use `pip install realtimetts[all]` instead.
+
+The RealtimeTTS library provides installation options to various dependencies for your use case. Here are the different ways you can install RealtimeTTS depending on your needs:
+
+### Full Installation
+
+To install RealtimeTTS with support for all TTS engines for CUDA 12.X:
 
 ```bash
-pip install RealtimeTTS
+pip install -U realtimetts[all] --index-url https://download.pytorch.org/whl/cu121
 ```
 
-This will install all the necessary dependencies, including a **CPU support only** version of PyTorch (needed for Coqui engine)  
+To install RealtimeTTS with support for all TTS engines for CUDA 11.8:
+```bash
+pip install -U realtimetts[all] --index-url https://download.pytorch.org/whl/cu118
+```
 
-Installation into virtual environment with GPU support:
+### Custom Installation
+
+RealtimeTTS allows for custom installation with minimal library installations. Here are the options available:
+- **all**: Full installation with every engine supported.
+- **system**: Includes system-specific TTS capabilities (e.g., pyttsx3).
+- **azure**: Adds Azure Cognitive Services Speech support.
+- **elevenlabs**: Includes integration with ElevenLabs API.
+- **openai**: For OpenAI voice services.
+- **gtts**: Google Text-to-Speech support.
+- **coqui**: Installs the Coqui TTS engine.
+- **minimal**: Installs only the base requirements with no engine (only needed if you want to develop an own engine)
+
+
+Say you want to install RealtimeTTS only for local neuronal Coqui TTS usage and you have CUDA 12.4 installed. Then you should use:
+
+```bash
+pip install realtimetts[coqui] --index-url https://download.pytorch.org/whl/cu121
+```
+
+If for example you want to install RealtimeTTS with only Azure Cognitive Services Speech, ElevenLabs, and OpenAI support (then you would not need CUDA):
+
+```bash
+pip install realtimetts[azure,elevenlabs,openai]
+```
+
+### Virtual Environment Installation
+
+For those who want to perform a full installation with CUDA 12.X within a virtual environment, follow these steps:
 
 ```bash
 python -m venv env_realtimetts
 env_realtimetts\Scripts\activate.bat
 python.exe -m pip install --upgrade pip
-pip install RealtimeTTS
-pip install torch==2.3.0+cu118 torchaudio==2.3.0 --index-url https://download.pytorch.org/whl/cu118
+pip install -U realtimetts[all] --index-url https://download.pytorch.org/whl/cu121
 ```
 
 More information about [CUDA installation](#cuda-installation).
@@ -401,13 +438,19 @@ To use torch with support via CUDA please follow these steps:
 
 > **Note**: *newer pytorch installations [may](https://stackoverflow.com/a/77069523) (unverified) not need Toolkit (and possibly cuDNN) installation anymore.*
 
-1. **Install NVIDIA CUDA Toolkit**:
-    For example, to install Toolkit 11.8 please  
-    - Visit [NVIDIA CUDA Toolkit Archive](https://developer.nvidia.com/cuda-11-8-0-download-archive).
-    - Select version 11.
+1. **Install NVIDIA CUDA Toolkit**:  
+    For example, to install Toolkit 12.X please  
+    - Visit [NVIDIA CUDA Downloads](https://developer.nvidia.com/cuda-downloads).
+    - Select your operating system, system architecture and os version.
     - Download and install the software.
 
-2. **Install NVIDIA cuDNN**:
+    or to install Toolkit 11.8 please  
+    - Visit [NVIDIA CUDA Toolkit Archive](https://developer.nvidia.com/cuda-11-8-0-download-archive).
+    - Select your operating system, system architecture and os version.
+    - Download and install the software.
+
+2. **Install NVIDIA cuDNN**:  
+
     For example, to install cuDNN 8.7.0 for CUDA 11.x please  
     - Visit [NVIDIA cuDNN Archive](https://developer.nvidia.com/rdp/cudnn-archive).
     - Click on "Download cuDNN v8.7.0 (November 28th, 2022), for CUDA 11.x".
