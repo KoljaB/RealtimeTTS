@@ -11,9 +11,8 @@ if __name__ == '__main__':
 
     # test with extended logging:
     # import logging
-    # logging.basicConfig(level=logging.INFO)    
+    # logging.basicConfig(level=logging.INFO)
     # engine = CoquiEngine(level=logging.INFO)
-
 
     stream = TextToAudioStream(engine)
     

@@ -32,7 +32,7 @@ if __name__ == '__main__':
     def get_engine(name):
         if name == "coqui":
             from RealtimeTTS import CoquiEngine
-            # ❗ use these for chinese: cloning_reference_wav="female_chinese", language = "zh"   # you can exchange cloning_reference_wav with you own
+            # ❗ use these for chinese: voice="female_chinese", language = "zh"   # you can exchange voice with you own
             return CoquiEngine(voice="female_chinese", language = "zh") # using a chinese cloning reference gives better quality
 
         elif name == "azure":

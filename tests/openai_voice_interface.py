@@ -1,11 +1,12 @@
 import os
-import openai
+from openai import OpenAI
 from RealtimeTTS import TextToAudioStream, AzureEngine
 from RealtimeSTT import AudioToTextRecorder
 
 if __name__ == '__main__':
     # Initialize OpenAI key
-    openai.api_key = os.environ.get("OPENAI_API_KEY")
+    
+    client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
     # Text-to-Speech Stream Setup
     stream = TextToAudioStream(
@@ -34,10 +35,14 @@ if __name__ == '__main__':
 
     def generate_response(messages):
         """Generate assistant's response using OpenAI."""
-        for chunk in openai.ChatCompletion.create(model="gpt-3.5-turbo", messages=messages, stream=True):
-            text_chunk = chunk["choices"][0]["delta"].get("content")
-            if text_chunk:
-                yield text_chunk
+        stream = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=messages,
+            stream=True
+        )
+        for chunk in stream:
+            if chunk.choices[0].delta.content is not None:
+                yield chunk.choices[0].delta.content
 
     history = []
 
