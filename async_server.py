@@ -89,16 +89,14 @@ class TTSRequestHandler:
     
     def on_audio_stream_stop(self):
         self.audio_queue.put(None)
+        self.speaking = False
 
     def play_text_to_speech(self, text):
         self.speaking = True
-        try:
-            self.stream.feed(text)
-            logging.debug(f"Playing audio for text: {text}")
-            print(f"Synthesizing: \"{text}\"")
-            self.stream.play_async(on_audio_chunk=self.on_audio_chunk, muted=True)
-        finally:
-            self.speaking = False
+        self.stream.feed(text)
+        logging.debug(f"Playing audio for text: {text}")
+        print(f"Synthesizing: \"{text}\"")
+        self.stream.play_async(on_audio_chunk=self.on_audio_chunk, muted=True)            
 
     def audio_chunk_generator(self, send_wave_headers):
         first_chunk = False
@@ -208,7 +206,7 @@ def create_wave_header_for_engine(engine):
 
 
 @app.get("/tts")
-def tts(request: Request, text: str = Query(...)):
+async def tts(request: Request, text: str = Query(...)):
     with tts_lock:
         request_handler = TTSRequestHandler(current_engine)
         browser_request = is_browser_request(request)
@@ -220,6 +218,8 @@ def tts(request: Request, text: str = Query(...)):
                         target=request_handler.play_text_to_speech,
                         args=(text,),
                         daemon=True).start()
+                else:
+                    return {"code": 500, "message": "request_hanlder is busy playing the chunks"}
             finally:
                 play_text_to_speech_semaphore.release()
 
@@ -227,31 +227,6 @@ def tts(request: Request, text: str = Query(...)):
             request_handler.audio_chunk_generator(browser_request),
             media_type="audio/wav"
         )
-
-
-@app.get("/tts-text")
-def tts_text(request: Request, text: str = Query(...)):
-    if "favicon.ico" in request.url.path:
-        print("favicon requested")
-        return FileResponse('static/favicon.ico')
-
-    print(f"/tts_text route synthesizing text: {text}")
-
-    browser_request = is_browser_request(request)
-
-    if play_text_to_speech_semaphore.acquire(blocking=False):
-        threading.Thread(
-            target=play_text_to_speech,
-            args=(stream, text),
-            daemon=True).start()
-    else:
-        logging.debug("Can't play audio, another instance is already running")
-
-    return StreamingResponse(
-        audio_chunk_generator(browser_request),
-        media_type="audio/wav"
-    )
-
 
 @app.get("/engines")
 def get_engines():
