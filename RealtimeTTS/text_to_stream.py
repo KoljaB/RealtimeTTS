@@ -162,13 +162,15 @@ class TextToAudioStream:
                    fast_sentence_fragment: bool = True,
                    buffer_threshold_seconds: float = 0.0,
                    minimum_sentence_length: int = 10, 
-                   minimum_first_fragment_length : int = 10,
-                   log_synthesized_text = False,
+                   minimum_first_fragment_length: int = 10,
+                   log_synthesized_text=False,
                    reset_generated_text: bool = True,
                    output_wavfile: str = None,
-                   on_sentence_synthesized = None,
-                   on_audio_chunk = None,
+                   on_sentence_synthesized=None,
+                   before_sentence_synthesized=None,
+                   on_audio_chunk=None,
                    tokenizer: str = "",
+                   tokenize_sentences=None,
                    language: str = "",
                    context_size: int = 12,
                    muted: bool = False,
@@ -183,7 +185,7 @@ class TextToAudioStream:
             # Pass additional parameter to differentiate external call
             args = (fast_sentence_fragment, buffer_threshold_seconds, minimum_sentence_length, 
                     minimum_first_fragment_length, log_synthesized_text, reset_generated_text, 
-                    output_wavfile, on_sentence_synthesized, on_audio_chunk, tokenizer, 
+                    output_wavfile, on_sentence_synthesized, before_sentence_synthesized, on_audio_chunk, tokenizer, tokenize_sentences, 
                     language, context_size, muted, sentence_fragment_delimiters, 
                     force_first_fragment_after_words, True)
             self.play_thread = threading.Thread(target=self.play, args=args)
@@ -205,8 +207,10 @@ class TextToAudioStream:
             reset_generated_text: bool = True,
             output_wavfile: str = None,
             on_sentence_synthesized=None,
+            before_sentence_synthesized=None,
             on_audio_chunk=None,
             tokenizer: str = "nltk",
+            tokenize_sentences=None,
             language: str = "en",
             context_size: int = 12,
             muted: bool = False,
@@ -232,6 +236,7 @@ class TextToAudioStream:
         - on_sentence_synthesized: Callback function that gets called when a single sentence fragment is synthesized.
         - on_audio_chunk: Callback function that gets called when a single audio chunk is ready.
         - tokenizer: Tokenizer to use for sentence splitting (currently "nltk" and "stanza" are supported).
+        - tokenize_sentences (Callable): A function that tokenizes sentences from the input text. You can write your own lightweight tokenizer here if you are unhappy with nltk and stanza. Defaults to None. Takes text as string and should return splitted sentences as list of strings.
         - language: Language to use for sentence splitting.
         - context_size: The number of characters used to establish context for sentence boundary detection. A larger context improves the accuracy of detecting sentence boundaries. Default is 12 characters.
         - muted: If True, disables audio playback via local speakers (in case you want to synthesize to file or process audio chunks). Default is False.
@@ -319,7 +324,7 @@ class TextToAudioStream:
                 self.player.on_audio_chunk = self._on_audio_chunk
 
                 # Generate sentences from the characters
-                generate_sentences = s2s.generate_sentences(self.thread_safe_char_iter, context_size=context_size, minimum_sentence_length=minimum_sentence_length, minimum_first_fragment_length=minimum_first_fragment_length, quick_yield_single_sentence_fragment=fast_sentence_fragment, cleanup_text_links=True, cleanup_text_emojis=True, tokenizer=tokenizer, language=language, log_characters=self.log_characters, sentence_fragment_delimiters=sentence_fragment_delimiters, force_first_fragment_after_words=force_first_fragment_after_words)
+                generate_sentences = s2s.generate_sentences(self.thread_safe_char_iter, context_size=context_size, minimum_sentence_length=minimum_sentence_length, minimum_first_fragment_length=minimum_first_fragment_length, quick_yield_single_sentence_fragment=fast_sentence_fragment, cleanup_text_links=True, cleanup_text_emojis=True, tokenize_sentences=tokenize_sentences, tokenizer=tokenizer, language=language, log_characters=self.log_characters, sentence_fragment_delimiters=sentence_fragment_delimiters, force_first_fragment_after_words=force_first_fragment_after_words)
 
                 # Create the synthesis chunk generator with the given sentences
                 chunk_generator = self._synthesis_chunk_generator(generate_sentences, buffer_threshold_seconds, log_synthesized_text)
@@ -340,6 +345,9 @@ class TextToAudioStream:
                             try:
                                 if abort_event.is_set():
                                     break
+                                
+                                if before_sentence_synthesized:
+                                    before_sentence_synthesized(sentence)
                                 success = self.engine.synthesize(sentence)
                                 if success:
                                     if on_sentence_synthesized:
@@ -413,7 +421,7 @@ class TextToAudioStream:
 
             if len(self.char_iter.items) > 0 and self.char_iter.iterated_text == "":
                 # new text was feeded while playing audio but after the last character was processed
-                # we need to start another play() call
+                # we need to start another play() call (!recursively!)
                 self.play(
                     fast_sentence_fragment=fast_sentence_fragment,
                     buffer_threshold_seconds=buffer_threshold_seconds,
