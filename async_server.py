@@ -213,13 +213,10 @@ async def tts(request: Request, text: str = Query(...)):
 
         if play_text_to_speech_semaphore.acquire(blocking=False):
             try:
-                if not request_handler.speaking:
-                    threading.Thread(
-                        target=request_handler.play_text_to_speech,
-                        args=(text,),
-                        daemon=True).start()
-                else:
-                    return {"code": 500, "message": "request_hanlder is busy playing the chunks"}
+                threading.Thread(
+                    target=request_handler.play_text_to_speech,
+                    args=(text,),
+                    daemon=True).start()
             finally:
                 play_text_to_speech_semaphore.release()
 
