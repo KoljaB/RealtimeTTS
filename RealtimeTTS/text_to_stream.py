@@ -233,7 +233,8 @@ class TextToAudioStream:
         - log_synthesized_text: If True, logs the synthesized text chunks.
         - reset_generated_text: If True, resets the generated text.
         - output_wavfile: If set, saves the audio to the specified WAV file.
-        - on_sentence_synthesized: Callback function that gets called when a single sentence fragment is synthesized.
+        - on_sentence_synthesized: Callback function that gets called after hen a single sentence fragment was synthesized.
+        - before_sentence_synthesized: Callback function that gets called before a single sentence fragment gets synthesized.
         - on_audio_chunk: Callback function that gets called when a single audio chunk is ready.
         - tokenizer: Tokenizer to use for sentence splitting (currently "nltk" and "stanza" are supported).
         - tokenize_sentences (Callable): A function that tokenizes sentences from the input text. You can write your own lightweight tokenizer here if you are unhappy with nltk and stanza. Defaults to None. Takes text as string and should return splitted sentences as list of strings.
