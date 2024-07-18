@@ -57,7 +57,8 @@ This library uses:
   - **SystemEngine**: Native engine for quick setup.
 
 - **Sentence Boundary Detection**
-  - **NLTK Sentence Tokenizer**: Uses the Natural Language Toolkit's sentence tokenizer for precise and efficient sentence segmentation.
+  - **NLTK Sentence Tokenizer**: Natural Language Toolkit's sentence tokenizer for straightforward text-to-speech tasks in English or when simplicity is preferred.
+  - **Stanza Sentence Tokenizer**: Stanza sentence tokenizer for working with multilingual text or when higher accuracy and performance are required.
 
 *By using "industry standard" components RealtimeTTS offers a reliable, high-end technological foundation for developing advanced voice solutions.*
 
@@ -390,34 +391,81 @@ stream = TextToAudioStream(
 
 These methods are responsible for executing the text-to-audio synthesis and playing the audio stream. The difference is that `play` is a blocking function, while `play_async` runs in a separate thread, allowing other operations to proceed.
 
-##### `fast_sentence_fragment` (bool)
-- **Default**: `False`
+##### Parameters:
+
+###### `fast_sentence_fragment` (bool)
+- **Default**: `True`
 - **Description**: When set to `True`, the method will prioritize speed, generating and playing sentence fragments faster. This is useful for applications where latency matters.
 
-##### `buffer_threshold_seconds` (float)
-- **Default**: `2.0`
+###### `buffer_threshold_seconds` (float)
+- **Default**: `0.0`
 - **Description**: Specifies the time in seconds for the buffering threshold, which impacts the smoothness and continuity of audio playback. 
 
   - **How it Works**: Before synthesizing a new sentence, the system checks if there is more audio material left in the buffer than the time specified by `buffer_threshold_seconds`. If so, it retrieves another sentence from the text generator, assuming that it can fetch and synthesize this new sentence within the time window provided by the remaining audio in the buffer. This process allows the text-to-speech engine to have more context for better synthesis, enhancing the user experience.
 
   A higher value ensures that there's more pre-buffered audio, reducing the likelihood of silence or gaps during playback. If you experience breaks or pauses, consider increasing this value.
 
-- **Hint**: If you experience silence or breaks between sentences, consider raising this value to ensure smoother playback.
-
-##### `minimum_sentence_length` (int)
-- **Default**: `3`
+###### `minimum_sentence_length` (int)
+- **Default**: `10`
 - **Description**: Sets the minimum character length to consider a string as a sentence to be synthesized. This affects how text chunks are processed and played.
 
-##### `log_characters` (bool)
-- **Default**: `False`
-- **Description**: Enable this to log the individual characters that are being processed for synthesis.
+###### `minimum_first_fragment_length` (int)
+- **Default**: `10`
+- **Description**: The minimum number of characters required for the first sentence fragment before yielding.
 
-##### `log_synthesized_text` (bool)
+###### `log_synthesized_text` (bool)
 - **Default**: `False`
 - **Description**: When enabled, logs the text chunks as they are synthesized into audio. Helpful for auditing and debugging.
 
-By understanding and setting these parameters and methods appropriately, you can tailor the `TextToAudioStream` to meet the specific needs of your application.
+###### `reset_generated_text` (bool)
+- **Default**: `True`
+- **Description**: If True, resets the generated text before processing.
 
+###### `output_wavfile` (str)
+- **Default**: `None`
+- **Description**: If set, saves the audio to the specified WAV file.
+
+###### `on_sentence_synthesized` (callable)
+- **Default**: `None`
+- **Description**: Callback function that gets called after a single sentence fragment was synthesized.
+
+###### `before_sentence_synthesized` (callable)
+- **Default**: `None`
+- **Description**: Callback function that gets called before a single sentence fragment gets synthesized.
+
+###### `on_audio_chunk` (callable)
+- **Default**: `None`
+- **Description**: Callback function that gets called when a single audio chunk is ready.
+
+###### `tokenizer` (str)
+- **Default**: `"nltk"`
+- **Description**: Tokenizer to use for sentence splitting. Currently supports "nltk" and "stanza".
+
+###### `tokenize_sentences` (callable)
+- **Default**: `None`
+- **Description**: A custom function that tokenizes sentences from the input text. You can provide your own lightweight tokenizer if you are unhappy with nltk and stanza. It should take text as a string and return split sentences as a list of strings.
+
+###### `language` (str)
+- **Default**: `"en"`
+- **Description**: Language to use for sentence splitting.
+
+###### `context_size` (int)
+- **Default**: `12`
+- **Description**: The number of characters used to establish context for sentence boundary detection. A larger context improves the accuracy of detecting sentence boundaries.
+
+###### `muted` (bool)
+- **Default**: `False`
+- **Description**: If True, disables audio playback via local speakers. Useful when you want to synthesize to a file or process audio chunks without playing them.
+
+###### `sentence_fragment_delimiters` (str)
+- **Default**: `".?!;:,\n…)]}。-"`
+- **Description**: A string of characters that are considered sentence delimiters.
+
+###### `force_first_fragment_after_words` (int)
+- **Default**: `15`
+- **Description**: The number of words after which the first sentence fragment is forced to be yielded.
+
+By understanding and setting these parameters and methods appropriately, you can tailor the `TextToAudioStream` to meet the specific needs of your application.
 
 ### CUDA installation
 
