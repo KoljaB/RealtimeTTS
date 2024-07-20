@@ -16,7 +16,7 @@ gtts==2.5.1
 # coqui_tts is for CoquiEngine
 coqui_tts==0.24.1
 
-
+edge-tts==6.1.12
 
 # stream2sentence is to quickly convert streamed text into sentences for real-time synthesis
 stream2sentence==0.2.3
