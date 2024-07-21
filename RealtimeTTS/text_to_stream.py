@@ -160,6 +160,8 @@ class TextToAudioStream:
 
     def play_async(self,   
                    fast_sentence_fragment: bool = True,
+                   fast_sentence_fragment_allsentences: bool = True,
+                   fast_sentence_fragment_allsentences_multiple: bool = False,
                    buffer_threshold_seconds: float = 0.0,
                    minimum_sentence_length: int = 10, 
                    minimum_first_fragment_length: int = 10,
@@ -173,6 +175,7 @@ class TextToAudioStream:
                    tokenize_sentences=None,
                    language: str = "",
                    context_size: int = 12,
+                   context_size_look_overhead: int = 12,
                    muted: bool = False,
                    sentence_fragment_delimiters: str = ".?!;:,\n…)]}。-",
                    force_first_fragment_after_words=15,
@@ -183,10 +186,10 @@ class TextToAudioStream:
         if not self.is_playing_flag:
             self.is_playing_flag = True
             # Pass additional parameter to differentiate external call
-            args = (fast_sentence_fragment, buffer_threshold_seconds, minimum_sentence_length, 
+            args = (fast_sentence_fragment, fast_sentence_fragment_allsentences, fast_sentence_fragment_allsentences_multiple, buffer_threshold_seconds, minimum_sentence_length, 
                     minimum_first_fragment_length, log_synthesized_text, reset_generated_text, 
                     output_wavfile, on_sentence_synthesized, before_sentence_synthesized, on_audio_chunk, tokenizer, tokenize_sentences, 
-                    language, context_size, muted, sentence_fragment_delimiters, 
+                    language, context_size, context_size_look_overhead, muted, sentence_fragment_delimiters, 
                     force_first_fragment_after_words, True)
             self.play_thread = threading.Thread(target=self.play, args=args)
             self.play_thread.start()
@@ -200,6 +203,8 @@ class TextToAudioStream:
     def play(
             self,
             fast_sentence_fragment: bool = True,
+            fast_sentence_fragment_allsentences: bool = False,
+            fast_sentence_fragment_allsentences_multiple: bool = False,
             buffer_threshold_seconds: float = 0.0,
             minimum_sentence_length: int = 10,
             minimum_first_fragment_length: int = 10,
@@ -213,6 +218,7 @@ class TextToAudioStream:
             tokenize_sentences=None,
             language: str = "en",
             context_size: int = 12,
+            context_size_look_overhead: int = 12,
             muted: bool = False,
             sentence_fragment_delimiters: str = ".?!;:,\n…)]}。-",
             force_first_fragment_after_words=15,
@@ -225,6 +231,8 @@ class TextToAudioStream:
 
         Args:
         - fast_sentence_fragment: Determines if sentence fragments should be quickly yielded. Useful when a faster response is desired even if a sentence isn't complete.
+        - fast_sentence_fragment_allsentences: Fast_sentence_fragment only works on the first sentence. Set this to True if you want to work it on every sentence.
+        - fast_sentence_fragment_allsentences_multiple: Can yield multiple sentence fragments, not only a single one.
         - buffer_threshold_seconds (float): Time in seconds for the buffering threshold, influencing the flow and continuity of audio playback. Set to 0 to deactivate. Default is 0.
           - How it Works: The system verifies whether there is more audio content in the buffer than the duration defined by buffer_threshold_seconds. If so, it proceeds to synthesize the next sentence, capitalizing on the remaining audio to maintain smooth delivery. A higher value means more audio is pre-buffered, which minimizes pauses during playback. Adjust this upwards if you encounter interruptions.
           - Helps to decide when to generate more audio based on buffered content.
@@ -325,7 +333,24 @@ class TextToAudioStream:
                 self.player.on_audio_chunk = self._on_audio_chunk
 
                 # Generate sentences from the characters
-                generate_sentences = s2s.generate_sentences(self.thread_safe_char_iter, context_size=context_size, minimum_sentence_length=minimum_sentence_length, minimum_first_fragment_length=minimum_first_fragment_length, quick_yield_single_sentence_fragment=fast_sentence_fragment, cleanup_text_links=True, cleanup_text_emojis=True, tokenize_sentences=tokenize_sentences, tokenizer=tokenizer, language=language, log_characters=self.log_characters, sentence_fragment_delimiters=sentence_fragment_delimiters, force_first_fragment_after_words=force_first_fragment_after_words)
+                generate_sentences = s2s.generate_sentences(
+                    self.thread_safe_char_iter,
+                    context_size=context_size,
+                    context_size_look_overhead=context_size_look_overhead,
+                    minimum_sentence_length=minimum_sentence_length,
+                    minimum_first_fragment_length=minimum_first_fragment_length,
+                    quick_yield_single_sentence_fragment=fast_sentence_fragment,
+                    quick_yield_for_all_sentences=fast_sentence_fragment_allsentences,
+                    quick_yield_every_fragment=fast_sentence_fragment_allsentences_multiple,
+                    cleanup_text_links=True,
+                    cleanup_text_emojis=True,
+                    tokenize_sentences=tokenize_sentences,
+                    tokenizer=tokenizer,
+                    language=language,
+                    log_characters=self.log_characters,
+                    sentence_fragment_delimiters=sentence_fragment_delimiters,
+                    force_first_fragment_after_words=force_first_fragment_after_words
+                )
 
                 # Create the synthesis chunk generator with the given sentences
                 chunk_generator = self._synthesis_chunk_generator(generate_sentences, buffer_threshold_seconds, log_synthesized_text)

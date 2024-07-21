@@ -397,6 +397,14 @@ These methods are responsible for executing the text-to-audio synthesis and play
 - **Default**: `True`
 - **Description**: When set to `True`, the method will prioritize speed, generating and playing sentence fragments faster. This is useful for applications where latency matters.
 
+###### `fast_sentence_fragment_allsentences` (bool)
+- **Default**: `False`
+- **Description**: When set to `True`, applies the fast sentence fragment processing to all sentences, not just the first one.
+
+###### `fast_sentence_fragment_allsentences_multiple` (bool)
+- **Default**: `False`
+- **Description**: When set to `True`, allows yielding multiple sentence fragments instead of just a single one.
+
 ###### `buffer_threshold_seconds` (float)
 - **Default**: `0.0`
 - **Description**: Specifies the time in seconds for the buffering threshold, which impacts the smoothness and continuity of audio playback. 
@@ -453,6 +461,10 @@ These methods are responsible for executing the text-to-audio synthesis and play
 - **Default**: `12`
 - **Description**: The number of characters used to establish context for sentence boundary detection. A larger context improves the accuracy of detecting sentence boundaries.
 
+###### `context_size_look_overhead` (int)
+- **Default**: `12`
+- **Description**: Additional context size for looking ahead when detecting sentence boundaries.
+
 ###### `muted` (bool)
 - **Default**: `False`
 - **Description**: If True, disables audio playback via local speakers. Useful when you want to synthesize to a file or process audio chunks without playing them.
@@ -464,8 +476,6 @@ These methods are responsible for executing the text-to-audio synthesis and play
 ###### `force_first_fragment_after_words` (int)
 - **Default**: `15`
 - **Description**: The number of words after which the first sentence fragment is forced to be yielded.
-
-By understanding and setting these parameters and methods appropriately, you can tailor the `TextToAudioStream` to meet the specific needs of your application.
 
 ### CUDA installation
 
