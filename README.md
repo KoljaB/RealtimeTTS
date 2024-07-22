@@ -36,11 +36,7 @@ Check the [FAQ page](./FAQ.md) for answers to a lot of questions around the usag
 
 ## Updates
 
-Latest Version: v0.4.1 
-- switched coquiengine to [Idiap Research Institute](https://github.com/idiap)'s maintained [fork of coqui tts](https://github.com/idiap/coqui-ai-TTS) (thank you)
-- added emotions to Azure engine
-- added speed to GTTS engine
-- bugfix for ElevenlabsEngine get_voices method
+Latest Version: v0.4.5 
 
 See [release history](https://github.com/KoljaB/RealtimeTTS/releases).
 
