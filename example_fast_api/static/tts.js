@@ -6,13 +6,9 @@ async function setEngine() {
 async function speak() {
     var text = document.getElementById("text").value;
     try {
-        var response = await fetch('/tts?text=' + encodeURIComponent(text));
-        if (!response.ok) {
-            throw new Error('Network response was not ok: ' + response.statusText);
-        }
-        var blob = await response.blob();
+        var url = '/tts?text=' + encodeURIComponent(text);
         var audio = document.getElementById("audio");
-        audio.src = URL.createObjectURL(new Blob([blob], { type: 'audio/wav' }));
+        audio.src = url;
         audio.play();
     } catch (error) {
         console.error('Error during fetch or audio playback:', error);
