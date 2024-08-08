@@ -76,7 +76,7 @@ class OpenAIEngine(BaseEngine):
 
     def get_voices(self):
         """
-        Retrieves the installed voices available for the Coqui TTS engine.
+        Retrieves the installed voices available for the OpenAI TTS engine.
         """
         voice_objects = []
         for voice in self.voices:
