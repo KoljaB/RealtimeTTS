@@ -1,6 +1,6 @@
 # XTTSv2 with RVC Post-processing
 
-This project provides real-time text-to-speech capabilities using the Coqui XTTS (X Transformer Text-to-Speech) model and employs real-time voice conversion (RVC) post-processing for optimizing the TTS output quality.
+This project provides real-time text-to-speech capabilities using the Coqui XTTS model and employs real-time voice conversion (RVC) post-processing for optimizing the TTS output quality.
 
 ## Prerequisites
 
