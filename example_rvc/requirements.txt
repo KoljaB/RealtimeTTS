@@ -1,0 +1,8 @@
+fairseq==0.12.2
+faiss-cpu==1.7.3
+tensorboardX==2.6.2.2
+torchcrepe==0.0.20
+torchfcpe==0.0.4
+praat-parselmouth==0.4.3
+pyworld==0.3.2
+
