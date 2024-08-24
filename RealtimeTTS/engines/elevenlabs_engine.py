@@ -1,5 +1,5 @@
 from elevenlabs.client import ElevenLabs
-from elevenlabs import Voice, VoiceSettings, play
+from elevenlabs import Voice, VoiceSettings
 from typing import Iterator, Union
 from .base_engine import BaseEngine
 import subprocess
