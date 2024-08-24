@@ -1,6 +1,5 @@
 from io import BytesIO
 import os
-import pickle
 import sys
 import traceback
 from rvc.infer.lib import jit
@@ -18,7 +17,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torchcrepe
-import os
 
 debug = False
 

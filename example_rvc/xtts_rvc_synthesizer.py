@@ -2,10 +2,7 @@ from RealtimeTTS import TextToAudioStream, CoquiEngine
 from rvc.realtimervc import RealtimeRVC
 from bufferstream import BufferStream
 from pathlib import Path
-import threading
 import logging
-import pyaudio
-import queue
 import time
 import os
 
