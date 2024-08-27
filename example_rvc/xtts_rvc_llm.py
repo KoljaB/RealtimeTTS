@@ -7,7 +7,6 @@ rvc_model = "models/rvc/Lasinya"
 
 if __name__ == '__main__':
     from xtts_rvc_synthesizer import XTTSRVCSynthesizer
-    import time
         
     print("Starting synthesizer")
     tts = XTTSRVCSynthesizer(xtts_voice=xtts_voice, rvc_model=rvc_model, rvc_sample_rate=40000)

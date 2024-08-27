@@ -22,7 +22,7 @@ from RealtimeTTS import (
 
 from fastapi.responses import StreamingResponse, HTMLResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi import FastAPI, Query, Request, HTTPException
+from fastapi import FastAPI, Query, Request
 from fastapi.staticfiles import StaticFiles
 
 from queue import Queue

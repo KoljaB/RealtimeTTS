@@ -1,4 +1,4 @@
-from abc import ABCMeta, ABC, abstractmethod
+from abc import ABCMeta, ABC
 from typing import Union
 import shutil
 import queue
