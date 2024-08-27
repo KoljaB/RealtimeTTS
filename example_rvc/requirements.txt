@@ -5,4 +5,5 @@ torchcrepe==0.0.20
 torchfcpe==0.0.4
 praat-parselmouth==0.4.3
 pyworld==0.3.2
+huggingface_hub==0.24.5
 
