@@ -123,7 +123,7 @@ def _set_engine(engine_name):
     global current_engine, stream
     if current_engine is None:
         current_engine = engines[engine_name]
-        stream = TextToAudioStream(current_engine)
+        stream = TextToAudioStream(current_engine, muted=True)
     else:
         current_engine = engines[engine_name]
         stream.load_engine(current_engine)

@@ -81,7 +81,7 @@ class TTSRequestHandler:
     def __init__(self, engine):
         self.engine = engine
         self.audio_queue = Queue()
-        self.stream = TextToAudioStream(engine, on_audio_stream_stop=self.on_audio_stream_stop)
+        self.stream = TextToAudioStream(engine, on_audio_stream_stop=self.on_audio_stream_stop, muted=True)
         self.speaking = False
 
     def on_audio_chunk(self, chunk):
