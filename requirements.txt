@@ -14,9 +14,7 @@ openai==1.36.1
 gtts==2.5.2
 
 # coqui_tts is for CoquiEngine, currently using forked version from GitHub because pypi install is broken
-git+https://github.com/idiap/coqui-ai-TTS.git
-
-
+coqui_tts @ git+https://github.com/idiap/coqui-ai-TTS.git
 
 # stream2sentence is to quickly convert streamed text into sentences for real-time synthesis
 stream2sentence==0.2.5
@@ -26,4 +24,3 @@ pydub==0.25.1
 
 # pyaudio is for playing chunks over output device
 pyaudio==0.2.14
-
