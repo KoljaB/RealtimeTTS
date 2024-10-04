@@ -147,7 +147,7 @@ For the `ElevenlabsEngine`, you need:
 
 Delivers high quality, local, neural TTS with voice-cloning.  
 
-Downloads a neural TTS model first. In most cases it be fast enought for Realtime using GPU synthesis. Needs around 4-5 GB VRAM.
+Downloads a neural TTS model first. In most cases it be fast enough for Realtime using GPU synthesis. Needs around 4-5 GB VRAM.
 
 - to clone a voice submit the filename of a wave file containing the source voice as "voice" parameter to the CoquiEngine constructor
 - voice cloning works best with a 22050 Hz mono 16bit WAV file containing a short (~5-30 sec) sample 
