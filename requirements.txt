@@ -13,8 +13,8 @@ openai==1.36.1
 # gtts is for GTTSEngine
 gtts==2.5.2
 
-# coqui_tts is for CoquiEngine, currently using forked version from GitHub because pypi install is broken
-git+https://github.com/idiap/coqui-ai-TTS.git
+# coqui_tts is for CoquiEngine
+coqui_tts==0.24.1
 
 # stream2sentence is to quickly convert streamed text into sentences for real-time synthesis
 stream2sentence==0.2.5
