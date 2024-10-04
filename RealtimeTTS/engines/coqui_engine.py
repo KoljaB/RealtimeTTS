@@ -2,6 +2,7 @@ from .base_engine import BaseEngine
 import torch.multiprocessing as mp
 from threading import Lock, Thread
 from typing import Union, List
+from pathlib import Path
 from tqdm import tqdm
 import numpy as np
 import traceback
@@ -306,7 +307,6 @@ class CoquiEngine(BaseEngine):
         """
         sys.stdout = QueueWriter(output_queue)
 
-        from TTS.utils.generic_utils import get_user_data_dir
         from TTS.config import load_config
         from TTS.tts.models import setup_model as setup_tts_model
         from TTS.tts.layers.xtts.xtts_manager import SpeakerManager
@@ -489,6 +489,29 @@ class CoquiEngine(BaseEngine):
                 raise
             return tts
 
+                
+        def get_user_data_dir(appname):
+            TTS_HOME = os.environ.get("TTS_HOME")
+            XDG_DATA_HOME = os.environ.get("XDG_DATA_HOME")
+            if TTS_HOME is not None:
+                ans = Path(TTS_HOME).expanduser().resolve(strict=False)
+            elif XDG_DATA_HOME is not None:
+                ans = Path(XDG_DATA_HOME).expanduser().resolve(strict=False)
+            elif sys.platform == "win32":
+                import winreg  # pylint: disable=import-outside-toplevel
+
+                key = winreg.OpenKey(
+                    winreg.HKEY_CURRENT_USER, r"Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders"
+                )
+                dir_, _ = winreg.QueryValueEx(key, "Local AppData")
+                ans = Path(dir_).resolve(strict=False)
+            elif sys.platform == "darwin":
+                ans = Path("~/Library/Application Support/").expanduser()
+            else:
+                ans = Path.home().joinpath(".local/share")
+            return ans.joinpath(appname)
+            
+
         logging.debug(f"Initializing coqui model {model_name}")
         logging.debug(f" - cloning reference {cloning_reference_wav}")
         logging.debug(f" - language {language}")
@@ -513,7 +536,14 @@ class CoquiEngine(BaseEngine):
 
         try:
             while True:
-                message = conn.recv()
+                try:
+                    message = conn.recv()
+                except Exception as e:
+                    logging.error(f"conn.recv() error: {e} occured in "
+                            "synthesize worker thread of coqui engine.")               
+                    time.sleep(1)
+                    continue
+                    
                 command = message['command']
                 data = message['data']
 
@@ -882,6 +912,8 @@ class CoquiEngine(BaseEngine):
             for installed_voice in installed_voices:
                 if voice in installed_voice.name:
                     self.set_cloning_reference(installed_voice.name)
+                    return
+            self.set_cloning_reference(voice)
 
     def set_voice_parameters(self, **voice_parameters):
         """
