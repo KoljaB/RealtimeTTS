@@ -23,7 +23,7 @@ https://github.com/KoljaB/RealtimeTTS/assets/7604638/87dcd9a5-3a4e-4f57-be45-837
   - supports OpenAI TTS, Elevenlabs, Azure Speech Services, Coqui TTS, gTTS and System TTS
 - **Multilingual**
 - **Robust and Reliable**: 
-  - ensures continuous operation with a fallback mechanism
+  - ensures continuous operation through a fallback mechanism
   - switches to alternative engines in case of disruptions guaranteeing consistent performance and reliability, which is vital for critical and professional use cases
 
 > **Hint**: *check out [RealtimeSTT](https://github.com/KoljaB/RealtimeSTT), the input counterpart of this library, for speech-to-text capabilities. Together, they form a powerful realtime audio wrapper around large language models.*
@@ -45,7 +45,7 @@ This library uses:
 - **Text-to-Speech Engines**
   - **OpenAIEngine**: OpenAI's TTS system offers 6 natural sounding voices.
   - **CoquiEngine**: High quality local neural TTS.
-  - **AzureEngine**: Microsoft's leading TTS technology. 500000 chars free per month.
+  - **AzureEngine**: Microsoft's leading TTS technology. 500,000 chars free per month.
   - **ElevenlabsEngine**: Offer the best sounding voices available.
   - **GTTSEngine**: Free to use and doesn't require setting up a local GPU.
   - **SystemEngine**: Native engine for quick setup.
@@ -89,7 +89,7 @@ Say you want to install RealtimeTTS only for local neuronal Coqui TTS usage, the
 pip install realtimetts[coqui]
 ```
 
-If for example you want to install RealtimeTTS with only Azure Cognitive Services Speech, ElevenLabs, and OpenAI support:
+For example, if you want to install RealtimeTTS with only Azure Cognitive Services Speech, ElevenLabs, and OpenAI support:
 
 ```bash
 pip install realtimetts[azure,elevenlabs,openai]
@@ -113,7 +113,7 @@ More information about [CUDA installation](#cuda-installation).
 Different engines supported by RealtimeTTS have unique requirements. Ensure you fulfill these requirements based on the engine you choose.
 
 ### SystemEngine
-The `SystemEngine` works out of the box using your system's built-in TTS capabilities. No additional setup is needed.
+The `SystemEngine` works out of the box with your system's built-in TTS capabilities. No additional setup is needed.
 
 ### GTTSEngine
 The `GTTSEngine` works out of the box using Google Translate's text-to-speech API. No additional setup is needed.
