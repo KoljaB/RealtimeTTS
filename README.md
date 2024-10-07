@@ -618,3 +618,6 @@ While the source of this library is open-source, the usage of many of the engine
 Kolja Beigel  
 Email: kolja.beigel@web.de  
 [GitHub](https://github.com/KoljaB/RealtimeTTS)
+
+[Back to Top](#realtimetts)
+
