@@ -6,11 +6,9 @@
 
 RealtimeTTS is a state-of-the-art text-to-speech (TTS) library designed for real-time applications. It stands out in its ability to convert text streams fast into high-quality auditory output with minimal latency. 
 
-> **Important:** ❗️ [Installation](#installation) has changed to allow more customization. Please use `pip install realtimetts[all]` instead of `pip install realtimetts` now. More [info here](#installation).
+> **Important:** [Installation](#installation) has changed to allow more customization. Please use `pip install realtimetts[all]` instead of `pip install realtimetts` now. More [info here](#installation).
 
 > **Hint:** *<strong>Check out [Linguflex](https://github.com/KoljaB/Linguflex)</strong>, the original project from which RealtimeTTS is spun off. It lets you control your environment by speaking and is one of the most capable and sophisticated open-source assistants currently available.*
-
-> **Note:** If you run into 'General synthesis error: isin() received an invalid combination of arguments' error, this is due to new transformers library introducing an incompatibility to Coqui TTS (see [here](https://github.com/KoljaB/RealtimeTTS/issues/85)). Should not occur with latest version, but if it does, please downgrade to an older transformers version: `pip install transformers==4.38.2`.
 
 https://github.com/KoljaB/RealtimeTTS/assets/7604638/87dcd9a5-3a4e-4f57-be45-837fc63237e7
 
@@ -25,7 +23,7 @@ https://github.com/KoljaB/RealtimeTTS/assets/7604638/87dcd9a5-3a4e-4f57-be45-837
   - supports OpenAI TTS, Elevenlabs, Azure Speech Services, Coqui TTS, gTTS and System TTS
 - **Multilingual**
 - **Robust and Reliable**: 
-  - ensures continuous operation with a fallback mechanism
+  - ensures continuous operation through a fallback mechanism
   - switches to alternative engines in case of disruptions guaranteeing consistent performance and reliability, which is vital for critical and professional use cases
 
 > **Hint**: *check out [RealtimeSTT](https://github.com/KoljaB/RealtimeSTT), the input counterpart of this library, for speech-to-text capabilities. Together, they form a powerful realtime audio wrapper around large language models.*
@@ -36,7 +34,7 @@ Check the [FAQ page](./FAQ.md) for answers to a lot of questions around the usag
 
 ## Updates
 
-Latest Version: v0.4.5 
+Latest Version: v0.4.6 
 
 See [release history](https://github.com/KoljaB/RealtimeTTS/releases).
 
@@ -47,7 +45,7 @@ This library uses:
 - **Text-to-Speech Engines**
   - **OpenAIEngine**: OpenAI's TTS system offers 6 natural sounding voices.
   - **CoquiEngine**: High quality local neural TTS.
-  - **AzureEngine**: Microsoft's leading TTS technology. 500000 chars free per month.
+  - **AzureEngine**: Microsoft's leading TTS technology. 500,000 chars free per month.
   - **ElevenlabsEngine**: Offer the best sounding voices available.
   - **GTTSEngine**: Free to use and doesn't require setting up a local GPU.
   - **SystemEngine**: Native engine for quick setup.
@@ -62,7 +60,7 @@ This library uses:
 
 > **Note:** Basic Installation with `pip install realtimetts` is not recommended anymore, use `pip install realtimetts[all]` instead.
 
-The RealtimeTTS library provides installation options to various dependencies for your use case. Here are the different ways you can install RealtimeTTS depending on your needs:
+The RealtimeTTS library provides installation options for various dependencies for your use case. Here are the different ways you can install RealtimeTTS depending on your needs:
 
 ### Full Installation
 
@@ -91,7 +89,7 @@ Say you want to install RealtimeTTS only for local neuronal Coqui TTS usage, the
 pip install realtimetts[coqui]
 ```
 
-If for example you want to install RealtimeTTS with only Azure Cognitive Services Speech, ElevenLabs, and OpenAI support:
+For example, if you want to install RealtimeTTS with only Azure Cognitive Services Speech, ElevenLabs, and OpenAI support:
 
 ```bash
 pip install realtimetts[azure,elevenlabs,openai]
@@ -115,12 +113,12 @@ More information about [CUDA installation](#cuda-installation).
 Different engines supported by RealtimeTTS have unique requirements. Ensure you fulfill these requirements based on the engine you choose.
 
 ### SystemEngine
-The `SystemEngine` works out of the box using your system's built-in TTS capabilities. No additional setup is needed.
+The `SystemEngine` works out of the box with your system's built-in TTS capabilities. No additional setup is needed.
 
 ### GTTSEngine
 The `GTTSEngine` works out of the box using Google Translate's text-to-speech API. No additional setup is needed.
 
-### OpenAIEingine
+### OpenAIEngine
 To use the `OpenAIEngine`:
 - set environment variable OPENAI_API_KEY
 - install ffmpeg (see [CUDA installation](#cuda-installation) point 3)
@@ -149,7 +147,7 @@ For the `ElevenlabsEngine`, you need:
 
 Delivers high quality, local, neural TTS with voice-cloning.  
 
-Downloads a neural TTS model first. In most cases it be fast enought for Realtime using GPU synthesis. Needs around 4-5 GB VRAM.
+Downloads a neural TTS model first. In most cases it be fast enough for Realtime using GPU synthesis. Needs around 4-5 GB VRAM.
 
 - to clone a voice submit the filename of a wave file containing the source voice as "voice" parameter to the CoquiEngine constructor
 - voice cloning works best with a 22050 Hz mono 16bit WAV file containing a short (~5-30 sec) sample 
@@ -248,7 +246,7 @@ Note that most of the tests still rely on the "old" OpenAI API (<1.0.0). Usage o
     
 - **simple_llm_test.py**
     - **Dependencies**: Run `pip install openai`.
-    - **Description**: Simple demonstration how to integrate the library with large language models (LLMs).
+    - **Description**: Simple demonstration of how to integrate the library with large language models (LLMs).
 
 - **test_callbacks.py**
     - **Dependencies**: Run `pip install openai`.
@@ -555,8 +553,8 @@ To use torch with support via CUDA please follow these steps:
 
     Replace `2.3.1` with the version of PyTorch that matches your system and requirements.
 
-5. **Fix for to resolve compatility issues**:
-    If you run into library compatility issues, try setting these libraries to fixed versions:
+5. **Fix for to resolve compatibility issues**:
+    If you run into library compatibility issues, try setting these libraries to fixed versions:
 
     ```bash
     pip install networkx==2.8.8
@@ -570,7 +568,7 @@ To use torch with support via CUDA please follow these steps:
 
 ## 💖 Acknowledgements
 
-Huge shoutout to the team behind [Coqui AI](https://coqui.ai/) - especially the brillant [Eren Gölge](https://github.com/erogol) - for being the first giving us local high quality synthesis with realtime speed and even a clonable voice!
+Huge shoutout to the team behind [Coqui AI](https://coqui.ai/) - especially the brilliant [Eren Gölge](https://github.com/erogol) - for being the first giving us local high quality synthesis with realtime speed and even a clonable voice!
 
 Thank you [Pierre Nicolas Durette](https://github.com/pndurette) for giving us a free tts to use without GPU using Google Translate with his gtts python library.
 
@@ -620,3 +618,6 @@ While the source of this library is open-source, the usage of many of the engine
 Kolja Beigel  
 Email: kolja.beigel@web.de  
 [GitHub](https://github.com/KoljaB/RealtimeTTS)
+
+[Back to Top](#realtimetts)
+
