@@ -60,7 +60,7 @@ This library uses:
 
 > **Note:** Basic Installation with `pip install realtimetts` is not recommended anymore, use `pip install realtimetts[all]` instead.
 
-The RealtimeTTS library provides installation options to various dependencies for your use case. Here are the different ways you can install RealtimeTTS depending on your needs:
+The RealtimeTTS library provides installation options for various dependencies for your use case. Here are the different ways you can install RealtimeTTS depending on your needs:
 
 ### Full Installation
 
@@ -246,7 +246,7 @@ Note that most of the tests still rely on the "old" OpenAI API (<1.0.0). Usage o
     
 - **simple_llm_test.py**
     - **Dependencies**: Run `pip install openai`.
-    - **Description**: Simple demonstration how to integrate the library with large language models (LLMs).
+    - **Description**: Simple demonstration of how to integrate the library with large language models (LLMs).
 
 - **test_callbacks.py**
     - **Dependencies**: Run `pip install openai`.
@@ -553,8 +553,8 @@ To use torch with support via CUDA please follow these steps:
 
     Replace `2.3.1` with the version of PyTorch that matches your system and requirements.
 
-5. **Fix for to resolve compatility issues**:
-    If you run into library compatility issues, try setting these libraries to fixed versions:
+5. **Fix for to resolve compatibility issues**:
+    If you run into library compatibility issues, try setting these libraries to fixed versions:
 
     ```bash
     pip install networkx==2.8.8
@@ -568,7 +568,7 @@ To use torch with support via CUDA please follow these steps:
 
 ## 💖 Acknowledgements
 
-Huge shoutout to the team behind [Coqui AI](https://coqui.ai/) - especially the brillant [Eren Gölge](https://github.com/erogol) - for being the first giving us local high quality synthesis with realtime speed and even a clonable voice!
+Huge shoutout to the team behind [Coqui AI](https://coqui.ai/) - especially the brilliant [Eren Gölge](https://github.com/erogol) - for being the first giving us local high quality synthesis with realtime speed and even a clonable voice!
 
 Thank you [Pierre Nicolas Durette](https://github.com/pndurette) for giving us a free tts to use without GPU using Google Translate with his gtts python library.
 
