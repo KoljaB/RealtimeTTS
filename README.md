@@ -1,4 +1,10 @@
 # RealtimeTTS
+[![PyPI](https://img.shields.io/pypi/v/RealtimeTTS)](https://pypi.org/project/RealtimeTTS/)
+[![Downloads](https://static.pepy.tech/badge/RealtimeTTS)](https://pepy.tech/project/KoljaB/RealtimeTTS)
+[![GitHub release](https://img.shields.io/github/release/KoljaB/RealtimeTTS.svg)](https://GitHub.com/KoljaB/RealtimeTTS/releases/)
+[![GitHub commits](https://badgen.net/github/commits/KoljaB/RealtimeTTS)](https://GitHub.com/Naereen/KoljaB/RealtimeTTS/commit/)
+[![GitHub forks](https://img.shields.io/github/forks/KoljaB/RealtimeTTS.svg?style=social&label=Fork&maxAge=2592000)](https://GitHub.com/KoljaB/RealtimeTTS/network/)
+[![GitHub stars](https://img.shields.io/github/stars/KoljaB/RealtimeTTS.svg?style=social&label=Star&maxAge=2592000)](https://GitHub.com/KoljaB/RealtimeTTS/stargazers/)
 
 *Easy to use, low-latency text-to-speech library for realtime applications*
 
