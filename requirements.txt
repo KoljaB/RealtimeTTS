@@ -1,20 +1,20 @@
 # pyttsx3 is for SystemEngine
-pyttsx3==2.90
+pyttsx3==2.98
 
 # azure-cognitiveservices-speech is for AzureEngine
-azure-cognitiveservices-speech==1.38.0
+azure-cognitiveservices-speech==1.40.0
 
 # elevenlabs is for ElevenlabsEngine
-elevenlabs==1.5.0
+elevenlabs==1.9.0
 
 # openai is for OpenAIEngine
-openai==1.36.1
+openai==1.51.2
 
 # gtts is for GTTSEngine
-gtts==2.5.2
+gtts==2.5.3
 
 # coqui_tts is for CoquiEngine
-coqui_tts==0.24.1
+coqui_tts==0.24.2
 
 
 
@@ -26,4 +26,3 @@ pydub==0.25.1
 
 # pyaudio is for playing chunks over output device
 pyaudio==0.2.14
-
