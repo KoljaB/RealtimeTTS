@@ -513,7 +513,14 @@ class CoquiEngine(BaseEngine):
 
         try:
             while True:
-                message = conn.recv()
+                try:
+                    message = conn.recv()
+                except Exception as e:
+                    logging.error(f"conn.recv() error: {e} occured in "
+                            "synthesize worker thread of coqui engine.")               
+                    time.sleep(1)
+                    continue
+
                 command = message['command']
                 data = message['data']
 
@@ -606,7 +613,8 @@ class CoquiEngine(BaseEngine):
 
                         realtime_factor = seconds / full_generated_seconds
                         raw_inference_time = seconds - seconds_to_first_chunk
-                        raw_inference_factor = raw_inference_time / (full_generated_seconds - first_chunk_length_seconds) 
+                        raw_inference_factor = raw_inference_time / (full_generated_seconds - first_chunk_length_seconds)                         
+                        # print(realtime_factor)
 
 
                     # Send silent audio
@@ -733,8 +741,8 @@ class CoquiEngine(BaseEngine):
         # A fast fix for last character, may produce weird sounds if it is with text
         text = text.strip()
         text = text.replace("</s>", "")
-        text = re.sub("```.*```", "", text, flags=re.DOTALL)
-        text = re.sub("`.*`", "", text, flags=re.DOTALL)
+        # text = re.sub("```.*```", "", text, flags=re.DOTALL)
+        # text = re.sub("`.*`", "", text, flags=re.DOTALL)
         text = re.sub("\\(.*?\\)", "", text, flags=re.DOTALL)
         text = text.replace("```", "")
         text = text.replace("...", " ")
@@ -882,6 +890,8 @@ class CoquiEngine(BaseEngine):
             for installed_voice in installed_voices:
                 if voice in installed_voice.name:
                     self.set_cloning_reference(installed_voice.name)
+                    return
+            self.set_cloning_reference(voice)
 
     def set_voice_parameters(self, **voice_parameters):
         """
