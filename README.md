@@ -623,7 +623,15 @@ While the source of this library is open-source, the usage of many of the engine
 
 Kolja Beigel  
 Email: kolja.beigel@web.de  
-[GitHub](https://github.com/KoljaB/RealtimeTTS)
 
-[Back to Top](#realtimetts)
+
+
+<p align="center">
+  <a href="https://github.com/KoljaB/RealtimeTTS" target="_blank">
+    <img src="https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white" alt="GitHub">
+  </a>
+  <a href="#realtimetts" target="_blank">
+    <img src="https://img.shields.io/badge/Back%20to%20Top-000000?style=for-the-badge" alt="Back to Top">
+  </a>
+</p>
 
