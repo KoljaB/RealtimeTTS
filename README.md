@@ -427,19 +427,19 @@ These methods are responsible for executing the text-to-audio synthesis and play
 
 ###### `reset_generated_text` (bool)
 - **Default**: `True`
-- **Description**: If True, resets the generated text before processing.
+- **Description**: If True, reset the generated text before processing.
 
 ###### `output_wavfile` (str)
 - **Default**: `None`
-- **Description**: If set, saves the audio to the specified WAV file.
+- **Description**: If set, save the audio to the specified WAV file.
 
 ###### `on_sentence_synthesized` (callable)
 - **Default**: `None`
-- **Description**: Callback function that gets called after a single sentence fragment was synthesized.
+- **Description**: A callback function that gets called after a single sentence fragment was synthesized.
 
 ###### `before_sentence_synthesized` (callable)
 - **Default**: `None`
-- **Description**: Callback function that gets called before a single sentence fragment gets synthesized.
+- **Description**: A callback function that gets called before a single sentence fragment gets synthesized.
 
 ###### `on_audio_chunk` (callable)
 - **Default**: `None`
@@ -483,19 +483,19 @@ These steps are recommended for those who require **better performance** and hav
 
 > **Note**: *to check if your NVIDIA GPU supports CUDA, visit the [official CUDA GPUs list](https://developer.nvidia.com/cuda-gpus).*
 
-To use torch with support via CUDA please follow these steps:
+To use a torch with support via CUDA please follow these steps:
 
 > **Note**: *newer pytorch installations [may](https://stackoverflow.com/a/77069523) (unverified) not need Toolkit (and possibly cuDNN) installation anymore.*
 
 1. **Install NVIDIA CUDA Toolkit**:  
-    For example, to install Toolkit 12.X please  
+    For example, to install Toolkit 12.X, please  
     - Visit [NVIDIA CUDA Downloads](https://developer.nvidia.com/cuda-downloads).
-    - Select your operating system, system architecture and os version.
+    - Select your operating system, system architecture, and os version.
     - Download and install the software.
 
-    or to install Toolkit 11.8 please  
+    or to install Toolkit 11.8, please  
     - Visit [NVIDIA CUDA Toolkit Archive](https://developer.nvidia.com/cuda-11-8-0-download-archive).
-    - Select your operating system, system architecture and os version.
+    - Select your operating system, system architecture, and os version.
     - Download and install the software.
 
 2. **Install NVIDIA cuDNN**:  
@@ -574,7 +574,7 @@ To use torch with support via CUDA please follow these steps:
 
 ## 💖 Acknowledgements
 
-Huge shoutout to the team behind [Coqui AI](https://coqui.ai/) - especially the brilliant [Eren Gölge](https://github.com/erogol) - for being the first giving us local high quality synthesis with realtime speed and even a clonable voice!
+Huge shoutout to the team behind [Coqui AI](https://coqui.ai/) - especially the brilliant [Eren Gölge](https://github.com/erogol) - for being the first to give us local high-quality synthesis with real-time speed and even a clonable voice!
 
 Thank you [Pierre Nicolas Durette](https://github.com/pndurette) for giving us a free tts to use without GPU using Google Translate with his gtts python library.
 
@@ -585,7 +585,7 @@ Contributions are always welcome (e.g. PR to add a new engine).
 ## License Information
 
 ### ❗ Important Note:
-While the source of this library is open-source, the usage of many of the engines it depends on are not: External engine providers often restrict commercial use in their free plans. This means the engines can be used for noncommercial projects, but commercial usage requires a paid plan.
+While the source of this library is open-source, the usage of many of the engines it depends on is not: External engine providers often restrict commercial use in their free plans. This means the engines can be used for noncommercial projects, but commercial usage requires a paid plan.
 
 ### Engine Licenses Summary:
 
@@ -611,13 +611,19 @@ While the source of this library is open-source, the usage of many of the engine
 
 #### GTTSEngine
 - **License**: MIT license
-- **Commercial Use**: It's under the MIT license, so it should be possible in theory. Since it utilizes undocumented Google Translate speech functionality, some caution might be necessary.
+- **Commercial Use**: It's under the MIT license, so it should be theoretically possible. Some caution might be necessary since it utilizes undocumented Google Translate speech functionality.
 - **Details**: [GTTS MIT License](https://github.com/pndurette/gTTS/blob/main/LICENSE)
 
 #### OpenAIEngine
 - **License**: please read [OpenAI Terms of Use](https://openai.com/policies/terms-of-use)
 
-**Disclaimer**: This is a summarization of the licenses as understood at the time of writing. It is not legal advice. Please read and respect the licenses of the different engine providers yourself if you plan to use them in a project.
+**Disclaimer**: This is a summarization of the licenses as understood at the time of writing. It is not legal advice. Please read and respect the licenses of the different engine providers if you plan to use them in a project.
+
+## Contributors
+
+<a href="https://github.com/traceloop/openllmetry/graphs/contributors">
+  <img alt="contributors" src="https://contrib.rocks/image?repo=KoljaB/RealtimeTTS"/>
+</a>
 
 ## Author
 
@@ -630,6 +636,7 @@ Email: kolja.beigel@web.de
   <a href="https://github.com/KoljaB/RealtimeTTS" target="_blank">
     <img src="https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white" alt="GitHub">
   </a>
+  &nbsp;&nbsp;&nbsp;
   <a href="#realtimetts" target="_blank">
     <img src="https://img.shields.io/badge/Back%20to%20Top-000000?style=for-the-badge" alt="Back to Top">
   </a>
