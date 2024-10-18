@@ -12,7 +12,7 @@
 
 RealtimeTTS is a state-of-the-art text-to-speech (TTS) library designed for real-time applications. It stands out in its ability to convert text streams fast into high-quality auditory output with minimal latency. 
 
-> **Important:** [Installation](#installation) has changed to allow more customization. Please use `pip install realtimetts[all]`, instead of `pip install realtimetts` now. More [info here](#installation).
+> **Important:** [Installation](#installation) has changed to allow more customization. Please use `pip install realtimetts[all]` instead of `pip install realtimetts` now. More [info here](#installation).
 
 > **Hint:** *<strong>Check out [Linguflex](https://github.com/KoljaB/Linguflex)</strong>, the original project from which RealtimeTTS is spun off. It lets you control your environment by speaking and is one of the most capable and sophisticated open-source assistants currently available.*
 
