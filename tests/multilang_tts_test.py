@@ -17,6 +17,8 @@ if __name__ == '__main__':
             yield "Mi piace leggere. Il tempo è bello. Andiamo al parco. Oggi è venerdì. Buongiorno. Questo è il mio amico. Per favore aiutami. Hai mangiato? Sto imparando l'italiano. Buonanotte."
         elif language == "ja":
             yield "私は読書が好きです。天気がいいですね。公園に行きましょう。今日は金曜日です。おはようございます。これは私の友達です。助けてください。食べましたか？私は日本語を勉強しています。おやすみなさい。"
+        elif language == "ko":
+            yield "저는 독서를 좋아해요. 날씨가 좋네요. 공원에 가요. 오늘은 금요일이에요. 좋은 아침이에요. 이 분은 제 친구예요. 제발 도와주세요. 식사하셨어요? 저는 영어를 배우고 있어요. 안녕히 주무세요."
 
     def synthesize(engine, language, generator):
         stream = TextToAudioStream(engine)
@@ -26,7 +28,7 @@ if __name__ == '__main__':
         filename = f"synthesis_{language}_" + engine.engine_name
 
         # Adjust the tokenizer and language for each language
-        tokenizer = "stanza" if language in ["zh", "es", "de", "fr", "it", "ja"] else None
+        tokenizer = "stanza" if language in ["zh", "es", "de", "fr", "it", "ja", "ko"] else None
         stream.play(
             minimum_sentence_length=2,
             minimum_first_fragment_length=2, 
@@ -53,7 +55,8 @@ if __name__ == '__main__':
                 "de": "female_german",
                 "fr": "female_french",
                 "it": "female_italian",
-                "ja": "female_japanese"
+                "ja": "female_japanese",
+                "ko": "female_korean"
             }
             return CoquiEngine(voice=voices[language], language=language)
         elif name == "azure":
@@ -65,7 +68,8 @@ if __name__ == '__main__':
                 "de": "de-DE-KatjaNeural",
                 "fr": "fr-FR-DeniseNeural",
                 "it": "it-IT-ElsaNeural",
-                "ja": "ja-JP-AoiNeural"
+                "ja": "ja-JP-AoiNeural",
+                "ko": "ko-KR-SunHiNeural"
             }
             return AzureEngine(os.environ.get("AZURE_SPEECH_KEY"), os.environ.get("AZURE_SPEECH_REGION"), voice=voices[language])
         elif name == "elevenlabs":
@@ -80,12 +84,13 @@ if __name__ == '__main__':
                 "de": "Microsoft Hedda",
                 "fr": "Microsoft Hortense",
                 "it": "Microsoft Elsa",
-                "ja": "Microsoft Haruka"
+                "ja": "Microsoft Haruka",
+                "ko": "Microsoft Heami"
             }
             return SystemEngine(voice=voices[language])
 
     # Add Italian ("it") and Japanese ("ja") to the list of languages
-    languages = ["zh", "en", "es", "de", "fr", "it", "ja"]
+    languages = ["zh", "en", "es", "de", "fr", "it", "ja", "ko"]
     
     for engine_name in ["coqui", "elevenlabs", "azure", "system"]:
         for language in languages:
