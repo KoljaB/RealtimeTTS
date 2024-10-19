@@ -1,11 +1,11 @@
 # """
 # threadsafe_generators.py
 
-# This file contains a collection of classes aimed at providing thread-safe operations over generators 
-# and iterables. 
+# This file contains a collection of classes aimed at providing thread-safe operations over generators
+# and iterables.
 
-# The utility of this module can be mainly seen in multi-threaded environments where generators or iterables 
-# need to be consumed across threads without race conditions. Additionally, functionalities like character-based 
+# The utility of this module can be mainly seen in multi-threaded environments where generators or iterables
+# need to be consumed across threads without race conditions. Additionally, functionalities like character-based
 # iteration and accumulation are provided for enhanced flexibility.
 # """
 
@@ -13,12 +13,13 @@
 from typing import Union, Iterator
 import threading
 
+
 class CharIterator:
     """
-    An iterator that allows iteration over characters of strings or string iterators. 
+    An iterator that allows iteration over characters of strings or string iterators.
 
-    This class provides an interface for adding either strings or string iterators. When iterated upon, 
-    it will yield characters from the added items. Additionally, it provides functionalities to stop 
+    This class provides an interface for adding either strings or string iterators. When iterated upon,
+    it will yield characters from the added items. Additionally, it provides functionalities to stop
     the iteration and accumulate iterated text.
 
     Attributes:
@@ -34,11 +35,13 @@ class CharIterator:
         stop(): Stops the iterator immediately on the next iteration.
     """
 
-    def __init__(self, 
-                 log_characters: bool = False,
-                 on_character=None,
-                 on_first_text_chunk=None,
-                 on_last_text_chunk=None):
+    def __init__(
+        self,
+        log_characters: bool = False,
+        on_character=None,
+        on_first_text_chunk=None,
+        on_last_text_chunk=None,
+    ):
         """
         Initialize the CharIterator instance.
 
@@ -70,7 +73,7 @@ class CharIterator:
         """
         Signal the iterator to stop immediately during the next iteration.
         """
-        self.immediate_stop.set()        
+        self.immediate_stop.set()
 
     def __iter__(self) -> "CharIterator":
         """
@@ -85,7 +88,7 @@ class CharIterator:
         """
         Fetch the next character from the current string or string iterator in the items list.
 
-        If the current item is a string, it will yield characters from the string until it's exhausted. 
+        If the current item is a string, it will yield characters from the string until it's exhausted.
         If the current item is a string iterator, it will yield characters from the iterator until it's exhausted.
 
         Returns:
@@ -98,16 +101,14 @@ class CharIterator:
         # Check if the stop event has been triggered, if so, end the iteration immediately
         if self.immediate_stop.is_set():
             raise StopIteration
-        
+
         # Continue while there are items left to iterate over
         while self._index < len(self.items):
-
             # Get the current item (either a string or an iterator)
             item = self.items[self._index]
 
             # Check if the item is a string
             if isinstance(item, str):
-
                 if self._char_index is None:
                     self._char_index = 0
 
@@ -121,7 +122,7 @@ class CharIterator:
                     if self.log_characters:
                         print(char, end="", flush=True)
                     if self.on_character:
-                        self.on_character(char) 
+                        self.on_character(char)
 
                     if not self.first_chunk_received and self.on_first_text_chunk:
                         self.on_first_text_chunk()
@@ -129,7 +130,7 @@ class CharIterator:
                     self.first_chunk_received = True
 
                     return char
-                
+
                 else:
                     # If the string is exhausted, reset the character index and move on to the next item
                     self._char_index = None
@@ -143,7 +144,7 @@ class CharIterator:
                     self._current_iterator = iter(item)
 
                 if self._char_index is None:
-                    try:                    
+                    try:
                         self._current_str = next(self._current_iterator)
 
                         # fix for new openai api
@@ -153,13 +154,12 @@ class CharIterator:
                             self._current_str = chunk
 
                     except StopIteration:
-                        
                         # If the iterator is exhausted, reset it and move on to the next item
                         self._char_index = None
                         self._current_iterator = None
-                        self._index += 1    
+                        self._index += 1
                         continue
-                    
+
                     self._char_index = 0
 
                 if self._char_index < len(self._current_str):
@@ -168,28 +168,26 @@ class CharIterator:
 
                     self.iterated_text += char
                     if self.log_characters:
-                        print(char, end="", flush=True)                    
+                        print(char, end="", flush=True)
                     if self.on_character:
-                        self.on_character(char)                        
-                    
+                        self.on_character(char)
+
                     if not self.first_chunk_received and self.on_first_text_chunk:
                         self.on_first_text_chunk()
 
-                    self.first_chunk_received = True                    
+                    self.first_chunk_received = True
 
                     return char
-                
+
                 else:
                     self._char_index = None
 
-            
         if self.iterated_text and self.on_last_text_chunk:
-                self.on_last_text_chunk()
+            self.on_last_text_chunk()
 
         # If all items are exhausted, raise the StopIteration exception to signify end of iteration
         raise StopIteration
 
-import threading
 
 class AccumulatingThreadSafeGenerator:
     """
@@ -234,7 +232,7 @@ class AccumulatingThreadSafeGenerator:
         """
         with self.lock:
             try:
-                token = next(self.generator) 
+                token = next(self.generator)
                 self.iterated_text += str(token)
 
                 if not self.first_chunk_received and self.on_first_text_chunk:

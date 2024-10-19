@@ -1,12 +1,10 @@
 import traceback
 import logging
-
-logger = logging.getLogger(__name__)
-
 import numpy as np
 import soundfile as sf
 import torch
 from io import BytesIO
+import os
 
 from infer.lib.audio import load_audio, wav2
 from infer.lib.infer_pack.models import (
@@ -16,7 +14,12 @@ from infer.lib.infer_pack.models import (
     SynthesizerTrnMs768NSFsid_nono,
 )
 from infer.modules.vc.pipeline import Pipeline
-from infer.modules.vc.utils import *
+from infer.modules.vc.utils import (
+    get_index_path_from_model,
+    load_hubert,
+)
+
+logger = logging.getLogger(__name__)
 
 
 class VC:
@@ -52,12 +55,14 @@ class VC:
         }
 
         if sid == "" or sid == []:
-            if self.hubert_model is not None:  # 考虑到轮询, 需要加个判断看是否 sid 是由有模型切换到无模型的
+            if (
+                self.hubert_model is not None
+            ):  # 考虑到轮询, 需要加个判断看是否 sid 是由有模型切换到无模型的
                 logger.info("Clean model cache")
                 del (self.net_g, self.n_spk, self.hubert_model, self.tgt_sr)  # ,cpt
-                self.hubert_model = (
-                    self.net_g
-                ) = self.n_spk = self.hubert_model = self.tgt_sr = None
+                self.hubert_model = self.net_g = self.n_spk = self.hubert_model = (
+                    self.tgt_sr
+                ) = None
                 if torch.cuda.is_available():
                     torch.cuda.empty_cache()
                 ###楼下不这么折腾清理不干净
@@ -217,7 +222,7 @@ class VC:
                 % (index_info, *times),
                 (tgt_sr, audio_opt),
             )
-        except:
+        except Exception:
             info = traceback.format_exc()
             logger.warning(info)
             return info, (None, None)
@@ -252,7 +257,7 @@ class VC:
                     ]
                 else:
                     paths = [path.name for path in paths]
-            except:
+            except Exception:
                 traceback.print_exc()
                 paths = [path.name for path in paths]
             infos = []
@@ -293,10 +298,10 @@ class VC:
                                 wavf.seek(0, 0)
                                 with open(path, "wb") as outf:
                                     wav2(wavf, outf, format1)
-                    except:
+                    except Exception:
                         info += traceback.format_exc()
                 infos.append("%s->%s" % (os.path.basename(path), info))
                 yield "\n".join(infos)
             yield "\n".join(infos)
-        except:
+        except Exception:
             yield traceback.format_exc()

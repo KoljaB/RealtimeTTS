@@ -132,8 +132,7 @@ def compute_mask_indices(
 
     all_num_mask = int(
         # add a random number for probabilistic rounding
-        mask_prob * all_sz / float(mask_length)
-        + torch.rand([1]).item()
+        mask_prob * all_sz / float(mask_length) + torch.rand([1]).item()
     )
 
     all_num_mask = max(min_masks, all_num_mask)

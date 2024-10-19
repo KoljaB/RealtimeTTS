@@ -5,7 +5,6 @@ import logging
 import os
 import subprocess
 import sys
-import shutil
 
 import numpy as np
 import torch
@@ -40,7 +39,7 @@ def load_checkpoint_d(checkpoint_path, combd, sbd, optimizer=None, load_opt=1):
                         saved_state_dict[k].shape,
                     )  #
                     raise KeyError
-            except:
+            except Exception:
                 # logger.info(traceback.format_exc())
                 logger.info("%s is not in the checkpoint", k)  # pretrain缺失的
                 new_state_dict[k] = v  # 模型自带的随机值
@@ -62,7 +61,7 @@ def load_checkpoint_d(checkpoint_path, combd, sbd, optimizer=None, load_opt=1):
     ):  ###加载不了，如果是空的的话，重新初始化，可能还会影响lr时间表的更新，因此在train文件最外围catch
         #   try:
         optimizer.load_state_dict(checkpoint_dict["optimizer"])
-    #   except:
+    #   except Exception:
     #     traceback.print_exc()
     logger.info("Loaded checkpoint '{}' (epoch {})".format(checkpoint_path, iteration))
     return model, optimizer, learning_rate, iteration
@@ -87,7 +86,7 @@ def load_checkpoint_d(checkpoint_path, combd, sbd, optimizer=None, load_opt=1):
 #   for k, v in state_dict.items():
 #     try:
 #       new_state_dict[k] = saved_state_dict[k]
-#     except:
+#     except Exception:
 #       logger.info("%s is not in the checkpoint" % k)
 #       new_state_dict[k] = v
 #   if hasattr(model, 'module'):
@@ -118,7 +117,7 @@ def load_checkpoint(checkpoint_path, model, optimizer=None, load_opt=1):
                     saved_state_dict[k].shape,
                 )  #
                 raise KeyError
-        except:
+        except Exception:
             # logger.info(traceback.format_exc())
             logger.info("%s is not in the checkpoint", k)  # pretrain缺失的
             new_state_dict[k] = v  # 模型自带的随机值
@@ -135,7 +134,7 @@ def load_checkpoint(checkpoint_path, model, optimizer=None, load_opt=1):
     ):  ###加载不了，如果是空的的话，重新初始化，可能还会影响lr时间表的更新，因此在train文件最外围catch
         #   try:
         optimizer.load_state_dict(checkpoint_dict["optimizer"])
-    #   except:
+    #   except Exception:
     #     traceback.print_exc()
     logger.info("Loaded checkpoint '{}' (epoch {})".format(checkpoint_path, iteration))
     return model, optimizer, learning_rate, iteration
@@ -449,7 +448,7 @@ def get_logger(model_dir, filename="train.log"):
 class HParams:
     def __init__(self, **kwargs):
         for k, v in kwargs.items():
-            if type(v) == dict:
+            if v is dict:
                 v = HParams(**v)
             self[k] = v
 

@@ -25,7 +25,7 @@
 			"lpf_start": 348,
 			"lpf_stop": 418,
 			"res_type": "polyphase"
-		},	
+		},
 		"3": {
 			"sr": 44100,
 			"hl": 432,

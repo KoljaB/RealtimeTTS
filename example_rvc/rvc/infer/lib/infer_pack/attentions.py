@@ -1,13 +1,11 @@
-import copy
 import math
 from typing import Optional
 
-import numpy as np
 import torch
 from torch import nn
 from torch.nn import functional as F
 
-from rvc.infer.lib.infer_pack import commons, modules
+from rvc.infer.lib.infer_pack import commons
 from rvc.infer.lib.infer_pack.modules import LayerNorm
 
 
@@ -21,7 +19,7 @@ class Encoder(nn.Module):
         kernel_size=1,
         p_dropout=0.0,
         window_size=10,
-        **kwargs
+        **kwargs,
     ):
         super(Encoder, self).__init__()
         self.hidden_channels = hidden_channels
@@ -88,7 +86,7 @@ class Decoder(nn.Module):
         p_dropout=0.0,
         proximal_bias=False,
         proximal_init=True,
-        **kwargs
+        **kwargs,
     ):
         super(Decoder, self).__init__()
         self.hidden_channels = hidden_channels
@@ -306,7 +304,7 @@ class MultiHeadAttention(nn.Module):
         return ret
 
     def _get_relative_embeddings(self, relative_embeddings, length: int):
-        max_relative_position = 2 * self.window_size + 1
+        # max_relative_position = 2 * self.window_size + 1
         # Pad first before slice to avoid using cond ops.
         pad_length: int = max(length - (self.window_size + 1), 0)
         slice_start_position = max((self.window_size + 1) - length, 0)

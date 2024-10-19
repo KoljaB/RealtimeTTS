@@ -87,15 +87,15 @@ def wave_to_spectrogram_mt(
 
 
 def combine_spectrograms(specs, mp):
-    l = min([specs[i].shape[2] for i in specs])
-    spec_c = np.zeros(shape=(2, mp.param["bins"] + 1, l), dtype=np.complex64)
+    ln = min([specs[i].shape[2] for i in specs])
+    spec_c = np.zeros(shape=(2, mp.param["bins"] + 1, ln), dtype=np.complex64)
     offset = 0
     bands_n = len(mp.param["band"])
 
     for d in range(1, bands_n + 1):
         h = mp.param["band"][d]["crop_stop"] - mp.param["band"][d]["crop_start"]
-        spec_c[:, offset : offset + h, :l] = specs[d][
-            :, mp.param["band"][d]["crop_start"] : mp.param["band"][d]["crop_stop"], :l
+        spec_c[:, offset : offset + h, :ln] = specs[d][
+            :, mp.param["band"][d]["crop_start"] : mp.param["band"][d]["crop_stop"], :ln
         ]
         offset += h
 
@@ -198,9 +198,9 @@ def mask_silence(mag, ref, thres=0.2, min_range=64, fade_size=32):
 
 
 def align_wave_head_and_tail(a, b):
-    l = min([a[0].size, b[0].size])
+    ln = min([a[0].size, b[0].size])
 
-    return a[:l, :l], b[:l, :l]
+    return a[:ln, :ln], b[:ln, :ln]
 
 
 def cache_or_load(mix_path, inst_path, mp):
@@ -347,7 +347,6 @@ def spectrogram_to_wave_mt(spec, hop_length, mid_side, reverse, mid_side_b2):
 
 
 def cmb_spectrogram_to_wave(spec_m, mp, extra_bins_h=None, extra_bins=None):
-    wave_band = {}
     bands_n = len(mp.param["band"])
     offset = 0
 
@@ -454,8 +453,7 @@ def mirroring(a, spec_m, input_high_end, mp):
                     :,
                     mp.param["pre_filter_start"]
                     - 10
-                    - input_high_end.shape[1] : mp.param["pre_filter_start"]
-                    - 10,
+                    - input_high_end.shape[1] : mp.param["pre_filter_start"] - 10,
                     :,
                 ]
             ),
@@ -474,8 +472,7 @@ def mirroring(a, spec_m, input_high_end, mp):
                     :,
                     mp.param["pre_filter_start"]
                     - 10
-                    - input_high_end.shape[1] : mp.param["pre_filter_start"]
-                    - 10,
+                    - input_high_end.shape[1] : mp.param["pre_filter_start"] - 10,
                     :,
                 ]
             ),
@@ -521,10 +518,11 @@ def istft(spec, hl):
     wave_right = librosa.istft(spec_right, hop_length=hl)
     wave = np.asfortranarray([wave_left, wave_right])
 
+    return wave
+
 
 if __name__ == "__main__":
     import argparse
-    import sys
     import time
 
     import cv2

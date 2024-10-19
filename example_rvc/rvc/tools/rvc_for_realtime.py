@@ -8,7 +8,6 @@ from time import time as ttime
 import fairseq
 import faiss
 import logging
-logging.basicConfig(level=logging.WARNING)
 import numpy as np
 import parselmouth
 import pyworld
@@ -17,21 +16,15 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torchcrepe
+from multiprocessing import Manager as M
+from rvc.configs.config import Config
+
+logging.basicConfig(level=logging.WARNING)
 
 debug = False
 
-from rvc.infer.lib.infer_pack.models import (
-    SynthesizerTrnMs256NSFsid,
-    SynthesizerTrnMs256NSFsid_nono,
-    SynthesizerTrnMs768NSFsid,
-    SynthesizerTrnMs768NSFsid_nono,
-)
-
 now_dir = os.getcwd()
 sys.path.append(now_dir)
-from multiprocessing import Manager as M
-
-from rvc.configs.config import Config
 
 # config = Config()
 
@@ -39,6 +32,7 @@ mm = M()
 
 assets_path = os.environ.get("RVC_ASSET_PATH", default="assets")
 hubert_file = "hubert/hubert_base.pt"
+
 
 def printt(strr, *args):
     if len(args) == 0:
@@ -66,7 +60,7 @@ class RVC:
         初始化
         """
         try:
-            if config.dml == True:
+            if config.dml:
 
                 def forward_dml(ctx, x, scale):
                     ctx.scale = scale
@@ -92,7 +86,7 @@ class RVC:
             if index_rate != 0:
                 self.index = faiss.read_index(index_path)
                 self.big_npy = self.index.reconstruct_n(0, self.index.ntotal)
-                if debug: 
+                if debug:
                     printt("Index search enabled")
             self.pth_path: str = pth_path
             self.index_path = index_path
@@ -101,14 +95,14 @@ class RVC:
             self.cache_pitchf = np.zeros(1024, dtype="float32")
 
             if last_rvc is None:
-                if debug: 
+                if debug:
                     print(f"assets_path: {assets_path}")
                     print(f"hubert_file: {hubert_file}")
                 hubert_path = os.path.join(assets_path, hubert_file)
                 models, _, _ = fairseq.checkpoint_utils.load_model_ensemble_and_task(
                     [hubert_path],
                     suffix="",
-                )            
+                )
                 # models, _, _ = fairseq.checkpoint_utils.load_model_ensemble_and_task(
                 #     ["rvc/assets/hubert/hubert_base.pt"],
                 #     suffix="",
@@ -172,7 +166,7 @@ class RVC:
             def set_synthesizer():
                 if self.use_jit and not config.dml:
                     if self.is_half and "cpu" in str(self.device):
-                        if debug: 
+                        if debug:
                             printt(
                                 "Use default Synthesizer model. \
                                 Jit is not supported on the CPU for half floating point"
@@ -200,7 +194,7 @@ class RVC:
             if last_rvc is not None and hasattr(last_rvc, "model_fcpe"):
                 self.device_fcpe = last_rvc.device_fcpe
                 self.model_fcpe = last_rvc.model_fcpe
-        except:
+        except Exception:
             printt(traceback.format_exc())
 
     def change_key(self, new_key):
@@ -210,7 +204,7 @@ class RVC:
         if new_index_rate != 0 and self.index_rate == 0:
             self.index = faiss.read_index(self.index_path)
             self.big_npy = self.index.reconstruct_n(0, self.index.ntotal)
-            if debug: 
+            if debug:
                 printt("Index search enabled")
         self.index_rate = new_index_rate
 
@@ -289,15 +283,17 @@ class RVC:
                 f0 = f0[2:-3]
             else:
                 f0 = f0[2:]
-            f0bak[
-                part_length * idx // 160 : part_length * idx // 160 + f0.shape[0]
-            ] = f0
+            f0bak[part_length * idx // 160 : part_length * idx // 160 + f0.shape[0]] = (
+                f0
+            )
         f0bak = signal.medfilt(f0bak, 3)
         f0bak *= pow(2, f0_up_key / 12)
         return self.get_f0_post(f0bak)
 
     def get_f0_crepe(self, x, f0_up_key):
-        if "privateuseone" in str(self.device):  ###不支持dml，cpu又太慢用不成，拿fcpe顶替
+        if "privateuseone" in str(
+            self.device
+        ):  ###不支持dml，cpu又太慢用不成，拿fcpe顶替
             return self.get_f0(x, f0_up_key, 1, "fcpe")
         # printt("using crepe,device:%s"%self.device)
         f0, pd = torchcrepe.predict(
@@ -320,10 +316,10 @@ class RVC:
         return self.get_f0_post(f0)
 
     def get_f0_rmvpe(self, x, f0_up_key):
-        if hasattr(self, "model_rmvpe") == False:
+        if not hasattr(self, "model_rmvpe"):
             from infer.lib.rmvpe import RMVPE
 
-            if debug: 
+            if debug:
                 printt("Loading rmvpe model")
             self.model_rmvpe = RMVPE(
                 "rvc/assets/rmvpe/rmvpe.pt",
@@ -336,10 +332,10 @@ class RVC:
         return self.get_f0_post(f0)
 
     def get_f0_fcpe(self, x, f0_up_key):
-        if hasattr(self, "model_fcpe") == False:
+        if not hasattr(self, "model_fcpe"):
             from torchfcpe import spawn_bundled_infer_model
 
-            if debug: 
+            if debug:
                 printt("Loading fcpe model")
             if "privateuseone" in str(self.device):
                 self.device_fcpe = "cpu"
@@ -398,7 +394,7 @@ class RVC:
             else:
                 if debug:
                     printt("Index search FAILED or disabled")
-        except:
+        except Exception:
             traceback.print_exc()
             printt("Index search FAILED")
         t3 = ttime()

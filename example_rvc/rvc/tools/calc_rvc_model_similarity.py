@@ -2,12 +2,12 @@
 # Fill in the path of the model to be queried and the root directory of the reference models, and this script will return the similarity between the model to be queried and all reference models.
 import os
 import logging
-
-logger = logging.getLogger(__name__)
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
+
+logger = logging.getLogger(__name__)
 
 
 def cal_cross_attn(to_q, to_k, to_v, rand_input):

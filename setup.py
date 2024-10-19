@@ -1,22 +1,23 @@
 import setuptools
-from pathlib import Path
 
 # Read the contents of README.md
-with open("README.md", "r", encoding='utf-8') as fh:
+with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
+
 
 # Read requirements.txt and parse it
 def parse_requirements(filename):
     requirements = {}
-    with open(filename, 'r') as f:
+    with open(filename, "r") as f:
         for line in f:
             line = line.strip()
-            if line and not line.startswith('#'):
-                package = line.split('==')[0]
+            if line and not line.startswith("#"):
+                package = line.split("==")[0]
                 requirements[package] = line
     return requirements
 
-requirements = parse_requirements('requirements.txt')
+
+requirements = parse_requirements("requirements.txt")
 
 print("Requirements:", requirements)
 
@@ -25,21 +26,27 @@ all_requirements = list(requirements.values())
 
 # Define base requirements
 base_requirements = [
-    requirements['stream2sentence'],
-    requirements['pydub'],
-    requirements['pyaudio']
+    requirements["stream2sentence"],
+    requirements["pydub"],
+    requirements["pyaudio"],
 ]
 
 # Define subsets of requirements for each engine
 extras_require = {
-    'minimal': base_requirements,
-    'all': base_requirements + [requirements['pyttsx3']] + [requirements['azure-cognitiveservices-speech']] + [requirements['elevenlabs']] + [requirements['openai']] + [requirements['gtts']] + [requirements['coqui_tts']],
-    'system': base_requirements + [requirements['pyttsx3']],
-    'azure': base_requirements + [requirements['azure-cognitiveservices-speech']],
-    'elevenlabs': base_requirements + [requirements['elevenlabs']],
-    'openai': base_requirements + [requirements['openai']],
-    'gtts': base_requirements + [requirements['gtts']],
-    'coqui': base_requirements + [requirements['coqui_tts']],
+    "minimal": base_requirements,
+    "all": base_requirements
+    + [requirements["pyttsx3"]]
+    + [requirements["azure-cognitiveservices-speech"]]
+    + [requirements["elevenlabs"]]
+    + [requirements["openai"]]
+    + [requirements["gtts"]]
+    + [requirements["coqui_tts"]],
+    "system": base_requirements + [requirements["pyttsx3"]],
+    "azure": base_requirements + [requirements["azure-cognitiveservices-speech"]],
+    "elevenlabs": base_requirements + [requirements["elevenlabs"]],
+    "openai": base_requirements + [requirements["openai"]],
+    "gtts": base_requirements + [requirements["gtts"]],
+    "coqui": base_requirements + [requirements["coqui_tts"]],
 }
 
 setuptools.setup(
@@ -57,10 +64,10 @@ setuptools.setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    python_requires='>=3.9, <3.13',
+    python_requires=">=3.9, <3.13",
     install_requires=base_requirements,
     extras_require=extras_require,
-    package_data={'RealtimeTTS': ['engines/*.json']},
+    package_data={"RealtimeTTS": ["engines/*.json"]},
     include_package_data=True,
-    keywords='real-time, text-to-speech, TTS, streaming, audio, voice, synthesis, sentence-segmentation, low-latency, character-streaming, dynamic feedback, audio-output, text-input, TTS-engine, audio-playback, stream-player, sentence-fragment, audio-feedback, interactive, python'
+    keywords="real-time, text-to-speech, TTS, streaming, audio, voice, synthesis, sentence-segmentation, low-latency, character-streaming, dynamic feedback, audio-output, text-input, TTS-engine, audio-playback, stream-player, sentence-fragment, audio-feedback, interactive, python",
 )

@@ -1,9 +1,8 @@
 fairseq==0.12.2
 faiss-cpu==1.7.3
+huggingface_hub==0.24.5
+praat-parselmouth==0.4.3
+pyworld==0.3.2
 tensorboardX==2.6.2.2
 torchcrepe==0.0.20
 torchfcpe==0.0.4
-praat-parselmouth==0.4.3
-pyworld==0.3.2
-huggingface_hub==0.24.5
-

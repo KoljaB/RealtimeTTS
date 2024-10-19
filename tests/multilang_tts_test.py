@@ -1,4 +1,4 @@
-if __name__ == '__main__':
+if __name__ == "__main__":
     import os
     from RealtimeTTS import TextToAudioStream
 
@@ -28,16 +28,19 @@ if __name__ == '__main__':
         filename = f"synthesis_{language}_" + engine.engine_name
 
         # Adjust the tokenizer and language for each language
-        tokenizer = "stanza" if language in ["zh", "es", "de", "fr", "it", "ja", "ko"] else None
+        tokenizer = (
+            "stanza" if language in ["zh", "es", "de", "fr", "it", "ja", "ko"] else None
+        )
         stream.play(
             minimum_sentence_length=2,
-            minimum_first_fragment_length=2, 
+            minimum_first_fragment_length=2,
             output_wavfile=f"{filename}.wav",
-            on_sentence_synthesized=lambda sentence: 
-                print(f"Synthesized ({language}): " + sentence),
-            tokenizer=tokenizer, 
+            on_sentence_synthesized=lambda sentence: print(
+                f"Synthesized ({language}): " + sentence
+            ),
+            tokenizer=tokenizer,
             language=language,
-            context_size=2
+            context_size=2,
         )
 
         with open(f"{filename}.txt", "w", encoding="utf-8") as f:
@@ -48,6 +51,7 @@ if __name__ == '__main__':
     def get_engine(name, language):
         if name == "coqui":
             from RealtimeTTS import CoquiEngine
+
             voices = {
                 "zh": "female_chinese",
                 "en": "female_english",
@@ -56,11 +60,12 @@ if __name__ == '__main__':
                 "fr": "female_french",
                 "it": "female_italian",
                 "ja": "female_japanese",
-                "ko": "female_korean"
+                "ko": "female_korean",
             }
             return CoquiEngine(voice=voices[language], language=language)
         elif name == "azure":
             from RealtimeTTS import AzureEngine
+
             voices = {
                 "zh": "zh-CN-XiaoxiaoNeural",
                 "en": "en-US-JennyNeural",
@@ -69,14 +74,20 @@ if __name__ == '__main__':
                 "fr": "fr-FR-DeniseNeural",
                 "it": "it-IT-ElsaNeural",
                 "ja": "ja-JP-AoiNeural",
-                "ko": "ko-KR-SunHiNeural"
+                "ko": "ko-KR-SunHiNeural",
             }
-            return AzureEngine(os.environ.get("AZURE_SPEECH_KEY"), os.environ.get("AZURE_SPEECH_REGION"), voice=voices[language])
+            return AzureEngine(
+                os.environ.get("AZURE_SPEECH_KEY"),
+                os.environ.get("AZURE_SPEECH_REGION"),
+                voice=voices[language],
+            )
         elif name == "elevenlabs":
             from RealtimeTTS import ElevenlabsEngine
+
             return ElevenlabsEngine(os.environ.get("ELEVENLABS_API_KEY"))
         else:
             from RealtimeTTS import SystemEngine
+
             voices = {
                 "zh": "Huihui",
                 "en": "Microsoft Zira",
@@ -85,13 +96,13 @@ if __name__ == '__main__':
                 "fr": "Microsoft Hortense",
                 "it": "Microsoft Elsa",
                 "ja": "Microsoft Haruka",
-                "ko": "Microsoft Heami"
+                "ko": "Microsoft Heami",
             }
             return SystemEngine(voice=voices[language])
 
     # Add Italian ("it") and Japanese ("ja") to the list of languages
     languages = ["zh", "en", "es", "de", "fr", "it", "ja", "ko"]
-    
+
     for engine_name in ["coqui", "elevenlabs", "azure", "system"]:
         for language in languages:
             print(f"Starting engine: {engine_name} for language: {language}")

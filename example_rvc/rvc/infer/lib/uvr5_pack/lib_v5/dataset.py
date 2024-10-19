@@ -136,9 +136,9 @@ def make_training_set(filelist, cropsize, patches, sr, hop_length, n_fft, offset
         coef = np.max([np.abs(X).max(), np.abs(y).max()])
         X, y = X / coef, y / coef
 
-        l, r, roi_size = make_padding(X.shape[2], cropsize, offset)
-        X_pad = np.pad(X, ((0, 0), (0, 0), (l, r)), mode="constant")
-        y_pad = np.pad(y, ((0, 0), (0, 0), (l, r)), mode="constant")
+        ln, r, roi_size = make_padding(X.shape[2], cropsize, offset)
+        X_pad = np.pad(X, ((0, 0), (0, 0), (ln, r)), mode="constant")
+        y_pad = np.pad(y, ((0, 0), (0, 0), (ln, r)), mode="constant")
 
         starts = np.random.randint(0, X_pad.shape[2] - cropsize, patches)
         ends = starts + cropsize
@@ -164,9 +164,9 @@ def make_validation_set(filelist, cropsize, sr, hop_length, n_fft, offset):
         coef = np.max([np.abs(X).max(), np.abs(y).max()])
         X, y = X / coef, y / coef
 
-        l, r, roi_size = make_padding(X.shape[2], cropsize, offset)
-        X_pad = np.pad(X, ((0, 0), (0, 0), (l, r)), mode="constant")
-        y_pad = np.pad(y, ((0, 0), (0, 0), (l, r)), mode="constant")
+        ln, r, roi_size = make_padding(X.shape[2], cropsize, offset)
+        X_pad = np.pad(X, ((0, 0), (0, 0), (ln, r)), mode="constant")
+        y_pad = np.pad(y, ((0, 0), (0, 0), (ln, r)), mode="constant")
 
         len_dataset = int(np.ceil(X.shape[2] / roi_size))
         for j in range(len_dataset):

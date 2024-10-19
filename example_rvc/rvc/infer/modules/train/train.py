@@ -1,40 +1,13 @@
 import os
 import sys
 import logging
-
-logger = logging.getLogger(__name__)
-
-now_dir = os.getcwd()
-sys.path.append(os.path.join(now_dir))
-
 import datetime
 
 from infer.lib.train import utils
-
-hps = utils.get_hparams()
-os.environ["CUDA_VISIBLE_DEVICES"] = hps.gpus.replace("-", ",")
-n_gpus = len(hps.gpus.split("-"))
 from random import randint, shuffle
 
 import torch
 
-try:
-    import intel_extension_for_pytorch as ipex  # pylint: disable=import-error, unused-import
-
-    if torch.xpu.is_available():
-        from infer.modules.ipex import ipex_init
-        from infer.modules.ipex.gradscaler import gradscaler_init
-        from torch.xpu.amp import autocast
-
-        GradScaler = gradscaler_init()
-        ipex_init()
-    else:
-        from torch.cuda.amp import GradScaler, autocast
-except Exception:
-    from torch.cuda.amp import GradScaler, autocast
-
-torch.backends.cudnn.deterministic = False
-torch.backends.cudnn.benchmark = False
 from time import sleep
 from time import time as ttime
 
@@ -54,6 +27,41 @@ from infer.lib.train.data_utils import (
     TextAudioLoaderMultiNSFsid,
 )
 
+
+from infer.lib.train.losses import (
+    discriminator_loss,
+    feature_loss,
+    generator_loss,
+    kl_loss,
+)
+from infer.lib.train.mel_processing import mel_spectrogram_torch, spec_to_mel_torch
+from infer.lib.train.process_ckpt import savee
+
+
+logger = logging.getLogger(__name__)
+
+hps = utils.get_hparams()
+os.environ["CUDA_VISIBLE_DEVICES"] = hps.gpus.replace("-", ",")
+n_gpus = len(hps.gpus.split("-"))
+
+now_dir = os.getcwd()
+sys.path.append(os.path.join(now_dir))
+
+try:
+    if torch.xpu.is_available():
+        from infer.modules.ipex import ipex_init
+        from infer.modules.ipex.gradscaler import gradscaler_init
+        from torch.xpu.amp import autocast
+
+        GradScaler = gradscaler_init()
+        ipex_init()
+    else:
+        from torch.cuda.amp import GradScaler, autocast
+except Exception:
+    from torch.cuda.amp import GradScaler, autocast
+
+torch.backends.cudnn.deterministic = False
+torch.backends.cudnn.benchmark = False
 if hps.version == "v1":
     from infer.lib.infer_pack.models import MultiPeriodDiscriminator
     from infer.lib.infer_pack.models import SynthesizerTrnMs256NSFsid as RVC_Model_f0
@@ -66,16 +74,6 @@ else:
         SynthesizerTrnMs768NSFsid_nono as RVC_Model_nof0,
         MultiPeriodDiscriminatorV2 as MultiPeriodDiscriminator,
     )
-
-from infer.lib.train.losses import (
-    discriminator_loss,
-    feature_loss,
-    generator_loss,
-    kl_loss,
-)
-from infer.lib.train.mel_processing import mel_spectrogram_torch, spec_to_mel_torch
-from infer.lib.train.process_ckpt import savee
-
 global_step = 0
 
 
@@ -95,7 +93,7 @@ class EpochRecorder:
 def main():
     n_gpus = torch.cuda.device_count()
 
-    if torch.cuda.is_available() == False and torch.backends.mps.is_available() == True:
+    if not torch.cuda.is_available() and torch.backends.mps.is_available():
         n_gpus = 1
     if n_gpus < 1:
         # patch to unblock people without gpus. there is probably a better way.
@@ -221,7 +219,7 @@ def run(
         global_step = (epoch_str - 1) * len(train_loader)
         # epoch_str = 1
         # global_step = 0
-    except:  # 如果首次不能加载，加载pretrain
+    except Exception:  # 如果首次不能加载，加载pretrain
         # traceback.print_exc()
         epoch_str = 1
         global_step = 0
@@ -315,7 +313,7 @@ def train_and_evaluate(
     net_d.train()
 
     # Prepare data iterator
-    if hps.if_cache_data_in_gpu == True:
+    if hps.if_cache_data_in_gpu:
         # Use Cache
         data_iterator = cache
         if cache == []:
@@ -416,7 +414,7 @@ def train_and_evaluate(
         else:
             phone, phone_lengths, spec, spec_lengths, wave, wave_lengths, sid = info
         ## Load on CUDA
-        if (hps.if_cache_data_in_gpu == False) and torch.cuda.is_available():
+        if not (hps.if_cache_data_in_gpu) and torch.cuda.is_available():
             phone = phone.cuda(rank, non_blocking=True)
             phone_lengths = phone_lengths.cuda(rank, non_blocking=True)
             if hps.if_f0 == 1:
@@ -468,7 +466,7 @@ def train_and_evaluate(
                     hps.data.mel_fmin,
                     hps.data.mel_fmax,
                 )
-            if hps.train.fp16_run == True:
+            if hps.train.fp16_run:
                 y_hat_mel = y_hat_mel.half()
             wave = commons.slice_segments(
                 wave, ids_slice * hps.data.hop_length, hps.train.segment_size

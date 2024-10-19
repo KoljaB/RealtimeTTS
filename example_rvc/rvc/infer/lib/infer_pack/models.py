@@ -1,18 +1,17 @@
 import math
 import logging
 from typing import Optional
-
-logger = logging.getLogger(__name__)
-
-import numpy as np
 import torch
 from torch import nn
-from torch.nn import AvgPool1d, Conv1d, Conv2d, ConvTranspose1d
+from torch.nn import Conv1d, Conv2d, ConvTranspose1d
 from torch.nn import functional as F
 from torch.nn.utils import remove_weight_norm, spectral_norm, weight_norm
 
 from rvc.infer.lib.infer_pack import attentions, commons, modules
 from rvc.infer.lib.infer_pack.commons import get_padding, init_weights
+
+
+logger = logging.getLogger(__name__)
 
 has_xpu = bool(hasattr(torch, "xpu") and torch.xpu.is_available())
 
@@ -39,7 +38,7 @@ class TextEncoder256(nn.Module):
         self.p_dropout = float(p_dropout)
         self.emb_phone = nn.Linear(256, hidden_channels)
         self.lrelu = nn.LeakyReLU(0.1, inplace=True)
-        if f0 == True:
+        if f0:
             self.emb_pitch = nn.Embedding(256, hidden_channels)  # pitch 256
         self.encoder = attentions.Encoder(
             hidden_channels,
@@ -93,7 +92,7 @@ class TextEncoder768(nn.Module):
         self.p_dropout = float(p_dropout)
         self.emb_phone = nn.Linear(768, hidden_channels)
         self.lrelu = nn.LeakyReLU(0.1, inplace=True)
-        if f0 == True:
+        if f0:
             self.emb_pitch = nn.Embedding(256, hidden_channels)  # pitch 256
         self.encoder = attentions.Encoder(
             hidden_channels,
@@ -315,8 +314,8 @@ class Generator(torch.nn.Module):
         return x
 
     def __prepare_scriptable__(self):
-        for l in self.ups:
-            for hook in l._forward_pre_hooks.values():
+        for ln in self.ups:
+            for hook in ln._forward_pre_hooks.values():
                 # The hook we want to remove is an instance of WeightNorm class, so
                 # normally we would do `if isinstance(...)` but this class is not accessible
                 # because of shadowing, so we check the module name directly.
@@ -325,22 +324,22 @@ class Generator(torch.nn.Module):
                     hook.__module__ == "torch.nn.utils.weight_norm"
                     and hook.__class__.__name__ == "WeightNorm"
                 ):
-                    torch.nn.utils.remove_weight_norm(l)
+                    torch.nn.utils.remove_weight_norm(ln)
 
-        for l in self.resblocks:
-            for hook in l._forward_pre_hooks.values():
+        for ln in self.resblocks:
+            for hook in ln._forward_pre_hooks.values():
                 if (
                     hook.__module__ == "torch.nn.utils.weight_norm"
                     and hook.__class__.__name__ == "WeightNorm"
                 ):
-                    torch.nn.utils.remove_weight_norm(l)
+                    torch.nn.utils.remove_weight_norm(ln)
         return self
 
     def remove_weight_norm(self):
-        for l in self.ups:
-            remove_weight_norm(l)
-        for l in self.resblocks:
-            l.remove_weight_norm()
+        for ln in self.ups:
+            remove_weight_norm(ln)
+        for ln in self.resblocks:
+            ln.remove_weight_norm()
 
 
 class SineGen(torch.nn.Module):
@@ -400,13 +399,17 @@ class SineGen(torch.nn.Module):
                 f0_buf[:, :, idx + 1] = f0_buf[:, :, 0] * (
                     idx + 2
                 )  # idx + 2: the (idx+1)-th overtone, (idx+2)-th harmonic
-            rad_values = (f0_buf / self.sampling_rate) % 1  ###%1意味着n_har的乘积无法后处理优化
+            rad_values = (
+                f0_buf / self.sampling_rate
+            ) % 1  ###%1意味着n_har的乘积无法后处理优化
             rand_ini = torch.rand(
                 f0_buf.shape[0], f0_buf.shape[2], device=f0_buf.device
             )
             rand_ini[:, 0] = 0
             rad_values[:, 0, :] = rad_values[:, 0, :] + rand_ini
-            tmp_over_one = torch.cumsum(rad_values, 1)  # % 1  #####%1意味着后面的cumsum无法再优化
+            tmp_over_one = torch.cumsum(
+                rad_values, 1
+            )  # % 1  #####%1意味着后面的cumsum无法再优化
             tmp_over_one *= upp
             tmp_over_one = F.interpolate(
                 tmp_over_one.transpose(2, 1),
@@ -416,9 +419,7 @@ class SineGen(torch.nn.Module):
             ).transpose(2, 1)
             rad_values = F.interpolate(
                 rad_values.transpose(2, 1), scale_factor=float(upp), mode="nearest"
-            ).transpose(
-                2, 1
-            )  #######
+            ).transpose(2, 1)  #######
             tmp_over_one %= 1
             tmp_over_one_idx = (tmp_over_one[:, 1:, :] - tmp_over_one[:, :-1, :]) < 0
             cumsum_shift = torch.zeros_like(rad_values)
@@ -583,9 +584,9 @@ class GeneratorNSF(torch.nn.Module):
                 x_source = noise_convs(har_source)
                 x = x + x_source
                 xs: Optional[torch.Tensor] = None
-                l = [i * self.num_kernels + j for j in range(self.num_kernels)]
+                ln = [i * self.num_kernels + j for j in range(self.num_kernels)]
                 for j, resblock in enumerate(self.resblocks):
-                    if j in l:
+                    if j in ln:
                         if xs is None:
                             xs = resblock(x)
                         else:
@@ -600,14 +601,14 @@ class GeneratorNSF(torch.nn.Module):
         return x
 
     def remove_weight_norm(self):
-        for l in self.ups:
-            remove_weight_norm(l)
-        for l in self.resblocks:
-            l.remove_weight_norm()
+        for ln in self.ups:
+            remove_weight_norm(ln)
+        for ln in self.resblocks:
+            ln.remove_weight_norm()
 
     def __prepare_scriptable__(self):
-        for l in self.ups:
-            for hook in l._forward_pre_hooks.values():
+        for ln in self.ups:
+            for hook in ln._forward_pre_hooks.values():
                 # The hook we want to remove is an instance of WeightNorm class, so
                 # normally we would do `if isinstance(...)` but this class is not accessible
                 # because of shadowing, so we check the module name directly.
@@ -616,14 +617,14 @@ class GeneratorNSF(torch.nn.Module):
                     hook.__module__ == "torch.nn.utils.weight_norm"
                     and hook.__class__.__name__ == "WeightNorm"
                 ):
-                    torch.nn.utils.remove_weight_norm(l)
-        for l in self.resblocks:
+                    torch.nn.utils.remove_weight_norm(ln)
+        for ln in self.resblocks:
             for hook in self.resblocks._forward_pre_hooks.values():
                 if (
                     hook.__module__ == "torch.nn.utils.weight_norm"
                     and hook.__class__.__name__ == "WeightNorm"
                 ):
-                    torch.nn.utils.remove_weight_norm(l)
+                    torch.nn.utils.remove_weight_norm(ln)
         return self
 
 
@@ -655,7 +656,7 @@ class SynthesizerTrnMs256NSFsid(nn.Module):
         spk_embed_dim,
         gin_channels,
         sr,
-        **kwargs
+        **kwargs,
     ):
         super(SynthesizerTrnMs256NSFsid, self).__init__()
         if isinstance(sr, str):
@@ -824,7 +825,7 @@ class SynthesizerTrnMs768NSFsid(nn.Module):
         spk_embed_dim,
         gin_channels,
         sr,
-        **kwargs
+        **kwargs,
     ):
         super(SynthesizerTrnMs768NSFsid, self).__init__()
         if isinstance(sr, str):
@@ -986,7 +987,7 @@ class SynthesizerTrnMs256NSFsid_nono(nn.Module):
         spk_embed_dim,
         gin_channels,
         sr=None,
-        **kwargs
+        **kwargs,
     ):
         super(SynthesizerTrnMs256NSFsid_nono, self).__init__()
         self.spec_channels = spec_channels
@@ -1136,7 +1137,7 @@ class SynthesizerTrnMs768NSFsid_nono(nn.Module):
         spk_embed_dim,
         gin_channels,
         sr=None,
-        **kwargs
+        **kwargs,
     ):
         super(SynthesizerTrnMs768NSFsid_nono, self).__init__()
         self.spec_channels = spec_channels
@@ -1328,7 +1329,7 @@ class MultiPeriodDiscriminatorV2(torch.nn.Module):
 class DiscriminatorS(torch.nn.Module):
     def __init__(self, use_spectral_norm=False):
         super(DiscriminatorS, self).__init__()
-        norm_f = weight_norm if use_spectral_norm == False else spectral_norm
+        norm_f = weight_norm if not use_spectral_norm else spectral_norm
         self.convs = nn.ModuleList(
             [
                 norm_f(Conv1d(1, 16, 15, 1, padding=7)),
@@ -1344,8 +1345,8 @@ class DiscriminatorS(torch.nn.Module):
     def forward(self, x):
         fmap = []
 
-        for l in self.convs:
-            x = l(x)
+        for ln in self.convs:
+            x = ln(x)
             x = F.leaky_relu(x, modules.LRELU_SLOPE)
             fmap.append(x)
         x = self.conv_post(x)
@@ -1360,7 +1361,7 @@ class DiscriminatorP(torch.nn.Module):
         super(DiscriminatorP, self).__init__()
         self.period = period
         self.use_spectral_norm = use_spectral_norm
-        norm_f = weight_norm if use_spectral_norm == False else spectral_norm
+        norm_f = weight_norm if not use_spectral_norm else spectral_norm
         self.convs = nn.ModuleList(
             [
                 norm_f(
@@ -1428,8 +1429,8 @@ class DiscriminatorP(torch.nn.Module):
             t = t + n_pad
         x = x.view(b, c, t // self.period, self.period)
 
-        for l in self.convs:
-            x = l(x)
+        for ln in self.convs:
+            x = ln(x)
             x = F.leaky_relu(x, modules.LRELU_SLOPE)
             fmap.append(x)
         x = self.conv_post(x)

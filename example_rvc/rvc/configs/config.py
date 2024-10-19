@@ -7,8 +7,6 @@ from multiprocessing import cpu_count
 import torch
 
 try:
-    import intel_extension_for_pytorch as ipex  # pylint: disable=import-error, unused-import
-
     if torch.xpu.is_available():
         from infer.modules.ipex import ipex_init
 
@@ -70,7 +68,6 @@ class Config:
 
     @staticmethod
     def arg_parse() -> tuple:
-
         # Set default values for each argument
         default_port = 7865
         default_pycmd = sys.executable or "python"
@@ -87,7 +84,7 @@ class Config:
             default_noparallel,
             default_noautoopen,
             default_dml,
-        )        
+        )
         exe = sys.executable or "python"
         parser = argparse.ArgumentParser()
         parser.add_argument("--port", type=int, default=7865, help="Listen port")
@@ -217,25 +214,22 @@ class Config:
             x_max = 32
         if self.dml:
             logger.info("Use DirectML instead")
-            if (
-                os.path.exists(
-                    "runtime\Lib\site-packages\onnxruntime\capi\DirectML.dll"
-                )
-                == False
+            if not os.path.exists(
+                "runtime\Lib\site-packages\onnxruntime\capi\DirectML.dll"
             ):
                 try:
                     os.rename(
                         "runtime\Lib\site-packages\onnxruntime",
                         "runtime\Lib\site-packages\onnxruntime-cuda",
                     )
-                except:
+                except Exception:
                     pass
                 try:
                     os.rename(
                         "runtime\Lib\site-packages\onnxruntime-dml",
                         "runtime\Lib\site-packages\onnxruntime",
                     )
-                except:
+                except Exception:
                     pass
             # if self.device != "cpu":
             import torch_directml
@@ -245,25 +239,22 @@ class Config:
         else:
             if self.instead:
                 logger.info(f"Use {self.instead} instead")
-            if (
-                os.path.exists(
-                    "runtime\Lib\site-packages\onnxruntime\capi\onnxruntime_providers_cuda.dll"
-                )
-                == False
+            if not os.path.exists(
+                "runtime\Lib\site-packages\onnxruntime\capi\onnxruntime_providers_cuda.dll"
             ):
                 try:
                     os.rename(
                         "runtime\Lib\site-packages\onnxruntime",
                         "runtime\Lib\site-packages\onnxruntime-dml",
                     )
-                except:
+                except Exception:
                     pass
                 try:
                     os.rename(
                         "runtime\Lib\site-packages\onnxruntime-cuda",
                         "runtime\Lib\site-packages\onnxruntime",
                     )
-                except:
+                except Exception:
                     pass
         # print("is_half:%s, device:%s" % (self.is_half, self.device))
         return x_pad, x_query, x_center, x_max

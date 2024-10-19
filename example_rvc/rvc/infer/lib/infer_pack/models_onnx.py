@@ -1,17 +1,17 @@
 import math
 import logging
-
-logger = logging.getLogger(__name__)
-
 import numpy as np
 import torch
 from torch import nn
-from torch.nn import AvgPool1d, Conv1d, Conv2d, ConvTranspose1d
+from torch.nn import Conv1d, Conv2d, ConvTranspose1d
 from torch.nn import functional as F
 from torch.nn.utils import remove_weight_norm, spectral_norm, weight_norm
 
 from rvc.infer.lib.infer_pack import attentions, commons, modules
 from rvc.infer.lib.infer_pack.commons import get_padding, init_weights
+
+
+logger = logging.getLogger(__name__)
 
 
 class TextEncoder256(nn.Module):
@@ -36,7 +36,7 @@ class TextEncoder256(nn.Module):
         self.p_dropout = p_dropout
         self.emb_phone = nn.Linear(256, hidden_channels)
         self.lrelu = nn.LeakyReLU(0.1, inplace=True)
-        if f0 == True:
+        if f0:
             self.emb_pitch = nn.Embedding(256, hidden_channels)  # pitch 256
         self.encoder = attentions.Encoder(
             hidden_channels, filter_channels, n_heads, n_layers, kernel_size, p_dropout
@@ -44,7 +44,7 @@ class TextEncoder256(nn.Module):
         self.proj = nn.Conv1d(hidden_channels, out_channels * 2, 1)
 
     def forward(self, phone, pitch, lengths):
-        if pitch == None:
+        if pitch is None:
             x = self.emb_phone(phone)
         else:
             x = self.emb_phone(phone) + self.emb_pitch(pitch)
@@ -83,7 +83,7 @@ class TextEncoder768(nn.Module):
         self.p_dropout = p_dropout
         self.emb_phone = nn.Linear(768, hidden_channels)
         self.lrelu = nn.LeakyReLU(0.1, inplace=True)
-        if f0 == True:
+        if f0:
             self.emb_pitch = nn.Embedding(256, hidden_channels)  # pitch 256
         self.encoder = attentions.Encoder(
             hidden_channels, filter_channels, n_heads, n_layers, kernel_size, p_dropout
@@ -91,7 +91,7 @@ class TextEncoder768(nn.Module):
         self.proj = nn.Conv1d(hidden_channels, out_channels * 2, 1)
 
     def forward(self, phone, pitch, lengths):
-        if pitch == None:
+        if pitch is None:
             x = self.emb_phone(phone)
         else:
             x = self.emb_phone(phone) + self.emb_pitch(pitch)
@@ -272,10 +272,10 @@ class Generator(torch.nn.Module):
         return x
 
     def remove_weight_norm(self):
-        for l in self.ups:
-            remove_weight_norm(l)
-        for l in self.resblocks:
-            l.remove_weight_norm()
+        for ln in self.ups:
+            remove_weight_norm(ln)
+        for ln in self.resblocks:
+            ln.remove_weight_norm()
 
 
 class SineGen(torch.nn.Module):
@@ -333,13 +333,17 @@ class SineGen(torch.nn.Module):
                 f0_buf[:, :, idx + 1] = f0_buf[:, :, 0] * (
                     idx + 2
                 )  # idx + 2: the (idx+1)-th overtone, (idx+2)-th harmonic
-            rad_values = (f0_buf / self.sampling_rate) % 1  ###%1意味着n_har的乘积无法后处理优化
+            rad_values = (
+                f0_buf / self.sampling_rate
+            ) % 1  ###%1意味着n_har的乘积无法后处理优化
             rand_ini = torch.rand(
                 f0_buf.shape[0], f0_buf.shape[2], device=f0_buf.device
             )
             rand_ini[:, 0] = 0
             rad_values[:, 0, :] = rad_values[:, 0, :] + rand_ini
-            tmp_over_one = torch.cumsum(rad_values, 1)  # % 1  #####%1意味着后面的cumsum无法再优化
+            tmp_over_one = torch.cumsum(
+                rad_values, 1
+            )  # % 1  #####%1意味着后面的cumsum无法再优化
             tmp_over_one *= upp
             tmp_over_one = F.interpolate(
                 tmp_over_one.transpose(2, 1),
@@ -349,9 +353,7 @@ class SineGen(torch.nn.Module):
             ).transpose(2, 1)
             rad_values = F.interpolate(
                 rad_values.transpose(2, 1), scale_factor=upp, mode="nearest"
-            ).transpose(
-                2, 1
-            )  #######
+            ).transpose(2, 1)  #######
             tmp_over_one %= 1
             tmp_over_one_idx = (tmp_over_one[:, 1:, :] - tmp_over_one[:, :-1, :]) < 0
             cumsum_shift = torch.zeros_like(rad_values)
@@ -516,10 +518,10 @@ class GeneratorNSF(torch.nn.Module):
         return x
 
     def remove_weight_norm(self):
-        for l in self.ups:
-            remove_weight_norm(l)
-        for l in self.resblocks:
-            l.remove_weight_norm()
+        for ln in self.ups:
+            remove_weight_norm(ln)
+        for ln in self.resblocks:
+            ln.remove_weight_norm()
 
 
 sr2sr = {
@@ -554,7 +556,7 @@ class SynthesizerTrnMsNSFsidM(nn.Module):
         **kwargs,
     ):
         super().__init__()
-        if type(sr) == type("strr"):
+        if sr is str:
             sr = sr2sr[sr]
         self.spec_channels = spec_channels
         self.inter_channels = inter_channels
@@ -715,7 +717,7 @@ class MultiPeriodDiscriminatorV2(torch.nn.Module):
 class DiscriminatorS(torch.nn.Module):
     def __init__(self, use_spectral_norm=False):
         super(DiscriminatorS, self).__init__()
-        norm_f = weight_norm if use_spectral_norm == False else spectral_norm
+        norm_f = weight_norm if not use_spectral_norm else spectral_norm
         self.convs = nn.ModuleList(
             [
                 norm_f(Conv1d(1, 16, 15, 1, padding=7)),
@@ -731,8 +733,8 @@ class DiscriminatorS(torch.nn.Module):
     def forward(self, x):
         fmap = []
 
-        for l in self.convs:
-            x = l(x)
+        for ln in self.convs:
+            x = ln(x)
             x = F.leaky_relu(x, modules.LRELU_SLOPE)
             fmap.append(x)
         x = self.conv_post(x)
@@ -747,7 +749,7 @@ class DiscriminatorP(torch.nn.Module):
         super(DiscriminatorP, self).__init__()
         self.period = period
         self.use_spectral_norm = use_spectral_norm
-        norm_f = weight_norm if use_spectral_norm == False else spectral_norm
+        norm_f = weight_norm if not use_spectral_norm else spectral_norm
         self.convs = nn.ModuleList(
             [
                 norm_f(
@@ -810,8 +812,8 @@ class DiscriminatorP(torch.nn.Module):
             t = t + n_pad
         x = x.view(b, c, t // self.period, self.period)
 
-        for l in self.convs:
-            x = l(x)
+        for ln in self.convs:
+            x = ln(x)
             x = F.leaky_relu(x, modules.LRELU_SLOPE)
             fmap.append(x)
         x = self.conv_post(x)

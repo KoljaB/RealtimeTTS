@@ -1,12 +1,10 @@
+import time
+from RealtimeTTS import TextToAudioStream, SystemEngine
+
+
 print()
 print("Initializing")
 print()
-
-from RealtimeTTS import TextToAudioStream, SystemEngine, AzureEngine, ElevenlabsEngine
-import os
-import time
-import logging
-
 
 # select engine
 ####################################################################################################
@@ -35,13 +33,14 @@ engine = SystemEngine()
 ####################################################################################################
 
 stream = TextToAudioStream(engine)
-#stream = TextToAudioStream(engine, level=logging.INFO)
+# stream = TextToAudioStream(engine, level=logging.INFO)
 
 
 # add text or generators
 ####################################################################################################
 
 stream.feed("Hello, World! ")
+
 
 def dummy_generator():
     yield "This "
@@ -56,7 +55,8 @@ def dummy_generator():
     time.sleep(0.2)
     yield "there's more. This ends now. "
 
-stream.feed(dummy_generator())    
+
+stream.feed(dummy_generator())
 
 stream.feed("Nice to be here! ")
 stream.feed("Welcome all ")
@@ -73,13 +73,13 @@ print()
 
 # blocking
 #
-#stream.play()
+# stream.play()
 
 
 # async  (allows pause, resume and stop of stream)
 #
-stream.play_async()  
-#stream.play_async() # prints every character processed to console
+stream.play_async()
+# stream.play_async() # prints every character processed to console
 
 
 # async stream handling
@@ -116,4 +116,4 @@ print()
 
 # access text stream while or after finishing stream
 #
-print (f"text synthesized: {stream.text()}")
+print(f"text synthesized: {stream.text()}")

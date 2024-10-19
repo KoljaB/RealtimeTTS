@@ -1,7 +1,8 @@
 """
 NOTE: Write to file does not work with Elevenlabs Engine due to their api working with mpeg instead of chunks (and also encapsulates their chunk handling)
 """
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     from RealtimeTTS import TextToAudioStream, CoquiEngine, AzureEngine, SystemEngine
     import os
 
@@ -11,7 +12,9 @@ if __name__ == '__main__':
 
     print("Starting engines")
     coqui_engine = CoquiEngine()
-    azure_engine = AzureEngine(os.environ.get("AZURE_SPEECH_KEY"), os.environ.get("AZURE_SPEECH_REGION"))
+    azure_engine = AzureEngine(
+        os.environ.get("AZURE_SPEECH_KEY"), os.environ.get("AZURE_SPEECH_REGION")
+    )
     system_engine = SystemEngine()
 
     stream = TextToAudioStream(azure_engine)

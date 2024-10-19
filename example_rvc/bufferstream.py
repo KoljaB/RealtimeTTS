@@ -3,6 +3,7 @@ import threading
 import uuid
 from typing import Generator, List, Any
 
+
 class BufferStream:
     def __init__(self):
         self.items: queue.Queue = queue.Queue()

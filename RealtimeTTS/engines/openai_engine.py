@@ -13,10 +13,7 @@ class OpenAIVoice:
 
 
 class OpenAIEngine(BaseEngine):
-
-    def __init__(self,
-                 model: str = "tts-1",
-                 voice: str = "nova"):
+    def __init__(self, model: str = "tts-1", voice: str = "nova"):
         """
         Initializes a openai realtime text to speech engine object.
 
@@ -53,8 +50,7 @@ class OpenAIEngine(BaseEngine):
         """
         return pyaudio.paCustomFormat, 1, 22050
 
-    def synthesize(self,
-                   text: str) -> bool:
+    def synthesize(self, text: str) -> bool:
         """
         Synthesizes text to audio stream.
 

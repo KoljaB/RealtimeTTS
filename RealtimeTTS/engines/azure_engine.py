@@ -5,6 +5,7 @@ import requests
 import pyaudio
 import logging
 
+
 class PushAudioOutputStreamSampleCallback(tts.audio.PushAudioOutputStreamCallback):
     """
     This class provides a callback mechanism to handle audio output streams for Azure's Text-to-Speech (TTS) service.
@@ -12,7 +13,8 @@ class PushAudioOutputStreamSampleCallback(tts.audio.PushAudioOutputStreamCallbac
 
     Attributes:
         buffer: A buffer or queue where the audio stream data will be stored.
-    """    
+    """
+
     def __init__(self, buffer):
         self.buffer = buffer
 
@@ -37,7 +39,7 @@ class AzureVoice:
         # Extracts the real voice name from the full "Name" string
         start_index = full_name.rfind(", ") + 2
         end_index = full_name.rfind(")")
-        return full_name[start_index:end_index]     
+        return full_name[start_index:end_index]
 
     @staticmethod
     def _extract_voice_language(locale):
@@ -47,13 +49,14 @@ class AzureVoice:
 
 
 class AzureEngine(BaseEngine):
-
-    def __init__(self,
-                 speech_key: str = "", 
-                 service_region: str = "", 
-                 voice: str = "en-US-AshleyNeural",
-                 rate: float = 0.0,
-                 pitch: float = 0.0):
+    def __init__(
+        self,
+        speech_key: str = "",
+        service_region: str = "",
+        voice: str = "en-US-AshleyNeural",
+        rate: float = 0.0,
+        pitch: float = 0.0,
+    ):
         """
         Initializes an azure voice realtime text to speech engine object.
 
@@ -82,18 +85,44 @@ class AzureEngine(BaseEngine):
             "OlderAdultFemale",
             "OlderAdultMale",
             "SeniorFemale",
-            "SeniorMale"
+            "SeniorMale",
         ]
         self.emotions = [
-            "advertisement_upbeat", "affectionate", "angry", "assistant",
-            "calm", "chat", "cheerful", "customerservice", "depressed",
-            "disgruntled", "documentary-narration", "embarrassed",
-            "empathetic", "envious", "excited", "fearful", "friendly",
-            "gentle", "hopeful", "lyrical", "narration-professional",
-            "narration-relaxed", "neutral", "newscast", "newscast-casual",
-            "newscast-formal", "poetry-reading", "sad", "serious", "shouting",
-            "sports_commentary", "sports_commentary_excited", "whispering",
-            "terrified", "unfriendly"
+            "advertisement_upbeat",
+            "affectionate",
+            "angry",
+            "assistant",
+            "calm",
+            "chat",
+            "cheerful",
+            "customerservice",
+            "depressed",
+            "disgruntled",
+            "documentary-narration",
+            "embarrassed",
+            "empathetic",
+            "envious",
+            "excited",
+            "fearful",
+            "friendly",
+            "gentle",
+            "hopeful",
+            "lyrical",
+            "narration-professional",
+            "narration-relaxed",
+            "neutral",
+            "newscast",
+            "newscast-casual",
+            "newscast-formal",
+            "poetry-reading",
+            "sad",
+            "serious",
+            "shouting",
+            "sports_commentary",
+            "sports_commentary_excited",
+            "whispering",
+            "terrified",
+            "unfriendly",
         ]
 
     def post_init(self):
@@ -108,11 +137,10 @@ class AzureEngine(BaseEngine):
                   - Format (int): The format of the audio stream. pyaudio.paInt16 represents 16-bit integers.
                   - Channels (int): The number of audio channels. 1 represents mono audio.
                   - Sample Rate (int): The sample rate of the audio in Hz. 16000 represents 16kHz sample rate.
-        """        
+        """
         return pyaudio.paInt16, 1, 16000
 
-    def synthesize(self, 
-                   text: str) -> bool:
+    def synthesize(self, text: str) -> bool:
         """
         Synthesizes text to audio stream.
 
@@ -121,11 +149,15 @@ class AzureEngine(BaseEngine):
         """
 
         # Set up the Azure TTS configuration
-        speech_config = tts.SpeechConfig(subscription=self.speech_key, region=self.service_region)
+        speech_config = tts.SpeechConfig(
+            subscription=self.speech_key, region=self.service_region
+        )
         stream_callback = PushAudioOutputStreamSampleCallback(self.queue)
         push_stream = tts.audio.PushAudioOutputStream(stream_callback)
         stream_config = tts.audio.AudioOutputConfig(stream=push_stream)
-        speech_synthesizer = tts.SpeechSynthesizer(speech_config=speech_config, audio_config=stream_config)
+        speech_synthesizer = tts.SpeechSynthesizer(
+            speech_config=speech_config, audio_config=stream_config
+        )
 
         emotion_start_tag = f'<mstts:express-as style="{self.emotion}" styledegree="{self.emotion_degree}" role="{self.emotion_role}">'
         emotion_end_tag = "</mstts:express-as>"
@@ -151,26 +183,28 @@ class AzureEngine(BaseEngine):
         result = speech_synthesizer.speak_ssml_async(ssml_string).get()
 
         if result.reason == tts.ResultReason.SynthesizingAudioCompleted:
-            logging.debug(f"Speech synthesized")
+            logging.debug("Speech synthesized")
             return True
         elif result.reason == tts.ResultReason.Canceled:
             cancellation_details = result.cancellation_details
-            print(f"Speech synthesis canceled, check speech_key and service_region: {result.reason}")
+            print(
+                f"Speech synthesis canceled, check speech_key and service_region: {result.reason}"
+            )
             print("Cancellation details: {}".format(cancellation_details.reason))
             print("SSLM:")
             print(ssml_string)
             if cancellation_details.reason == tts.CancellationReason.Error:
-                print("Error details: {}".format(cancellation_details.error_details))        
+                print("Error details: {}".format(cancellation_details.error_details))
         else:
             print(f"Speech synthesis failed: {result.reason}")
             print(f"Result: {result}")
 
     def set_emotion(
-            self,
-            emotion: str,
-            emotion_role: str = "YoungAdultFemale",
-            emotion_degree: float = 1.0,
-            ):
+        self,
+        emotion: str,
+        emotion_role: str = "YoungAdultFemale",
+        emotion_degree: float = 1.0,
+    ):
         """
         Sets the emotion to be used for speech synthesis.
 
@@ -195,20 +229,20 @@ class AzureEngine(BaseEngine):
 
     def set_speech_key(self, speech_key: str):
         """
-        Sets the azure subscription key. 
+        Sets the azure subscription key.
 
         Args:
             speech_key (str): Azure subscription key. (TTS API key)
-        """        
+        """
         self.speech_key = speech_key
 
     def set_service_region(self, service_region: str):
         """
-        Sets the azure service region. 
+        Sets the azure service region.
 
         Args:
             service_region (str): Azure service region. (Cloud Region ID)
-        """        
+        """
         self.service_region = service_region
 
     def get_voices(self):
@@ -216,49 +250,45 @@ class AzureEngine(BaseEngine):
         Retrieves the installed voices available for the Azure Speech engine.
 
         Sends a request to the Azure Speech API to fetch the list of available voices.
-        The method uses the `service_region` and `speech_key` attributes of the instance to authenticate 
+        The method uses the `service_region` and `speech_key` attributes of the instance to authenticate
         and get the list of voices.
 
         Returns:
-            list[AzureVoice]: A list containing AzureVoice objects representing the available voices. 
-                            Each AzureVoice object encapsulates information like the real name, locale, 
+            list[AzureVoice]: A list containing AzureVoice objects representing the available voices.
+                            Each AzureVoice object encapsulates information like the real name, locale,
                             and gender of the voice. If the API call fails, an empty list is returned.
 
         Raises:
             May raise exceptions related to the `requests` module like ConnectionError, Timeout, etc.
 
         Side Effects:
-            Makes HTTP requests to the Azure Speech API. Prints an error message to stdout if the 
+            Makes HTTP requests to the Azure Speech API. Prints an error message to stdout if the
             request fails.
 
         Note:
-            Ensure that `self.service_region` and `self.speech_key` are correctly set before calling 
-            this method. 
-        """        
-        token_endpoint  = f'https://{self.service_region}.api.cognitive.microsoft.com/sts/v1.0/issueToken'
-        headers = {
-            'Ocp-Apim-Subscription-Key': self.speech_key
-        }
+            Ensure that `self.service_region` and `self.speech_key` are correctly set before calling
+            this method.
+        """
+        token_endpoint = f"https://{self.service_region}.api.cognitive.microsoft.com/sts/v1.0/issueToken"
+        headers = {"Ocp-Apim-Subscription-Key": self.speech_key}
         response = requests.post(token_endpoint, headers=headers)
         access_token = str(response.text)
 
-        fetch_voices_endpoint = f'https://{self.service_region}.tts.speech.microsoft.com/cognitiveservices/voices/list'
-        voice_headers = {
-            'Authorization': 'Bearer ' + access_token
-        }
+        fetch_voices_endpoint = f"https://{self.service_region}.tts.speech.microsoft.com/cognitiveservices/voices/list"
+        voice_headers = {"Authorization": "Bearer " + access_token}
         response = requests.get(fetch_voices_endpoint, headers=voice_headers)
-        
+
         voice_objects = []
-        
+
         if response.status_code == 200:
             voices = response.json()
             for voice in voices:
-                real_name = voice['Name']
-                locale = voice['Locale']
-                gender = voice.get('Gender', 'N/A')
+                real_name = voice["Name"]
+                locale = voice["Locale"]
+                gender = voice.get("Gender", "N/A")
                 voice_object = AzureVoice(real_name, locale, gender)
                 voice_objects.append(voice_object)
-            
+
             return voice_objects
         else:
             print(f"Error {response.status_code}: {response.text}")
@@ -288,7 +318,7 @@ class AzureEngine(BaseEngine):
         Args:
             **voice_parameters: The voice parameters to be used for speech synthesis.
         """
-        if 'rate' in voice_parameters:
-            self.rate = voice_parameters['rate']
-        if 'pitch' in voice_parameters:
-            self.pitch = voice_parameters['pitch']
+        if "rate" in voice_parameters:
+            self.rate = voice_parameters["rate"]
+        if "pitch" in voice_parameters:
+            self.pitch = voice_parameters["pitch"]

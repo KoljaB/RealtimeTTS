@@ -54,7 +54,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
     document.getElementById("engine").addEventListener("change", async function() {
         await setEngine();
         await fetchVoices();
-    });    
+    });
     document.getElementById("voice").addEventListener("change", setVoice);
 
     fetchVoices();
