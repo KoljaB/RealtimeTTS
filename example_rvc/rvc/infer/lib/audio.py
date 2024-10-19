@@ -53,7 +53,7 @@ def load_audio(file, sr):
     file = (
         file.strip(" ").strip('"').strip("\n").strip('"').strip(" ")
     )  # 防止小白拷路径头尾带了空格和"和回车
-    if os.path.exists(file) == False:
+    if not os.path.exists(file):
         raise RuntimeError(
             "You input a wrong audio path that does not exists, please fix it!"
         )
@@ -69,5 +69,5 @@ def load_audio(file, sr):
             audio = np.mean(audio, -1)
         return librosa.resample(audio, orig_sr=file[0], target_sr=16000)
 
-    except:
+    except Exception:
         raise RuntimeError(traceback.format_exc())

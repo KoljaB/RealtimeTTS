@@ -40,7 +40,7 @@ If stuttering occurs:
 - For CoquiEngine:
   1. Ensure pyTorch is installed with CUDA support.
     `pip install torch==2.2.2+cu118 torchaudio==2.2.2 --index-url https://download.pytorch.org/whl/cu118
-` (adjust 2.2.2 to your desired torch version and 118 to your desired CUDA version)     
+` (adjust 2.2.2 to your desired torch version and 118 to your desired CUDA version)
   2. If the system is too slow for realtime synthesis, set "full_sentences=True" as a parameter for the CoquiEngine constructor which prevents mid-sentence stuttering.
 
 ## Use an UI like in the Showcase Video
@@ -76,7 +76,7 @@ Or create your own generator and feed that:
 
 ## I get RuntimeError "freeze_support"
 
-Add entry protection to your code. 
+Add entry protection to your code.
 
 Write
 ```python
@@ -88,9 +88,9 @@ The lib uses multiprocessing, so `if __name__ == '__main__':` is needed to preve
 
 ## Save the audio to file
 
-The stream.play and stream.play_async methods have a parameter "output_wavfile" where you can specify the file the synthesis should be written into.  
+The stream.play and stream.play_async methods have a parameter "output_wavfile" where you can specify the file the synthesis should be written into.
 
-[Here](https://github.com/KoljaB/RealtimeTTS/blob/master/tests/write_to_file.py) is an example showcasing this.  
+[Here](https://github.com/KoljaB/RealtimeTTS/blob/master/tests/write_to_file.py) is an example showcasing this.
 
 You may want to use this together with the parameter "muted=True" of stream.play and stream.play_async methods, that prevents that the synthesis written to the files gets streamed to the output device.
 
@@ -126,7 +126,7 @@ Example for Azure engine:
                   - Format (int): The format of the audio stream. pyaudio.paInt16 represents 16-bit integers.
                   - Channels (int): The number of audio channels. 1 represents mono audio.
                   - Sample Rate (int): The sample rate of the audio in Hz. 16000 represents 16kHz sample rate.
-        """        
+        """
         return pyaudio.paInt16, 1, 16000
 ```
 
@@ -170,7 +170,7 @@ To utilize the Stanza tokenizer, set the `tokenizer` parameter to `"stanza"` dur
 When selecting a tokenizer for your application, consider the following factors:
 
 1. **Accuracy**: Stanza generally provides better accuracy in sentence boundary detection compared to NLTK, especially for languages other than English.
-  
+
 2. **Language Support**: Stanza offers multilingual support out-of-the-box, making it suitable for applications that involve text in various languages. NLTK, on the other hand, may require additional configuration for certain languages.
 
 3. **Performance**: NLTK is lightweight and easy to use, making it suitable for simple applications where performance is not a critical factor. However, for more demanding real-time applications or applications involving multiple languages, Stanza's performance and versatility make it a preferred choice.
@@ -187,9 +187,8 @@ Every engine has a method named get_voices() implemented, which returns a list o
 
 ### Set voices
 
-Every engine also has a method named set_voice, which takes either a string with a voice name (or a part of a voice name) or an instance of the voice class of this engine. 
+Every engine also has a method named set_voice, which takes either a string with a voice name (or a part of a voice name) or an instance of the voice class of this engine.
 
 ## Script won't terminate
 
 When you are using the CoquiEngine you need to call the shutdown method before closing the application to close multiprocessing pipe connections and terminate the worker process.
-

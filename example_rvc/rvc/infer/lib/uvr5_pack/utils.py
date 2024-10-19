@@ -34,9 +34,6 @@ def inference(X_spec, device, model, aggressiveness, data):
         with torch.no_grad():
             preds = []
 
-            iterations = [n_window]
-
-            total_iterations = sum(iterations)
             for i in tqdm(range(n_window)):
                 start = i * roi_size
                 X_mag_window = X_mag_pad[

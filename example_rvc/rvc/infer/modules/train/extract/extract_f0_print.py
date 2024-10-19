@@ -3,18 +3,18 @@ import sys
 import traceback
 
 import parselmouth
-
-now_dir = os.getcwd()
-sys.path.append(now_dir)
 import logging
 
 import numpy as np
 import pyworld
 
 from infer.lib.audio import load_audio
+from multiprocessing import Process
+
+now_dir = os.getcwd()
+sys.path.append(now_dir)
 
 logging.getLogger("numba").setLevel(logging.WARNING)
-from multiprocessing import Process
 
 exp_dir = sys.argv[1]
 f = open("%s/extract_f0_feature.log" % exp_dir, "a+")
@@ -82,7 +82,7 @@ class FeatureInput(object):
             )
             f0 = pyworld.stonemask(x.astype(np.double), f0, t, self.fs)
         elif f0_method == "rmvpe":
-            if hasattr(self, "model_rmvpe") == False:
+            if not hasattr(self, "model_rmvpe"):
                 from infer.lib.rmvpe import RMVPE
 
                 print("Loading rmvpe model")
@@ -118,9 +118,8 @@ class FeatureInput(object):
                 try:
                     if idx % n == 0:
                         printt("f0ing,now-%s,all-%s,-%s" % (idx, len(paths), inp_path))
-                    if (
-                        os.path.exists(opt_path1 + ".npy") == True
-                        and os.path.exists(opt_path2 + ".npy") == True
+                    if os.path.exists(opt_path1 + ".npy") and os.path.exists(
+                        opt_path2 + ".npy"
                     ):
                         continue
                     featur_pit = self.compute_f0(inp_path, f0_method)
@@ -135,7 +134,7 @@ class FeatureInput(object):
                         coarse_pit,
                         allow_pickle=False,
                     )  # ori
-                except:
+                except Exception:
                     printt("f0fail-%s-%s-%s" % (idx, inp_path, traceback.format_exc()))
 
 

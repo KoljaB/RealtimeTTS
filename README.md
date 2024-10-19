@@ -10,7 +10,7 @@
 
 ## About the Project
 
-RealtimeTTS is a state-of-the-art text-to-speech (TTS) library designed for real-time applications. It stands out in its ability to convert text streams fast into high-quality auditory output with minimal latency. 
+RealtimeTTS is a state-of-the-art text-to-speech (TTS) library designed for real-time applications. It stands out in its ability to convert text streams fast into high-quality auditory output with minimal latency.
 
 > **Important:** [Installation](#installation) has changed to allow more customization. Please use `pip install realtimetts[all]` instead of `pip install realtimetts` now. More [info here](#installation).
 
@@ -28,7 +28,7 @@ https://github.com/KoljaB/RealtimeTTS/assets/7604638/87dcd9a5-3a4e-4f57-be45-837
 - **Multiple TTS Engine Support**
   - supports OpenAI TTS, Elevenlabs, Azure Speech Services, Coqui TTS, gTTS and System TTS
 - **Multilingual**
-- **Robust and Reliable**: 
+- **Robust and Reliable**:
   - ensures continuous operation through a fallback mechanism
   - switches to alternative engines in case of disruptions guaranteeing consistent performance and reliability, which is vital for critical and professional use cases
 
@@ -151,12 +151,12 @@ For the `ElevenlabsEngine`, you need:
 
 ### CoquiEngine
 
-Delivers high quality, local, neural TTS with voice-cloning.  
+Delivers high quality, local, neural TTS with voice-cloning.
 
 Downloads a neural TTS model first. In most cases it be fast enough for Realtime using GPU synthesis. Needs around 4-5 GB VRAM.
 
 - to clone a voice submit the filename of a wave file containing the source voice as "voice" parameter to the CoquiEngine constructor
-- voice cloning works best with a 22050 Hz mono 16bit WAV file containing a short (~5-30 sec) sample 
+- voice cloning works best with a 22050 Hz mono 16bit WAV file containing a short (~5-30 sec) sample
 
 On most systems GPU support will be needed to run fast enough for realtime, otherwise you will experience stuttering.
 
@@ -249,7 +249,7 @@ Note that most of the tests still rely on the "old" OpenAI API (<1.0.0). Usage o
 - **minimalistic_talkbot.py**
     - **Dependencies**: Run `pip install openai realtimestt`.
     - **Description**: A basic talkbot in 20 lines of code.
-    
+
 - **simple_llm_test.py**
     - **Dependencies**: Run `pip install openai`.
     - **Description**: Simple demonstration of how to integrate the library with large language models (LLMs).
@@ -280,20 +280,20 @@ stream.stop()
 
 ## Requirements Explained
 
-- **Python Version**: 
+- **Python Version**:
   - **Required**: Python >= 3.9, < 3.13
   - **Reason**: The library depends on the GitHub library "TTS" from coqui, which requires Python versions in this range.
 
 - **PyAudio**: to create an output audio stream
-  
-- **stream2sentence**: to split the incoming text stream into sentences 
+
+- **stream2sentence**: to split the incoming text stream into sentences
 
 - **pyttsx3**: System text-to-speech conversion engine
 
 - **pydub**: to convert audio chunk formats
 
 - **azure-cognitiveservices-speech**: Azure text-to-speech conversion engine
-  
+
 - **elevenlabs**: Elevenlabs text-to-speech conversion engine
 
 - **coqui-TTS**: Coqui's XTTS text-to-speech library for high-quality local neural TTS
@@ -407,7 +407,7 @@ These methods are responsible for executing the text-to-audio synthesis and play
 
 ###### `buffer_threshold_seconds` (float)
 - **Default**: `0.0`
-- **Description**: Specifies the time in seconds for the buffering threshold, which impacts the smoothness and continuity of audio playback. 
+- **Description**: Specifies the time in seconds for the buffering threshold, which impacts the smoothness and continuity of audio playback.
 
   - **How it Works**: Before synthesizing a new sentence, the system checks if there is more audio material left in the buffer than the time specified by `buffer_threshold_seconds`. If so, it retrieves another sentence from the text generator, assuming that it can fetch and synthesize this new sentence within the time window provided by the remaining audio in the buffer. This process allows the text-to-speech engine to have more context for better synthesis, enhancing the user experience.
 
@@ -487,28 +487,28 @@ To use a torch with support via CUDA please follow these steps:
 
 > **Note**: *newer pytorch installations [may](https://stackoverflow.com/a/77069523) (unverified) not need Toolkit (and possibly cuDNN) installation anymore.*
 
-1. **Install NVIDIA CUDA Toolkit**:  
-    For example, to install Toolkit 12.X, please  
+1. **Install NVIDIA CUDA Toolkit**:
+    For example, to install Toolkit 12.X, please
     - Visit [NVIDIA CUDA Downloads](https://developer.nvidia.com/cuda-downloads).
     - Select your operating system, system architecture, and os version.
     - Download and install the software.
 
-    or to install Toolkit 11.8, please  
+    or to install Toolkit 11.8, please
     - Visit [NVIDIA CUDA Toolkit Archive](https://developer.nvidia.com/cuda-11-8-0-download-archive).
     - Select your operating system, system architecture, and os version.
     - Download and install the software.
 
-2. **Install NVIDIA cuDNN**:  
+2. **Install NVIDIA cuDNN**:
 
-    For example, to install cuDNN 8.7.0 for CUDA 11.x please  
+    For example, to install cuDNN 8.7.0 for CUDA 11.x please
     - Visit [NVIDIA cuDNN Archive](https://developer.nvidia.com/rdp/cudnn-archive).
     - Click on "Download cuDNN v8.7.0 (November 28th, 2022), for CUDA 11.x".
     - Download and install the software.
 
 3. **Install ffmpeg**:
 
-    You can download an installer for your OS from the [ffmpeg Website](https://ffmpeg.org/download.html).  
-    
+    You can download an installer for your OS from the [ffmpeg Website](https://ffmpeg.org/download.html).
+
     Or use a package manager:
 
     - **On Ubuntu or Debian**:
@@ -534,13 +534,13 @@ To use a torch with support via CUDA please follow these steps:
     - **On Windows using Scoop** ([https://scoop.sh/](https://scoop.sh/)):
         ```bash
         scoop install ffmpeg
-        ```    
+        ```
 
 4. **Install PyTorch with CUDA support**:
 
     To upgrade your PyTorch installation to enable GPU support with CUDA, follow these instructions based on your specific CUDA version. This is useful if you wish to enhance the performance of RealtimeSTT with CUDA capabilities.
 
-    - **For CUDA 11.8:**  
+    - **For CUDA 11.8:**
 
         To update PyTorch and Torchaudio to support CUDA 11.8, use the following commands:
 
@@ -548,9 +548,9 @@ To use a torch with support via CUDA please follow these steps:
         pip install torch==2.3.1+cu118 torchaudio==2.3.1 --index-url https://download.pytorch.org/whl/cu118
         ```
 
-    - **For CUDA 12.X:**  
-    
-        
+    - **For CUDA 12.X:**
+
+
         To update PyTorch and Torchaudio to support CUDA 12.X, execute the following:
 
         ```bash
@@ -627,8 +627,8 @@ While the source of this library is open-source, the usage of many of the engine
 
 ## Author
 
-Kolja Beigel  
-Email: kolja.beigel@web.de  
+Kolja Beigel
+Email: kolja.beigel@web.de
 
 
 
@@ -641,4 +641,3 @@ Email: kolja.beigel@web.de
     <img src="https://img.shields.io/badge/Back%20to%20Top-000000?style=for-the-badge" alt="Back to Top">
   </a>
 </p>
-

@@ -1,12 +1,9 @@
-import copy
 import math
 from typing import Optional, Tuple
 
-import numpy as np
-import scipy
 import torch
 from torch import nn
-from torch.nn import AvgPool1d, Conv1d, Conv2d, ConvTranspose1d
+from torch.nn import Conv1d
 from torch.nn import functional as F
 from torch.nn.utils import remove_weight_norm, weight_norm
 
@@ -219,10 +216,10 @@ class WN(torch.nn.Module):
     def remove_weight_norm(self):
         if self.gin_channels != 0:
             torch.nn.utils.remove_weight_norm(self.cond_layer)
-        for l in self.in_layers:
-            torch.nn.utils.remove_weight_norm(l)
-        for l in self.res_skip_layers:
-            torch.nn.utils.remove_weight_norm(l)
+        for ln in self.in_layers:
+            torch.nn.utils.remove_weight_norm(ln)
+        for ln in self.res_skip_layers:
+            torch.nn.utils.remove_weight_norm(ln)
 
     def __prepare_scriptable__(self):
         if self.gin_channels != 0:
@@ -232,20 +229,20 @@ class WN(torch.nn.Module):
                     and hook.__class__.__name__ == "WeightNorm"
                 ):
                     torch.nn.utils.remove_weight_norm(self.cond_layer)
-        for l in self.in_layers:
-            for hook in l._forward_pre_hooks.values():
+        for ln in self.in_layers:
+            for hook in ln._forward_pre_hooks.values():
                 if (
                     hook.__module__ == "torch.nn.utils.weight_norm"
                     and hook.__class__.__name__ == "WeightNorm"
                 ):
-                    torch.nn.utils.remove_weight_norm(l)
-        for l in self.res_skip_layers:
-            for hook in l._forward_pre_hooks.values():
+                    torch.nn.utils.remove_weight_norm(ln)
+        for ln in self.res_skip_layers:
+            for hook in ln._forward_pre_hooks.values():
                 if (
                     hook.__module__ == "torch.nn.utils.weight_norm"
                     and hook.__class__.__name__ == "WeightNorm"
                 ):
-                    torch.nn.utils.remove_weight_norm(l)
+                    torch.nn.utils.remove_weight_norm(ln)
         return self
 
 
@@ -341,26 +338,26 @@ class ResBlock1(torch.nn.Module):
         return x
 
     def remove_weight_norm(self):
-        for l in self.convs1:
-            remove_weight_norm(l)
-        for l in self.convs2:
-            remove_weight_norm(l)
+        for ln in self.convs1:
+            remove_weight_norm(ln)
+        for ln in self.convs2:
+            remove_weight_norm(ln)
 
     def __prepare_scriptable__(self):
-        for l in self.convs1:
-            for hook in l._forward_pre_hooks.values():
+        for ln in self.convs1:
+            for hook in ln._forward_pre_hooks.values():
                 if (
                     hook.__module__ == "torch.nn.utils.weight_norm"
                     and hook.__class__.__name__ == "WeightNorm"
                 ):
-                    torch.nn.utils.remove_weight_norm(l)
-        for l in self.convs2:
-            for hook in l._forward_pre_hooks.values():
+                    torch.nn.utils.remove_weight_norm(ln)
+        for ln in self.convs2:
+            for hook in ln._forward_pre_hooks.values():
                 if (
                     hook.__module__ == "torch.nn.utils.weight_norm"
                     and hook.__class__.__name__ == "WeightNorm"
                 ):
-                    torch.nn.utils.remove_weight_norm(l)
+                    torch.nn.utils.remove_weight_norm(ln)
         return self
 
 
@@ -406,17 +403,17 @@ class ResBlock2(torch.nn.Module):
         return x
 
     def remove_weight_norm(self):
-        for l in self.convs:
-            remove_weight_norm(l)
+        for ln in self.convs:
+            remove_weight_norm(ln)
 
     def __prepare_scriptable__(self):
-        for l in self.convs:
-            for hook in l._forward_pre_hooks.values():
+        for ln in self.convs:
+            for hook in ln._forward_pre_hooks.values():
                 if (
                     hook.__module__ == "torch.nn.utils.weight_norm"
                     and hook.__class__.__name__ == "WeightNorm"
                 ):
-                    torch.nn.utils.remove_weight_norm(l)
+                    torch.nn.utils.remove_weight_norm(ln)
         return self
 
 

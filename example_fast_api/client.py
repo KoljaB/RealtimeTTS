@@ -12,7 +12,10 @@ CHUNK_SIZE = 1024
 
 # Initialize PyAudio
 pyaudio_instance = pyaudio.PyAudio()
-stream = pyaudio_instance.open(format=AUDIO_FORMAT, channels=CHANNELS, rate=RATE, output=True)
+stream = pyaudio_instance.open(
+    format=AUDIO_FORMAT, channels=CHANNELS, rate=RATE, output=True
+)
+
 
 # Function to play audio stream
 def play_audio(response):
@@ -20,10 +23,12 @@ def play_audio(response):
         if chunk:
             stream.write(chunk)
 
+
 # Function to request text-to-speech conversion
 def request_tts(text):
     response = requests.get(SERVER_URL, params={"text": text}, stream=True)
     play_audio(response)
+
 
 # Test the client
 try:

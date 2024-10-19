@@ -1,5 +1,4 @@
 import json
-import os
 import pathlib
 
 default_param = {}
@@ -65,5 +64,5 @@ class ModelParameters(object):
             "stereo_n",
             "reverse",
         ]:
-            if not k in self.param:
+            if k not in self.param:
                 self.param[k] = False

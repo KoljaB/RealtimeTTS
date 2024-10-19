@@ -77,7 +77,7 @@ if exist "%~dp0assets\pretrained_v2" (
     ) else (
         echo failed. generating dir .\assets\pretrained_v2.
         mkdir pretrained_v2
-    )    
+    )
 if exist "%~dp0assets\uvr5_weights" (
         echo dir .\assets\uvr5_weights checked.
     ) else (
@@ -89,7 +89,7 @@ if exist "%~dp0assets\uvr5_weights\onnx_dereverb_By_FoxJoy" (
     ) else (
         echo failed. generating dir .\assets\uvr5_weights\onnx_dereverb_By_FoxJoy.
         mkdir uvr5_weights\onnx_dereverb_By_FoxJoy
-    )    
+    )
 
 echo=
 echo dir check finished.
@@ -126,7 +126,7 @@ if exist "%~dp0assets\pretrained_v2\D40k.pth" (
         %~dp0%aria2%\aria2c --console-log-level=error -c -x 16 -s 16 -k 1M https://huggingface.co/lj1995/VoiceConversionWebUI/resolve/main/pretrained_v2/D40k.pth -d %~dp0assets\pretrained_v2 -o D40k.pth
         if exist "%~dp0assets\pretrained_v2\D40k.pth" (echo download successful.) else (echo please try again!
         echo=)
-    )    
+    )
 echo checking D48k.pth
 if exist "%~dp0assets\pretrained\D48k.pth" (
         echo D48k.pth in .\assets\pretrained checked.
@@ -166,7 +166,7 @@ if exist "%~dp0assets\pretrained_v2\G40k.pth" (
         %~dp0%aria2%\aria2c --console-log-level=error -c -x 16 -s 16 -k 1M https://huggingface.co/lj1995/VoiceConversionWebUI/resolve/main/pretrained_v2/G40k.pth -d %~dp0assets\pretrained_v2 -o G40k.pth
         if exist "%~dp0assets\pretrained_v2\G40k.pth" (echo download successful.) else (echo please try again!
         echo=)
-    )    
+    )
 echo checking G48k.pth
 if exist "%~dp0assets\pretrained\G48k.pth" (
         echo G48k.pth in .\assets\pretrained checked.
@@ -207,7 +207,7 @@ if exist "%~dp0assets\pretrained_v2\%d40v2%" (
         %~dp0%aria2%\aria2c --console-log-level=error -c -x 16 -s 16 -k 1M %dld40v2% -d %~dp0assets\pretrained_v2 -o %d40v2%
         if exist "%~dp0assets\pretrained_v2\%d40v2%" (echo download successful.) else (echo please try again!
         echo=)
-    )    
+    )
 echo checking %d48%
 if exist "%~dp0assets\pretrained\%d48%" (
         echo %d48% in .\assets\pretrained checked.
@@ -247,7 +247,7 @@ if exist "%~dp0assets\pretrained_v2\%g40v2%" (
         %~dp0%aria2%\aria2c --console-log-level=error -c -x 16 -s 16 -k 1M %dlg40v2% -d %~dp0assets\pretrained_v2 -o %g40v2%
         if exist "%~dp0assets\pretrained_v2\%g40v2%" (echo download successful.) else (echo please try again!
         echo=)
-    )    
+    )
 echo checking %g48%
 if exist "%~dp0assets\pretrained\%g48%" (
         echo %g48% in .\assets\pretrained checked.
@@ -328,7 +328,7 @@ if exist "%~dp0assets\uvr5_weights\onnx_dereverb_By_FoxJoy\%onnx_dereverb%" (
         %~dp0%aria2%\aria2c --console-log-level=error -c -x 16 -s 16 -k 1M %dlonnx_dereverb% -d %~dp0assets\uvr5_weights\onnx_dereverb_By_FoxJoy -o %onnx_dereverb%
         if exist "%~dp0assets\uvr5_weights\onnx_dereverb_By_FoxJoy\%onnx_dereverb%" (echo download successful.) else (echo please try again!
         echo=)
-    )    
+    )
 
 echo checking %hb%
 if exist "%~dp0assets\hubert\%hb%" (

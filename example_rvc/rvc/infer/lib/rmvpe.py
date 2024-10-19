@@ -1,6 +1,6 @@
 from io import BytesIO
 import os
-from typing import List, Optional, Tuple
+from typing import List
 import numpy as np
 import torch
 
@@ -8,7 +8,6 @@ from rvc.infer.lib import jit
 
 try:
     # Fix "Torch not compiled with CUDA enabled"
-    import intel_extension_for_pytorch as ipex  # pylint: disable=import-error, unused-import
 
     if torch.xpu.is_available():
         from rvc.infer.modules.ipex import ipex_init
@@ -18,10 +17,17 @@ except Exception:  # pylint: disable=broad-exception-caught
     pass
 import torch.nn as nn
 import torch.nn.functional as F
-from librosa.util import normalize, pad_center, tiny
+from librosa.util import pad_center
 from scipy.signal import get_window
 
 import logging
+
+
+from librosa.filters import mel
+
+
+from time import time as ttime
+
 
 logger = logging.getLogger(__name__)
 
@@ -154,9 +160,6 @@ class STFT(torch.nn.Module):
         self.magnitude, self.phase = self.transform(input_data, return_phase=True)
         reconstruction = self.inverse(self.magnitude, self.phase)
         return reconstruction
-
-
-from time import time as ttime
 
 
 class BiGRU(nn.Module):
@@ -412,9 +415,6 @@ class E2E(nn.Module):
         return x
 
 
-from librosa.filters import mel
-
-
 class MelSpectrogram(torch.nn.Module):
     def __init__(
         self,
@@ -486,7 +486,7 @@ class MelSpectrogram(torch.nn.Module):
                 magnitude = F.pad(magnitude, (0, 0, 0, size - resize))
             magnitude = magnitude[:, :size, :] * self.win_length / win_length_new
         mel_output = torch.matmul(self.mel_basis, magnitude)
-        if self.is_half == True:
+        if self.is_half:
             mel_output = mel_output.half()
         log_mel_spec = torch.log(torch.clamp(mel_output, min=self.clamp))
         return log_mel_spec
@@ -610,7 +610,7 @@ class RMVPE:
             hidden = hidden.squeeze(0).cpu().numpy()
         else:
             hidden = hidden[0]
-        if self.is_half == True:
+        if self.is_half:
             hidden = hidden.astype("float32")
 
         f0 = self.decode(hidden, thred=thred)

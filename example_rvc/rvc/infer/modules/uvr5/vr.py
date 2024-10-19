@@ -1,8 +1,5 @@
 import os
 import logging
-
-logger = logging.getLogger(__name__)
-
 import librosa
 import numpy as np
 import soundfile as sf
@@ -13,6 +10,9 @@ from infer.lib.uvr5_pack.lib_v5 import spec_utils
 from infer.lib.uvr5_pack.lib_v5.model_param_init import ModelParameters
 from infer.lib.uvr5_pack.lib_v5.nets_new import CascadedNet
 from infer.lib.uvr5_pack.utils import inference
+
+
+logger = logging.getLogger(__name__)
 
 
 class AudioPre:
@@ -51,7 +51,7 @@ class AudioPre:
             os.makedirs(ins_root, exist_ok=True)
         if vocal_root is not None:
             os.makedirs(vocal_root, exist_ok=True)
-        X_wave, y_wave, X_spec_s, y_spec_s = {}, {}, {}, {}
+        X_wave, X_spec_s = {}, {}
         bands_n = len(self.mp.param["band"])
         # print(bands_n)
         for d in range(bands_n, 0, -1):
@@ -122,7 +122,7 @@ class AudioPre:
             else:
                 wav_instrument = spec_utils.cmb_spectrogram_to_wave(y_spec_m, self.mp)
             logger.info("%s instruments done" % name)
-            if is_hp3 == True:
+            if is_hp3:
                 head = "vocal_"
             else:
                 head = "instrument_"
@@ -150,10 +150,10 @@ class AudioPre:
                     if os.path.exists(opt_format_path):
                         try:
                             os.remove(path)
-                        except:
+                        except Exception:
                             pass
         if vocal_root is not None:
-            if is_hp3 == True:
+            if is_hp3:
                 head = "instrument_"
             else:
                 head = "vocal_"
@@ -191,7 +191,7 @@ class AudioPre:
                     if os.path.exists(opt_format_path):
                         try:
                             os.remove(path)
-                        except:
+                        except Exception:
                             pass
 
 
@@ -232,7 +232,7 @@ class AudioPreDeEcho:
             os.makedirs(ins_root, exist_ok=True)
         if vocal_root is not None:
             os.makedirs(vocal_root, exist_ok=True)
-        X_wave, y_wave, X_spec_s, y_spec_s = {}, {}, {}, {}
+        X_wave, X_spec_s = {}, {}
         bands_n = len(self.mp.param["band"])
         # print(bands_n)
         for d in range(bands_n, 0, -1):
@@ -327,7 +327,7 @@ class AudioPreDeEcho:
                     if os.path.exists(opt_format_path):
                         try:
                             os.remove(path)
-                        except:
+                        except Exception:
                             pass
         if vocal_root is not None:
             if self.data["high_end_process"].startswith("mirroring"):
@@ -364,5 +364,5 @@ class AudioPreDeEcho:
                     if os.path.exists(opt_format_path):
                         try:
                             os.remove(path)
-                        except:
+                        except Exception:
                             pass

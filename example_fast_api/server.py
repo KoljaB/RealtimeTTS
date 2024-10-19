@@ -1,4 +1,4 @@
-if __name__ == '__main__':
+if __name__ == "__main__":
     print("Starting server")
     import logging
 
@@ -55,7 +55,7 @@ BROWSER_IDENTIFIERS = [
     "edge",
     "opera",
     "msie",
-    "trident"
+    "trident",
 ]
 
 origins = [
@@ -105,13 +105,13 @@ csp_string = "; ".join(f"{key} {value}" for key, value in csp.items())
 @app.middleware("http")
 async def add_security_headers(request: Request, call_next):
     response = await call_next(request)
-    response.headers['Content-Security-Policy'] = csp_string
+    response.headers["Content-Security-Policy"] = csp_string
     return response
 
 
 @app.get("/favicon.ico")
 async def favicon():
-    return FileResponse('static/favicon.ico')
+    return FileResponse("static/favicon.ico")
 
 
 def on_audio_chunk(chunk):
@@ -151,7 +151,7 @@ def play_text_to_speech(stream, text):
     try:
         stream.feed(text)
         logging.debug(f"Playing audio for text: {text}")
-        print(f"Synthesizing: \"{text}\"")
+        print(f'Synthesizing: "{text}"')
         stream.play(on_audio_chunk=on_audio_chunk, muted=True)
         audio_queue.put(None)
     finally:
@@ -159,9 +159,8 @@ def play_text_to_speech(stream, text):
 
 
 def is_browser_request(request):
-    user_agent = request.headers.get('user-agent', '').lower()
-    is_browser = any(
-        browser_id in user_agent for browser_id in BROWSER_IDENTIFIERS)
+    user_agent = request.headers.get("user-agent", "").lower()
+    is_browser = any(browser_id in user_agent for browser_id in BROWSER_IDENTIFIERS)
     return is_browser
 
 
@@ -173,7 +172,7 @@ def create_wave_header_for_engine(engine):
     frame_rate = sample_rate
 
     wav_header = io.BytesIO()
-    with wave.open(wav_header, 'wb') as wav_file:
+    with wave.open(wav_header, "wb") as wav_file:
         wav_file.setnchannels(num_channels)
         wav_file.setsampwidth(sample_width)
         wav_file.setframerate(frame_rate)
@@ -200,7 +199,10 @@ def audio_chunk_generator(send_wave_headers):
                     logging.debug("Terminating stream")
                     break
                 if not first_chunk:
-                    if send_wave_headers and not current_engine.engine_name == "elevenlabs":
+                    if (
+                        send_wave_headers
+                        and not current_engine.engine_name == "elevenlabs"
+                    ):
                         logging.debug("Sending wave header")
                         yield create_wave_header_for_engine(current_engine)
                     first_chunk = True
@@ -229,9 +231,8 @@ def tts(request: Request, text: str = Query(...)):
             try:
                 if not is_currently_speaking(text):
                     threading.Thread(
-                        target=play_text_to_speech,
-                        args=(stream, text),
-                        daemon=True).start()
+                        target=play_text_to_speech, args=(stream, text), daemon=True
+                    ).start()
             finally:
                 play_text_to_speech_semaphore.release()
 
@@ -239,14 +240,16 @@ def tts(request: Request, text: str = Query(...)):
             logging.debug(f"Currently speaking: {text}")
             return StreamingResponse(
                 audio_chunk_generator(browser_request),
-                media_type="audio/wav" if current_engine.engine_name != "elevenlabs" else "audio/mpeg"
+                media_type="audio/wav"
+                if current_engine.engine_name != "elevenlabs"
+                else "audio/mpeg",
             )
         else:
             print("Service unavailable, returning 503.")
             raise HTTPException(
                 status_code=503,
                 detail="Service unavailable, currently processing another request. Please try again shortly.",
-                headers={"Retry-After": "10"}
+                headers={"Retry-After": "10"},
             )
 
 
@@ -254,7 +257,7 @@ def tts(request: Request, text: str = Query(...)):
 def tts_text(request: Request, text: str = Query(...)):
     if "favicon.ico" in request.url.path:
         print("favicon requested")
-        return FileResponse('static/favicon.ico')
+        return FileResponse("static/favicon.ico")
 
     print(f"/tts_text route synthesizing text: {text}")
 
@@ -262,15 +265,13 @@ def tts_text(request: Request, text: str = Query(...)):
 
     if play_text_to_speech_semaphore.acquire(blocking=False):
         threading.Thread(
-            target=play_text_to_speech,
-            args=(stream, text),
-            daemon=True).start()
+            target=play_text_to_speech, args=(stream, text), daemon=True
+        ).start()
     else:
         logging.debug("Can't play audio, another instance is already running")
 
     return StreamingResponse(
-        audio_chunk_generator(browser_request),
-        media_type="audio/wav"
+        audio_chunk_generator(browser_request), media_type="audio/wav"
     )
 
 
@@ -306,10 +307,12 @@ def set_voice(request: Request, voice_name: str = Query(...)):
 
 @app.get("/")
 def root_page():
-    engines_options = ''.join([
-        f'<option value="{engine}">{engine.title()}</option>'
-        for engine in engines.keys()
-    ])
+    engines_options = "".join(
+        [
+            f'<option value="{engine}">{engine.title()}</option>'
+            for engine in engines.keys()
+        ]
+    )
     content = f"""
     <!DOCTYPE html>
     <html>
@@ -365,7 +368,7 @@ def root_page():
                     width: 80%;
                     margin: 10px auto;
                     display: block;
-                }}                
+                }}
             </style>
         </head>
         <body>
@@ -378,7 +381,7 @@ def root_page():
                 <label for="voice">Select Voice:</label>
                 <select id="voice">
                     <!-- Options will be dynamically populated by JavaScript -->
-                </select>                
+                </select>
                 <textarea id="text" rows="4" cols="50" placeholder="Enter text here..."></textarea>
                 <button id="speakButton">Speak</button>
                 <audio id="audio" controls></audio> <!-- Hidden audio player -->
@@ -390,7 +393,7 @@ def root_page():
     return HTMLResponse(content=content)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     print("Initializing TTS Engines")
 
     for engine_name in SUPPORTED_ENGINES:

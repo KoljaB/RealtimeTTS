@@ -1,17 +1,15 @@
 import os
 import sys
 import traceback
-
-import parselmouth
-
-now_dir = os.getcwd()
-sys.path.append(now_dir)
 import logging
 
 import numpy as np
-import pyworld
 
 from infer.lib.audio import load_audio
+
+
+now_dir = os.getcwd()
+sys.path.append(now_dir)
 
 logging.getLogger("numba").setLevel(logging.WARNING)
 
@@ -45,7 +43,7 @@ class FeatureInput(object):
         x = load_audio(path, self.fs)
         # p_len = x.shape[0] // self.hop
         if f0_method == "rmvpe":
-            if hasattr(self, "model_rmvpe") == False:
+            if not hasattr(self, "model_rmvpe"):
                 from infer.lib.rmvpe import RMVPE
 
                 print("Loading rmvpe model")
@@ -81,9 +79,8 @@ class FeatureInput(object):
                 try:
                     if idx % n == 0:
                         printt("f0ing,now-%s,all-%s,-%s" % (idx, len(paths), inp_path))
-                    if (
-                        os.path.exists(opt_path1 + ".npy") == True
-                        and os.path.exists(opt_path2 + ".npy") == True
+                    if os.path.exists(opt_path1 + ".npy") and os.path.exists(
+                        opt_path2 + ".npy"
                     ):
                         continue
                     featur_pit = self.compute_f0(inp_path, f0_method)
@@ -98,7 +95,7 @@ class FeatureInput(object):
                         coarse_pit,
                         allow_pickle=False,
                     )  # ori
-                except:
+                except Exception:
                     printt("f0fail-%s-%s-%s" % (idx, inp_path, traceback.format_exc()))
 
 
@@ -124,7 +121,7 @@ if __name__ == "__main__":
         paths.append([inp_path, opt_path1, opt_path2])
     try:
         featureInput.go(paths[i_part::n_part], "rmvpe")
-    except:
+    except Exception:
         printt("f0_all_fail-%s" % (traceback.format_exc()))
     # ps = []
     # for i in range(n_p):

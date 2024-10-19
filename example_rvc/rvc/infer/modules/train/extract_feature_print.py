@@ -1,6 +1,11 @@
 import os
 import sys
 import traceback
+import fairseq
+import numpy as np
+import soundfile as sf
+import torch
+import torch.nn.functional as F
 
 os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
 os.environ["PYTORCH_MPS_HIGH_WATERMARK_RATIO"] = "0.0"
@@ -16,11 +21,6 @@ else:
     exp_dir = sys.argv[5]
     os.environ["CUDA_VISIBLE_DEVICES"] = str(i_gpu)
     version = sys.argv[6]
-import fairseq
-import numpy as np
-import soundfile as sf
-import torch
-import torch.nn.functional as F
 
 if "privateuseone" not in device:
     device = "cpu"
@@ -78,7 +78,7 @@ def readwave(wav_path, normalize=False):
 # HuBERT model
 printt("load model(s) from {}".format(model_path))
 # if hubert model is exist
-if os.access(model_path, os.F_OK) == False:
+if not os.access(model_path, os.F_OK):
     printt(
         "Error: Extracting is shut down because %s does not exist, you may download it from https://huggingface.co/lj1995/VoiceConversionWebUI/tree/main"
         % model_path
@@ -132,6 +132,6 @@ else:
                     printt("%s-contains nan" % file)
                 if idx % n == 0:
                     printt("now-%s,all-%s,%s,%s" % (len(todo), idx, file, feats.shape))
-        except:
+        except Exception:
             printt(traceback.format_exc())
     printt("all-feature-done")

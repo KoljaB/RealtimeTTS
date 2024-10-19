@@ -17,12 +17,13 @@ class AudioConfiguration:
     """
 
     def __init__(
-            self,
-            format: int = pyaudio.paInt16,
-            channels: int = 1,
-            rate: int = 16000,
-            output_device_index=None,
-            muted: bool = False):
+        self,
+        format: int = pyaudio.paInt16,
+        channels: int = 1,
+        rate: int = 16000,
+        output_device_index=None,
+        muted: bool = False,
+    ):
         """
         Args:
             format (int): Audio format, defaults to pyaudio.paInt16
@@ -66,14 +67,18 @@ class AudioStream:
         else:
             if self.config.format == pyaudio.paCustomFormat:
                 pyFormat = self.pyaudio_instance.get_format_from_width(2)
-                logging.debug("Opening stream for mpeg audio chunks, "
-                            f"pyFormat: {pyFormat}, pyChannels: {pyChannels}, "
-                            f"pySampleRate: {pySampleRate}")
+                logging.debug(
+                    "Opening stream for mpeg audio chunks, "
+                    f"pyFormat: {pyFormat}, pyChannels: {pyChannels}, "
+                    f"pySampleRate: {pySampleRate}"
+                )
             else:
                 pyFormat = self.config.format
-                logging.debug("Opening stream for wave audio chunks, "
-                            f"pyFormat: {pyFormat}, pyChannels: {pyChannels}, "
-                            f"pySampleRate: {pySampleRate}")
+                logging.debug(
+                    "Opening stream for wave audio chunks, "
+                    f"pyFormat: {pyFormat}, pyChannels: {pyChannels}, "
+                    f"pySampleRate: {pySampleRate}"
+                )
 
             try:
                 self.stream = self.pyaudio_instance.open(
@@ -81,7 +86,8 @@ class AudioStream:
                     channels=pyChannels,
                     rate=pySampleRate,
                     output_device_index=pyOutput_device_index,
-                    output=True)
+                    output=True,
+                )
             except Exception as e:
                 print(f"Error opening stream: {e}")
                 exit(0)
@@ -182,13 +188,14 @@ class StreamPlayer:
     """
 
     def __init__(
-            self,
-            audio_buffer: queue.Queue,
-            config: AudioConfiguration,
-            on_playback_start=None,
-            on_playback_stop=None,
-            on_audio_chunk=None,
-            muted=False):
+        self,
+        audio_buffer: queue.Queue,
+        config: AudioConfiguration,
+        on_playback_start=None,
+        on_playback_stop=None,
+        on_audio_chunk=None,
+        muted=False,
+    ):
         """
         Args:
             audio_buffer (queue.Queue): Queue to be used as the audio buffer.
@@ -220,7 +227,6 @@ class StreamPlayer:
 
         # handle mpeg
         if self.audio_stream.config.format == pyaudio.paCustomFormat:
-
             # convert to pcm using pydub
             segment = AudioSegment.from_file(io.BytesIO(chunk), format="mp3")
             chunk = segment.raw_data
@@ -228,7 +234,7 @@ class StreamPlayer:
         sub_chunk_size = 1024
 
         for i in range(0, len(chunk), sub_chunk_size):
-            sub_chunk = chunk[i:i + sub_chunk_size]
+            sub_chunk = chunk[i : i + sub_chunk_size]
 
             if not self.first_chunk_played and self.on_playback_start:
                 self.on_playback_start()
@@ -252,9 +258,7 @@ class StreamPlayer:
         Processes and plays audio data from the buffer
         until it's empty or playback is stopped.
         """
-        while (self.playback_active or
-               not self.buffer_manager.audio_buffer.empty()):
-
+        while self.playback_active or not self.buffer_manager.audio_buffer.empty():
             chunk = self.buffer_manager.get_from_buffer()
             if chunk:
                 self._play_chunk(chunk)
@@ -273,8 +277,7 @@ class StreamPlayer:
             float: Duration of buffered audio in seconds.
         """
         total_samples = sum(
-            len(chunk) // 2
-            for chunk in list(self.buffer_manager.audio_buffer.queue)
+            len(chunk) // 2 for chunk in list(self.buffer_manager.audio_buffer.queue)
         )
         return total_samples / self.audio_stream.config.rate
 

@@ -3,6 +3,14 @@ import os
 import sys
 
 from scipy import signal
+import traceback
+
+import librosa
+import numpy as np
+from scipy.io import wavfile
+
+from infer.lib.audio import load_audio
+from infer.lib.slicer2 import Slicer
 
 now_dir = os.getcwd()
 sys.path.append(now_dir)
@@ -13,16 +21,6 @@ n_p = int(sys.argv[3])
 exp_dir = sys.argv[4]
 noparallel = sys.argv[5] == "True"
 per = float(sys.argv[6])
-import multiprocessing
-import os
-import traceback
-
-import librosa
-import numpy as np
-from scipy.io import wavfile
-
-from infer.lib.audio import load_audio
-from infer.lib.slicer2 import Slicer
 
 mutex = multiprocessing.Lock()
 f = open("%s/preprocess.log" % exp_dir, "a+")
@@ -105,7 +103,7 @@ class PreProcess:
                         break
                 self.norm_write(tmp_audio, idx0, idx1)
             println("%s->Suc." % path)
-        except:
+        except Exception:
             println("%s->%s" % (path, traceback.format_exc()))
 
     def pipeline_mp(self, infos):
@@ -131,7 +129,7 @@ class PreProcess:
                     p.start()
                 for i in range(n_p):
                     ps[i].join()
-        except:
+        except Exception:
             println("Fail. %s" % traceback.format_exc())
 
 

@@ -1,17 +1,18 @@
-"""
-格式：直接cid为自带的index位；aid放不下了，通过字典来查，反正就5w个
-"""
 import os
 import traceback
 import logging
-
-logger = logging.getLogger(__name__)
-
 from multiprocessing import cpu_count
 
 import faiss
 import numpy as np
 from sklearn.cluster import MiniBatchKMeans
+
+"""
+格式：直接cid为自带的index位；aid放不下了，通过字典来查，反正就5w个
+"""
+
+logger = logging.getLogger(__name__)
+
 
 # ###########如果是原始特征要先写save
 n_cpu = 0
@@ -44,7 +45,7 @@ if big_npy.shape[0] > 2e5:
             .fit(big_npy)
             .cluster_centers_
         )
-    except:
+    except Exception:
         info = traceback.format_exc()
         logger.warning(info)
 

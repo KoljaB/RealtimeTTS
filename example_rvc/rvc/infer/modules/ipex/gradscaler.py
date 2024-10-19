@@ -12,9 +12,7 @@ _refresh_per_optimizer_state = (
 )
 
 
-def _unscale_grads_(
-    self, optimizer, inv_scale, found_inf, allow_fp16
-):  # pylint: disable=unused-argument
+def _unscale_grads_(self, optimizer, inv_scale, found_inf, allow_fp16):  # pylint: disable=unused-argument
     per_device_inv_scale = _MultiDeviceReplicator(inv_scale)
     per_device_found_inf = _MultiDeviceReplicator(found_inf)
 

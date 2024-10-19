@@ -2,9 +2,6 @@ import os
 import sys
 import traceback
 import logging
-
-logger = logging.getLogger(__name__)
-
 from functools import lru_cache
 from time import time as ttime
 
@@ -17,6 +14,9 @@ import torch
 import torch.nn.functional as F
 import torchcrepe
 from scipy import signal
+
+
+logger = logging.getLogger(__name__)
 
 now_dir = os.getcwd()
 sys.path.append(now_dir)
@@ -302,7 +302,7 @@ class Pipeline(object):
         if (
             file_index != ""
             # and file_big_npy != ""
-            # and os.path.exists(file_big_npy) == True
+            # and os.path.exists(file_big_npy)
             and os.path.exists(file_index)
             and index_rate != 0
         ):
@@ -310,7 +310,7 @@ class Pipeline(object):
                 index = faiss.read_index(file_index)
                 # big_npy = np.load(file_big_npy)
                 big_npy = index.reconstruct_n(0, index.ntotal)
-            except:
+            except Exception:
                 traceback.print_exc()
                 index = big_npy = None
         else:
@@ -346,7 +346,7 @@ class Pipeline(object):
                 for line in lines:
                     inp_f0.append([float(i) for i in line.split(",")])
                 inp_f0 = np.array(inp_f0, dtype="float32")
-            except:
+            except Exception:
                 traceback.print_exc()
         sid = torch.tensor(sid, device=self.device).unsqueeze(0).long()
         pitch, pitchf = None, None

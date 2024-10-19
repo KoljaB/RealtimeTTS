@@ -5,11 +5,13 @@ xtts_voice = "Lasinya_Reference.json"
 rvc_model = "models/rvc/Lasinya"
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     from xtts_rvc_synthesizer import XTTSRVCSynthesizer
-        
+
     print("Starting synthesizer")
-    tts = XTTSRVCSynthesizer(xtts_voice=xtts_voice, rvc_model=rvc_model, rvc_sample_rate=40000)
+    tts = XTTSRVCSynthesizer(
+        xtts_voice=xtts_voice, rvc_model=rvc_model, rvc_sample_rate=40000
+    )
 
     print("Synthesizer ready, starting LLM")
     client = OpenAI()
@@ -23,9 +25,9 @@ if __name__ == '__main__':
     for chunk in stream:
         token = chunk.choices[0].delta.content
         if token is not None:
-            print(token, end='', flush=True)
+            print(token, end="", flush=True)
             tts.push_text(token)
-    
+
     print()
     tts.synthesize()
     tts.wait_playing()

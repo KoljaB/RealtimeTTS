@@ -1,16 +1,8 @@
-"""
-
-对源特征进行检索
-"""
 import os
 import logging
-
-logger = logging.getLogger(__name__)
-
 import parselmouth
 import torch
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 # import torchcrepe
 from time import time as ttime
 
@@ -31,6 +23,19 @@ from scipy.io import wavfile
 # from lib.infer_pack.models import SynthesizerTrnMs256NSFsid_sim as SynthesizerTrn256#hifigan_nsf
 # from models import SynthesizerTrn256NSFsim as SynthesizerTrn256#hifigan_nsf
 # from models import SynthesizerTrn256NSFsimFlow as SynthesizerTrn256#hifigan_nsf
+
+import faiss
+
+
+"""
+
+对源特征进行检索
+"""
+
+
+logger = logging.getLogger(__name__)
+
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -119,8 +124,6 @@ def get_f0(x, p_len, f0_up_key=0):
     return f0_coarse, f0bak
 
 
-import faiss
-
 index = faiss.read_index("infer/added_IVF512_Flat_mi_baseline_src_feat.index")
 big_npy = np.load("infer/big_src_feature_mi.npy")
 ta0 = ta1 = ta2 = 0
@@ -157,9 +160,11 @@ for idx, name in enumerate(
 
     ####索引优化
     npy = feats[0].cpu().numpy().astype("float32")
-    D, I = index.search(npy, 1)
+    D, In = index.search(npy, 1)
     feats = (
-        torch.from_numpy(big_npy[I.squeeze()].astype("float16")).unsqueeze(0).to(device)
+        torch.from_numpy(big_npy[In.squeeze()].astype("float16"))
+        .unsqueeze(0)
+        .to(device)
     )
 
     feats = F.interpolate(feats.permute(0, 2, 1), scale_factor=2).permute(0, 2, 1)

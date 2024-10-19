@@ -76,12 +76,8 @@ def _shutdown_workers(self):
                     w.terminate()
 
 
-class DummyDataParallel(
-    torch.nn.Module
-):  # pylint: disable=missing-class-docstring, unused-argument, too-few-public-methods
-    def __new__(
-        cls, module, device_ids=None, output_device=None, dim=0
-    ):  # pylint: disable=unused-argument
+class DummyDataParallel(torch.nn.Module):  # pylint: disable=missing-class-docstring, unused-argument, too-few-public-methods
+    def __new__(cls, module, device_ids=None, output_device=None, dim=0):  # pylint: disable=unused-argument
         if isinstance(device_ids, list) and len(device_ids) > 1:
             print("IPEX backend doesn't support DataParallel on multiple XPU devices")
         return module.to("xpu")
@@ -321,12 +317,20 @@ def ipex_hijacks():
     )
     CondFunc(
         "torch.nn.functional.layer_norm",
-        lambda orig_func, input, normalized_shape=None, weight=None, *args, **kwargs: orig_func(
+        lambda orig_func,
+        input,
+        normalized_shape=None,
+        weight=None,
+        *args,
+        **kwargs: orig_func(
             input.to(weight.data.dtype), normalized_shape, weight, *args, **kwargs
         ),
-        lambda orig_func, input, normalized_shape=None, weight=None, *args, **kwargs: weight
-        is not None
-        and input.dtype != weight.data.dtype,
+        lambda orig_func,
+        input,
+        normalized_shape=None,
+        weight=None,
+        *args,
+        **kwargs: weight is not None and input.dtype != weight.data.dtype,
     )
 
     # Diffusers Float64 (ARC GPUs doesn't support double or Float64):

@@ -5,16 +5,24 @@ xtts_voice = "Lasinya_Reference.json"
 rvc_model = "models/rvc/Lasinya"
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     from xtts_rvc_synthesizer import XTTSRVCSynthesizer
     import time
 
     print("Starting synthesizer")
-    
-    tts = XTTSRVCSynthesizer(xtts_model=xtts_model, xtts_voice=xtts_voice, rvc_model=rvc_model, rvc_sample_rate=40000, use_logging=use_logging)
+
+    tts = XTTSRVCSynthesizer(
+        xtts_model=xtts_model,
+        xtts_voice=xtts_voice,
+        rvc_model=rvc_model,
+        rvc_sample_rate=40000,
+        use_logging=use_logging,
+    )
 
     print("Pushing text")
-    tts.push_text("Hello World! I like to see this. I hope this get's synthesized well. ")
+    tts.push_text(
+        "Hello World! I like to see this. I hope this get's synthesized well. "
+    )
     time.sleep(5)
 
     print("Stop")

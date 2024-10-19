@@ -9,16 +9,18 @@ import pyaudio
 from gtts import gTTS
 import gtts.lang
 
-SYNTHESIS_FILE = 'gtts_speech_synthesis.wav'
+SYNTHESIS_FILE = "gtts_speech_synthesis.wav"
 
 
 class GTTSVoice:
-    def __init__(self, 
-                 language: str = 'en',
-                 tld: str = 'com',
-                 chunk_length: int = 100,
-                 crossfade_length: int = 10,
-                 speed_increase: float = 1.0):
+    def __init__(
+        self,
+        language: str = "en",
+        tld: str = "com",
+        chunk_length: int = 100,
+        crossfade_length: int = 10,
+        speed_increase: float = 1.0,
+    ):
         self.language = language
         self.tld = tld
         self.chunk_length = chunk_length
@@ -30,9 +32,11 @@ class GTTSVoice:
 
 
 class GTTSEngine(BaseEngine):
-    def __init__(self,
-                 voice: Union[str, GTTSVoice] = GTTSVoice("en", "com"),
-                 print_installed_voices: bool = False):
+    def __init__(
+        self,
+        voice: Union[str, GTTSVoice] = GTTSVoice("en", "com"),
+        print_installed_voices: bool = False,
+    ):
         """
         Initializes a gTTS text-to-speech engine object.
 
@@ -72,25 +76,23 @@ class GTTSEngine(BaseEngine):
         try:
             # Generate audio with gTTS
             with io.BytesIO() as f:
-                tts = gTTS(
-                    text=text,
-                    lang=self.voice.language,
-                    tld=self.voice.tld)
+                tts = gTTS(text=text, lang=self.voice.language, tld=self.voice.tld)
                 tts.write_to_fp(f)
                 f.seek(0)
-                
+
                 audio = AudioSegment.from_file(f, format="mp3")
 
                 if self.voice.speed_increase != 1.0:
                     audio = audio.speedup(
                         playback_speed=self.voice.speed_increase,
                         chunk_size=self.voice.chunk_length,
-                        crossfade=self.voice.crossfade_length)
+                        crossfade=self.voice.crossfade_length,
+                    )
 
                 audio.export(self.file_path, format="wav")
 
             # Now open the WAV file and read the chunks
-            with wave.open(self.file_path, 'rb') as wf:
+            with wave.open(self.file_path, "rb") as wf:
                 audio_data = wf.readframes(wf.getnframes())
                 self.queue.put(audio_data)
                 return True
@@ -108,7 +110,7 @@ class GTTSEngine(BaseEngine):
         """
         voices = []
         languages = gtts.lang.tts_langs()
-        tlds = ['com', 'com.au', 'co.uk', 'us', 'ca', 'co.in', 'ie', 'co.za']
+        tlds = ["com", "com.au", "co.uk", "us", "ca", "co.in", "ie", "co.za"]
 
         for lang in languages.keys():
             for tld in tlds:
@@ -126,4 +128,4 @@ class GTTSEngine(BaseEngine):
         if isinstance(voice, GTTSVoice):
             self.voice = voice
         else:
-            self.voice = GTTSVoice(language=voice, tld = 'com')
+            self.voice = GTTSVoice(language=voice, tld="com")

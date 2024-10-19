@@ -1,32 +1,53 @@
-from RealtimeTTS import TextToAudioStream, SystemEngine, AzureEngine, ElevenlabsEngine, CoquiEngine
-from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QComboBox, QTextEdit, QLabel
+from RealtimeTTS import (
+    TextToAudioStream,
+    SystemEngine,
+    AzureEngine,
+    ElevenlabsEngine,
+    CoquiEngine,
+)
+from PyQt6.QtWidgets import (
+    QApplication,
+    QMainWindow,
+    QVBoxLayout,
+    QWidget,
+    QComboBox,
+    QTextEdit,
+    QLabel,
+)
 from PyQt6.QtCore import pyqtSlot
 import time
 import sys
 import os
+
 
 class TTSApp(QMainWindow):
     def __init__(self):
         super().__init__()
 
         # Initialize TTS engines
-        print ("Initializing TTS Engines...")
-        self.engine_system = SystemEngine(voice = "Huihui")
-        self.engine_azure = AzureEngine(os.environ.get("AZURE_SPEECH_KEY"), os.environ.get("AZURE_SPEECH_REGION"), voice="zh-CN-XiaoxiaoNeural")
+        print("Initializing TTS Engines...")
+        self.engine_system = SystemEngine(voice="Huihui")
+        self.engine_azure = AzureEngine(
+            os.environ.get("AZURE_SPEECH_KEY"),
+            os.environ.get("AZURE_SPEECH_REGION"),
+            voice="zh-CN-XiaoxiaoNeural",
+        )
         self.engine_elevenlabs = ElevenlabsEngine(os.environ.get("ELEVENLABS_API_KEY"))
-        self.engine_coqui = CoquiEngine(voice="female_chinese.wav", language = "zh")
-        print ("TTS Engines initialized.")
+        self.engine_coqui = CoquiEngine(voice="female_chinese.wav", language="zh")
+        print("TTS Engines initialized.")
 
         # Add a dictionary to map engine names to engine instances
         self.engines = {
             "System Engine": self.engine_system,
             "Azure Engine": self.engine_azure,
             "Elevenlabs Engine": self.engine_elevenlabs,
-            "Coqui Engine": self.engine_coqui
-        }        
+            "Coqui Engine": self.engine_coqui,
+        }
 
         # Initialize TTS Stream
-        self.stream = TextToAudioStream(self.engine_system, on_audio_stream_start=self.on_audio_stream_start)
+        self.stream = TextToAudioStream(
+            self.engine_system, on_audio_stream_start=self.on_audio_stream_start
+        )
 
         # Main widget and layout
         self.main_widget = QWidget(self)
@@ -35,7 +56,9 @@ class TTSApp(QMainWindow):
 
         # Dropdown for TTS Engine Selection
         self.tts_engine_dropdown = QComboBox(self)
-        self.tts_engine_dropdown.addItems(["System Engine", "Azure Engine", "Elevenlabs Engine", "Coqui Engine"])
+        self.tts_engine_dropdown.addItems(
+            ["System Engine", "Azure Engine", "Elevenlabs Engine", "Coqui Engine"]
+        )
         self.tts_engine_dropdown.currentTextChanged.connect(self.tts_engine_changed)
         self.layout.addWidget(self.tts_engine_dropdown)
 
@@ -66,19 +89,20 @@ class TTSApp(QMainWindow):
         self.stream.feed(pasted_text)
         filename = "synthesis_chinese_" + self.stream.engine.engine_name
         self.stream.play_async(
-            minimum_sentence_length = 2,
-            minimum_first_fragment_length = 2, 
-            output_wavfile = f"{filename}.wav",
-            on_sentence_synthesized = lambda sentence: 
-                print("Synthesized: " + sentence),
-            tokenizer="stanza", 
+            minimum_sentence_length=2,
+            minimum_first_fragment_length=2,
+            output_wavfile=f"{filename}.wav",
+            on_sentence_synthesized=lambda sentence: print("Synthesized: " + sentence),
+            tokenizer="stanza",
             language="zh",
-            context_size=2)
+            context_size=2,
+        )
 
     def on_audio_stream_start(self):
         self.time_started = time.time()
         latency = self.time_started - self.time_pasted
         self.latency_label.setText("Latency: {:.2f} seconds".format(latency))
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
