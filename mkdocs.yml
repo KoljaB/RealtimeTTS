@@ -1,0 +1,47 @@
+site_name: RealtimeTTS Documentation
+theme:
+  name: material
+  language: en
+  features:
+    - navigation.instant
+    - navigation.top
+    - navigation.tabs
+plugins:
+  - search
+  - i18n:
+      default_language: en
+      languages:
+        - locale: en
+          name: English
+          build: true
+          default: true  # Added default: true for English
+        - locale: fr
+          name: Français
+          build: true
+nav:
+  - Home: 
+    - English: en/index.md
+    - Français: fr/index.md
+  - Installation: 
+    - English: en/installation.md
+    - Français: fr/installation.md
+  - Usage: 
+    - English: en/usage.md
+    - Français: fr/usage.md
+  - API Reference: 
+    - English: en/api.md
+    - Français: fr/api.md
+  - Contributing: 
+    - English: en/contributing.md
+    - Français: fr/contributing.md
+  - FAQ: 
+    - English: en/faq.md
+    - Français: fr/faq.md
+extra:
+  alternate:
+    - name: English
+      link: /en/
+      lang: en
+    - name: Français
+      link: /fr/
+      lang: fr
