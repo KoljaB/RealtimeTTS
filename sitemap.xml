@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
+    <url>
+        <loc>Noneen/</loc>
+        <lastmod>2024-10-23</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="Noneen/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="Nonefr/en/"/>
+    </url>
+    <url>
+        <loc>Noneen/api/</loc>
+        <lastmod>2024-10-23</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="Noneen/api/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="Nonefr/en/api/"/>
+    </url>
+    <url>
+        <loc>Noneen/contributing/</loc>
+        <lastmod>2024-10-23</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="Noneen/contributing/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="Nonefr/en/contributing/"/>
+    </url>
+    <url>
+        <loc>Noneen/faq/</loc>
+        <lastmod>2024-10-23</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="Noneen/faq/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="Nonefr/en/faq/"/>
+    </url>
+    <url>
+        <loc>Noneen/installation/</loc>
+        <lastmod>2024-10-23</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="Noneen/installation/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="Nonefr/en/installation/"/>
+    </url>
+    <url>
+        <loc>Noneen/usage/</loc>
+        <lastmod>2024-10-23</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="Noneen/usage/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="Nonefr/en/usage/"/>
+    </url>
+    <url>
+        <loc>Nonefr/</loc>
+        <lastmod>2024-10-23</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="Nonefr/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="Nonefr/fr/"/>
+    </url>
+    <url>
+        <loc>Nonefr/api/</loc>
+        <lastmod>2024-10-23</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="Nonefr/api/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="Nonefr/fr/api/"/>
+    </url>
+    <url>
+        <loc>Nonefr/contributing/</loc>
+        <lastmod>2024-10-23</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="Nonefr/contributing/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="Nonefr/fr/contributing/"/>
+    </url>
+    <url>
+        <loc>Nonefr/faq/</loc>
+        <lastmod>2024-10-23</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="Nonefr/faq/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="Nonefr/fr/faq/"/>
+    </url>
+    <url>
+        <loc>Nonefr/installation/</loc>
+        <lastmod>2024-10-23</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="Nonefr/installation/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="Nonefr/fr/installation/"/>
+    </url>
+    <url>
+        <loc>Nonefr/usage/</loc>
+        <lastmod>2024-10-23</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="Nonefr/usage/"/>
+        <xhtml:link rel="alternate" hreflang="fr" href="Nonefr/fr/usage/"/>
+    </url>
+    <url>
+        <loc>Nonefr/en/</loc>
+        <lastmod>2024-10-23</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="Nonefr/en/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="Noneen/"/>
+    </url>
+    <url>
+        <loc>Nonefr/en/api/</loc>
+        <lastmod>2024-10-23</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="Nonefr/en/api/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="Noneen/api/"/>
+    </url>
+    <url>
+        <loc>Nonefr/en/contributing/</loc>
+        <lastmod>2024-10-23</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="Nonefr/en/contributing/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="Noneen/contributing/"/>
+    </url>
+    <url>
+        <loc>Nonefr/en/faq/</loc>
+        <lastmod>2024-10-23</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="Nonefr/en/faq/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="Noneen/faq/"/>
+    </url>
+    <url>
+        <loc>Nonefr/en/installation/</loc>
+        <lastmod>2024-10-23</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="Nonefr/en/installation/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="Noneen/installation/"/>
+    </url>
+    <url>
+        <loc>Nonefr/en/usage/</loc>
+        <lastmod>2024-10-23</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="Nonefr/en/usage/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="Noneen/usage/"/>
+    </url>
+    <url>
+        <loc>Nonefr/fr/</loc>
+        <lastmod>2024-10-23</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="Nonefr/fr/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="Nonefr/"/>
+    </url>
+    <url>
+        <loc>Nonefr/fr/api/</loc>
+        <lastmod>2024-10-23</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="Nonefr/fr/api/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="Nonefr/api/"/>
+    </url>
+    <url>
+        <loc>Nonefr/fr/contributing/</loc>
+        <lastmod>2024-10-23</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="Nonefr/fr/contributing/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="Nonefr/contributing/"/>
+    </url>
+    <url>
+        <loc>Nonefr/fr/faq/</loc>
+        <lastmod>2024-10-23</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="Nonefr/fr/faq/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="Nonefr/faq/"/>
+    </url>
+    <url>
+        <loc>Nonefr/fr/installation/</loc>
+        <lastmod>2024-10-23</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="Nonefr/fr/installation/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="Nonefr/installation/"/>
+    </url>
+    <url>
+        <loc>Nonefr/fr/usage/</loc>
+        <lastmod>2024-10-23</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="fr" href="Nonefr/fr/usage/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="Nonefr/usage/"/>
+    </url>
+</urlset>
