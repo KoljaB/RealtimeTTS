@@ -23,6 +23,8 @@ if __name__ == "__main__":
             yield "أحب القراءة. الطقس لطيف. هيا نذهب إلى الحديقة. اليوم هو الجمعة. صباح الخير. هذا صديقي. أرجوك ساعدني. هل تناولت الطعام؟ أنا أتعلم العربية. تصبح على خير."
         elif language == "hi":
             yield "मुझे पढ़ना पसंद है। मौसम अच्छा है। चलो पार्क चलते हैं। आज शुक्रवार है। सुप्रभात। यह मेरा दोस्त है। कृपया मेरी मदद करें। क्या आपने खाना खाया? मैं हिंदी सीख रहा हूं। शुभ रात्रि।"
+        elif language == "pt":
+            yield "Eu gosto de ler. O tempo está bom. Vamos ao parque. Hoje é sexta-feira. Bom dia. Este é meu amigo. Por favor, me ajude. Você já comeu? Estou aprendendo português. Boa noite."
 
     def synthesize(engine, language, generator):
         stream = TextToAudioStream(engine)
@@ -32,7 +34,7 @@ if __name__ == "__main__":
         filename = f"synthesis_{language}_" + engine.engine_name
 
         tokenizer = (
-            "stanza" if language in ["zh", "es", "de", "fr", "it", "ja", "ko", "ar", "hi"] else None
+            "stanza" if language in ["zh", "es", "de", "fr", "it", "ja", "ko", "ar", "hi", "pt"] else None
         )
         stream.play(
             minimum_sentence_length=2,
@@ -66,6 +68,7 @@ if __name__ == "__main__":
                 "ko": "female_korean",
                 "ar": "female_arabic",
                 "hi": "female_hindi",
+                "pt": "female_portuguese",
             }
             return CoquiEngine(voice=voices[language], language=language)
         elif name == "azure":
@@ -82,6 +85,7 @@ if __name__ == "__main__":
                 "ko": "ko-KR-SunHiNeural",
                 "ar": "ar-AE-FatimaNeural",
                 "hi": "hi-IN-SwaraNeural",
+                "pt": "pt-BR-FranciscaNeural",
             }
             return AzureEngine(
                 os.environ.get("AZURE_SPEECH_KEY"),
@@ -106,10 +110,11 @@ if __name__ == "__main__":
                 "ko": "Microsoft Heami",
                 "ar": "Microsoft Hoda",
                 "hi": "Microsoft Hemant",
+                "pt": "Microsoft Maria",
             }
             return SystemEngine(voice=voices[language])
 
-    languages = ["zh", "en", "es", "de", "fr", "it", "ja", "ko", "ar", "hi"]
+    languages = ["zh", "en", "es", "de", "fr", "it", "ja", "ko", "ar", "hi", "pt"]
 
     for engine_name in ["coqui", "elevenlabs", "azure", "system"]:
         for language in languages:
