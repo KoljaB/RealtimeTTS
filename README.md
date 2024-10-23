@@ -38,6 +38,13 @@ https://github.com/KoljaB/RealtimeTTS/assets/7604638/87dcd9a5-3a4e-4f57-be45-837
 
 Check the [FAQ page](./FAQ.md) for answers to a lot of questions around the usage of RealtimeTTS.
 
+## Documentation
+
+The documentation for **RealtimeTTS** is available in both English and French. 
+
+- **[English Documentation](https://koljab.github.io/RealtimeTTS/en/)**
+- **[French Documentation](https://koljab.github.io/RealtimeTTS/fr/)**
+
 ## Updates
 
 Latest Version: v0.4.7
