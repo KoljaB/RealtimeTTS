@@ -33,6 +33,8 @@ if __name__ == "__main__":
             yield "Okumayı seviyorum. Hava güzel. Haydi parka gidelim. Bugün Cuma. Günaydın. Bu benim arkadaşım. Lütfen bana yardım edin. Yemek yediniz mi? Türkçe öğreniyorum. İyi geceler."
         elif language == "vi":
             yield "Tôi thích đọc sách. Thời tiết đẹp. Hãy đi công viên. Hôm nay là thứ Sáu. Chào buổi sáng. Đây là bạn tôi. Làm ơn giúp tôi. Bạn đã ăn chưa? Tôi đang học tiếng Việt. Chúc ngủ ngon."
+        elif language == "bn":
+            yield "আমি পড়তে পছন্দ করি। আবহাওয়া ভালো। চলো পার্কে যাই। আজ শুক্রবার। সুপ্রভাত। এই আমার বন্ধু। অনুগ্রহ করে আমাকে সাহায্য করুন। আপনি কি খেয়েছেন? আমি বাংলা শিখছি। শুভ রাত্রি।"
 
     def synthesize(engine, language, generator):
         stream = TextToAudioStream(engine)
@@ -42,7 +44,7 @@ if __name__ == "__main__":
         filename = f"synthesis_{language}_" + engine.engine_name
 
         tokenizer = (
-            "stanza" if language in ["zh", "es", "de", "fr", "it", "ja", "ko", "ar", "hi", "pt", "ru", "id", "tr", "vi"] else None
+            "stanza" if language in ["zh", "es", "de", "fr", "it", "ja", "ko", "ar", "hi", "pt", "ru", "id", "tr", "vi", "bn"] else None
         )
         stream.play(
             minimum_sentence_length=2,
@@ -81,6 +83,7 @@ if __name__ == "__main__":
                 "id": "female_indonesian",
                 "tr": "female_turkish",
                 "vi": "female_vietnamese",
+                "bn": "female_bengali",
             }
             return CoquiEngine(voice=voices[language], language=language)
         elif name == "azure":
@@ -102,6 +105,7 @@ if __name__ == "__main__":
                 "id": "id-ID-GadisNeural",
                 "tr": "tr-TR-EmelNeural",
                 "vi": "vi-VN-HoaiMyNeural",
+                "bn": "bn-IN-TanishaaNeural",
             }
             return AzureEngine(
                 os.environ.get("AZURE_SPEECH_KEY"),
@@ -131,10 +135,11 @@ if __name__ == "__main__":
                 "id": "Microsoft Andika",  # Note: This is a placeholder, as Windows might not have a default Indonesian voice
                 "tr": "Microsoft Tolga",  # Note: This is a placeholder, as Windows might not have a default Turkish voice
                 "vi": "Microsoft An",  # Note: This is a placeholder, as Windows might not have a default Vietnamese voice
+                "bn": "Microsoft Bashkar",  # Note: This is a placeholder, as Windows might not have a default Bengali voice
             }
             return SystemEngine(voice=voices[language])
 
-    languages = ["zh", "en", "es", "de", "fr", "it", "ja", "ko", "ar", "hi", "pt", "ru", "id", "tr", "vi"]
+    languages = ["zh", "en", "es", "de", "fr", "it", "ja", "ko", "ar", "hi", "pt", "ru", "id", "tr", "vi", "bn"]
 
     for engine_name in ["coqui", "elevenlabs", "azure", "system"]:
         for language in languages:
