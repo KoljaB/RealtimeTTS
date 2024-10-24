@@ -1,6 +1,6 @@
 # RealtimeTTS
 
-[EN](../en/index.md) | [FR](../fr/index.md)
+[EN](../en/index.md) | [FR](../fr/index.md) | [ES](../es/index.md)
 
 *Easy to use, low-latency text-to-speech library for realtime applications*
 
