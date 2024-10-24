@@ -1,6 +1,6 @@
 # Frequently Asked Questions
 
-For answers to frequently asked questions about RealtimeTTS, please refer to our [FAQ page on GitHub](https://github.com/KoljaB/RealtimeTTS/blob/main/FAQ.md).
+For answers to frequently asked questions about RealtimeTTS, please refer to our [FAQ page on GitHub](https://github.com/KoljaB/RealtimeTTS/blob/master/FAQ.md).
 
 This page covers various topics including:
 
