@@ -40,7 +40,7 @@ Check the [FAQ page](./FAQ.md) for answers to a lot of questions around the usag
 
 ## Documentation
 
-The documentation for **RealtimeTTS** is available in both English and French. 
+The documentation for **RealtimeTTS** is available in the following languages:
 
 - **[English Documentation](https://koljab.github.io/RealtimeTTS/en/)**
 - **[French Documentation](https://koljab.github.io/RealtimeTTS/fr/)**
