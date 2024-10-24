@@ -44,6 +44,7 @@ The documentation for **RealtimeTTS** is available in both English and French.
 
 - **[English Documentation](https://koljab.github.io/RealtimeTTS/en/)**
 - **[French Documentation](https://koljab.github.io/RealtimeTTS/fr/)**
+- **[Spanish Documentation](https://koljab.github.io/RealtimeTTS/es/)**
 
 ## Updates
 
