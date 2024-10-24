@@ -18,25 +18,34 @@ plugins:
         - locale: fr
           name: Français
           build: true
+        - locale: es
+          name: Español
+          build: true  
 nav:
   - Home: 
     - English: en/index.md
     - Français: fr/index.md
+    - Español: es/index.md  
   - Installation: 
     - English: en/installation.md
     - Français: fr/installation.md
+    - Español: es/installation.md  
   - Usage: 
     - English: en/usage.md
     - Français: fr/usage.md
+    - Español: es/usage.md  
   - API Reference: 
     - English: en/api.md
     - Français: fr/api.md
+    - Español: es/api.md  
   - Contributing: 
     - English: en/contributing.md
     - Français: fr/contributing.md
+    - Español: es/contributing.md  
   - FAQ: 
     - English: en/faq.md
     - Français: fr/faq.md
+    - Español: es/faq.md  
 extra:
   alternate:
     - name: English
@@ -45,3 +54,6 @@ extra:
     - name: Français
       link: /fr/
       lang: fr
+    - name: Español
+      link: /es/
+      lang: es  
