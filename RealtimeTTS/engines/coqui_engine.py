@@ -313,6 +313,7 @@ class CoquiEngine(BaseEngine):
               Event to signal when the model is ready.
         """
         sys.stdout = QueueWriter(output_queue)
+        sys.stderr = QueueWriter(output_queue)
 
         from TTS.config import load_config
         from TTS.tts.models import setup_model as setup_tts_model
@@ -528,6 +529,8 @@ class CoquiEngine(BaseEngine):
                 tts = setup_tts_model(config)
                 logging.debug(f"  xtts load_checkpoint({checkpoint})")
 
+                print(f"LOADING CONFIG JSON FROM {os.path.join(checkpoint, 'config.json')}")
+
                 tts.load_checkpoint(
                     config,
                     checkpoint_dir=checkpoint,
@@ -592,15 +595,30 @@ class CoquiEngine(BaseEngine):
 
         try:
             while True:
-                try:
-                    message = conn.recv()
-                except Exception as e:
-                    logging.error(
-                        f"conn.recv() error: {e} occured in "
-                        "synthesize worker thread of coqui engine."
-                    )
-                    time.sleep(1)
+                timeout = 0.1
+                if conn.poll(timeout):  # Use poll with a tiny timeout to avoid blocking
+                    try:
+                        message = conn.recv()
+                    except Exception as e:
+                        logging.error(
+                            f"conn.recv() error: {e} occurred in the "
+                            "synthesize worker thread of Coqui engine."
+                        )
+                        time.sleep(1)
+                        continue
+                else:
+                    # Poll timed out, continue without blocking
+                    time.sleep(0.01)  # You can adjust this sleep to fit your needs
                     continue
+                # try:
+                #     message = conn.recv()
+                # except Exception as e:
+                #     logging.error(
+                #         f"conn.recv() error: {e} occured in "
+                #         "synthesize worker thread of coqui engine."
+                #     )
+                #     time.sleep(1)
+                #     continue
 
                 command = message["command"]
                 data = message["data"]
@@ -701,13 +719,13 @@ class CoquiEngine(BaseEngine):
                         full_generated_seconds > 0
                         and (full_generated_seconds - first_chunk_length_seconds) > 0
                     ):
-                        # realtime_factor = seconds / full_generated_seconds
+                        realtime_factor = seconds / full_generated_seconds
                         raw_inference_time = seconds - seconds_to_first_chunk
                         raw_inference_factor = raw_inference_time / (
                             full_generated_seconds - first_chunk_length_seconds
                         )
                         # print(realtime_factor)
-                        print(raw_inference_factor)
+                        # print(raw_inference_factor)
 
                     # Send silent audio
                     sample_rate = config.audio.sample_rate
@@ -743,8 +761,9 @@ class CoquiEngine(BaseEngine):
             print(f"Error: {e}")
 
             conn.send(("error", str(e)))
-
+    
         sys.stdout = sys.__stdout__
+        sys.stderr = sys.__stderr__
 
     def send_command(self, command, data):
         """
@@ -854,6 +873,7 @@ class CoquiEngine(BaseEngine):
                 text = text[:-2]
             elif len(text) > 3 and text[-2] in ["!", "?", ","]:
                 text = text[:-2] + " " + text[-2]
+            
         except Exception as e:
             logging.warning(
                 f'Error fixing sentence end punctuation: {e}, Text: "{text}"'
