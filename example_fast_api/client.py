@@ -8,7 +8,7 @@ text_to_tts = "Hello World"
 SERVER_URL = "http://127.0.0.1:8000/tts"
 AUDIO_FORMAT = pyaudio.paInt16
 CHANNELS = 1
-RATE = 24000  # coqui (24000), azure (16000), openai (22050), system (22050)
+RATE = 16000  # coqui (24000), azure (16000), openai (22050), system (22050)
 CHUNK_SIZE = 1024
 
 start_time = 0
