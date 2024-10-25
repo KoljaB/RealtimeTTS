@@ -1,6 +1,6 @@
 # RealtimeTTS
 
-[EN](../en/index.md) | [FR](../fr/index.md) | [ES](../es/index.md)
+[EN](../en/index.md) | [FR](../fr/index.md) | [ES](../es/index.md) | [DE](../de/index.md)
 
 *Biblioteca de conversión de texto en voz fácil de usar y de baja latencia para aplicaciones en tiempo real.
 
