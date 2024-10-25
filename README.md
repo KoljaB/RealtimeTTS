@@ -8,7 +8,7 @@
 
 *Easy to use, low-latency text-to-speech library for realtime applications*
 
-## About the Project
+## ℹ️ About the Project
 
 RealtimeTTS is a state-of-the-art text-to-speech (TTS) library designed for real-time applications. It stands out in its ability to convert text streams fast into high-quality auditory output with minimal latency.
 
@@ -18,7 +18,7 @@ RealtimeTTS is a state-of-the-art text-to-speech (TTS) library designed for real
 
 https://github.com/KoljaB/RealtimeTTS/assets/7604638/87dcd9a5-3a4e-4f57-be45-837fc63237e7
 
-## Key Features
+## ✨ Key Features
 
 - **Low Latency**
   - almost instantaneous text-to-speech conversion
@@ -34,11 +34,11 @@ https://github.com/KoljaB/RealtimeTTS/assets/7604638/87dcd9a5-3a4e-4f57-be45-837
 
 > **Hint**: *check out [RealtimeSTT](https://github.com/KoljaB/RealtimeSTT), the input counterpart of this library, for speech-to-text capabilities. Together, they form a powerful realtime audio wrapper around large language models.*
 
-## FAQ
+## ❓ FAQ 
 
 Check the [FAQ page](./FAQ.md) for answers to a lot of questions around the usage of RealtimeTTS.
 
-## Documentation
+## 📄 Documentation
 
 The documentation for **RealtimeTTS** is available in the following languages:
 
@@ -46,13 +46,13 @@ The documentation for **RealtimeTTS** is available in the following languages:
 - **[French Documentation](https://koljab.github.io/RealtimeTTS/fr/)**
 - **[Spanish Documentation](https://koljab.github.io/RealtimeTTS/es/)**
 
-## Updates
+## 🔄 Updates
 
 Latest Version: v0.4.7
 
 See [release history](https://github.com/KoljaB/RealtimeTTS/releases).
 
-## Tech Stack
+## 🛠️ Tech Stack
 
 This library uses:
 
@@ -70,13 +70,13 @@ This library uses:
 
 *By using "industry standard" components RealtimeTTS offers a reliable, high-end technological foundation for developing advanced voice solutions.*
 
-## Installation
+## 💻 Installation
 
 > **Note:** Basic Installation with `pip install realtimetts` is not recommended anymore, use `pip install realtimetts[all]` instead.
 
 The RealtimeTTS library provides installation options for various dependencies for your use case. Here are the different ways you can install RealtimeTTS depending on your needs:
 
-### Full Installation
+### 🔧 Full Installation
 
 To install RealtimeTTS with support for all TTS engines:
 
@@ -84,7 +84,7 @@ To install RealtimeTTS with support for all TTS engines:
 pip install -U realtimetts[all]
 ```
 
-### Custom Installation
+### ⚙️ Custom Installation
 
 RealtimeTTS allows for custom installation with minimal library installations. Here are the options available:
 - **all**: Full installation with every engine supported.
@@ -109,7 +109,7 @@ For example, if you want to install RealtimeTTS with only Azure Cognitive Servic
 pip install realtimetts[azure,elevenlabs,openai]
 ```
 
-### Virtual Environment Installation
+### 🌐 Virtual Environment Installation
 
 For those who want to perform a full installation within a virtual environment, follow these steps:
 
@@ -122,7 +122,7 @@ pip install -U realtimetts[all]
 
 More information about [CUDA installation](#cuda-installation).
 
-## Engine Requirements
+## ⚙️ Engine Requirements
 
 Different engines supported by RealtimeTTS have unique requirements. Ensure you fulfill these requirements based on the engine you choose.
 
