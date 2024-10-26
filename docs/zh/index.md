@@ -1,6 +1,6 @@
 # RealtimeTTS
 
-[EN](../en/index.md) | [FR](../fr/index.md) | [ES](../es/index.md) | [DE](../de/index.md) | [IT](../it/index.md) | [ZH](../zh/index.md)
+[EN](../en/index.md) | [FR](../fr/index.md) | [ES](../es/index.md) | [DE](../de/index.md) | [IT](../it/index.md) | [ZH](../zh/index.md) | [JA](../ja/index.md)
 
 *易于使用、低延迟、适用于实时应用的文本到语音库*。
 

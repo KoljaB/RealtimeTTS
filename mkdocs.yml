@@ -29,6 +29,9 @@ plugins:
         - locale: zh  
           name: 中文
           build: true  
+        - locale: ja  
+          name: 日本語  
+          build: true  
 nav:
   - Home: 
     - English: en/index.md
@@ -37,6 +40,7 @@ nav:
     - Deutsch: de/index.md  
     - Italiano: it/index.md  
     - 中文: zh/index.md  
+    - 日本語: ja/index.md  
   - Installation: 
     - English: en/installation.md
     - Français: fr/installation.md
@@ -44,6 +48,7 @@ nav:
     - Deutsch: de/installation.md  
     - Italiano: it/installation.md  
     - 中文: zh/installation.md  
+    - 日本語: ja/installation.md  
   - Usage: 
     - English: en/usage.md
     - Français: fr/usage.md
@@ -51,6 +56,7 @@ nav:
     - Deutsch: de/usage.md  
     - Italiano: it/usage.md  
     - 中文: zh/usage.md  
+    - 日本語: ja/usage.md  
   - API Reference: 
     - English: en/api.md
     - Français: fr/api.md
@@ -58,6 +64,7 @@ nav:
     - Deutsch: de/api.md  
     - Italiano: it/api.md 
     - 中文: zh/api.md  
+    - 日本語: ja/api.md  
   - Contributing: 
     - English: en/contributing.md
     - Français: fr/contributing.md
@@ -65,6 +72,7 @@ nav:
     - Deutsch: de/contributing.md 
     - Italiano: it/contributing.md  
     - 中文: zh/contributing.md  
+    - 日本語: ja/contributing.md  
   - FAQ: 
     - English: en/faq.md
     - Français: fr/faq.md
@@ -72,3 +80,4 @@ nav:
     - Deutsch: de/faq.md  
     - Italiano: it/faq.md  
     - 中文: zh/faq.md  
+    - 日本語: ja/faq.md  
