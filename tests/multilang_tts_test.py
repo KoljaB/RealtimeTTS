@@ -52,7 +52,7 @@ if __name__ == "__main__":
         elif language == "ta":
             yield "எனக்கு படிக்க பிடிக்கும். வானிலை நன்றாக உள்ளது. பூங்காவிற்கு செல்வோம். இன்று வெள்ளிக்கிழமை. காலை வணக்கம். இவர் என் நண்பர். தயவுசெய்து எனக்கு உதவுங்். நீங்கள சாப்பிட்டீர்களா? நான் தமிழ் கற்றுக்கொண்டிருக்கிறேன். இனிய இரவு வணக்கம்."
         elif language == "gu":
-            yield "મને વાંચવું ગમે છે. હવામાન સરસ છે. ચાલો પાર્કમાં જઈએ. આજે શુક્રવાર છે. સુપ્રભાત. આ મારો મિત્ર છે. કૃપા કરીને મને મદદ કરો. તમે ખાધું? હું ગુજરાતી શીખી રહ્યો છું. શુભ રાત્રી."
+            yield "મને વાંચવું ગમે છે. હવામાન સરસ છે. ચાલો પાર્કમાં જઈએ. આજે શુક્રવા�� છે. સુપ્રભાત. આ મારો મિત્ર છે. કૃપા કરીને મને મદદ કરો. તમે ખાધું? હું ગુજરાતી શીખી રહ્યો છું. શુભ રાત્રી."
         elif language == "cs":
             yield "Rád čtu. Počasí je hezké. Pojďme do parku. Dnes je pátek. Dobré ráno. Toto je můj přítel. Prosím, pomozte mi. Už jste jedli? Učím se česky. Dobrou noc."
         elif language == "hu":
@@ -65,6 +65,8 @@ if __name__ == "__main__":
             yield "मलाई पढ्न मन पर्छ। मौसम राम्रो छ। पार्कमा जाऔं। आज शुक्रबार हो। शुभ प्रभात। यो मेरो साथी हो। कृपया मलाई मद्दत गर्नुहोस्। के तपाईंले खाना खानुभयो? म नेपाली सिक्दैछु। शुभ रात्री।"
         elif language == "th":
             yield "ฉันชอบอ่านหนังสือ อากาศดี ไปที่สวนสาธารณะกัน วันนี้วันศุกร์ สวัสดีตอนเช้า นี่คือเพื่อนของฉัน กรุณาช่วยฉันด้วย คุณทานอาหารหรือยัง ฉันกำลังเรียนภาษาไทย ราตรีสวัสดิ์"
+        elif language == "pa":
+            yield "ਮੈਨੂੰ ਪੜ੍ਹਨਾ ਪਸੰਦ ਹੈ। ਮੌਸਮ ਵਧੀਆ ਹੈ। ਆਓ ਪਾਰਕ ਚੱਲੀਏ। ਅੱਜ ਸ਼ੁੱਕਰਵਾਰ ਹੈ। ਸ਼ੁਭ ਸਵੇਰ। ਇਹ ਮੇਰਾ ਦੋਸਤ ਹੈ। ਕਿਰਪਾ ਕਰਕੇ ਮੇਰੀ ਮਦਦ ਕਰੋ। ਕੀ ਤੁਸੀਂ ਖਾਣਾ ਖਾਧਾ ਹੈ? ਮੈਂ ਪੰਜਾਬੀ ਸਿੱਖ ਰਿਹਾ ਹਾਂ। ਸ਼ੁਭ ਰਾਤਰੀ।"
 
     def synthesize(engine, language, generator):
         stream = TextToAudioStream(engine)
@@ -73,9 +75,7 @@ if __name__ == "__main__":
         stream.feed(generator(language))
         filename = f"synthesis_{language}_" + engine.engine_name
 
-        tokenizer = (
-            tokenizer = "stanza" if language in ["zh", "es", "de", "fr", "it", "ja", "ko", "ar", "hi", "pt", "ru", "id", "tr", "vi", "bn", "pl", "nl", "uk", "be", "ur", "mr", "te", "ta", "gu", "cs", "hu", "ml", "kn", "ne", "th"] else None
-        )
+        tokenizer = "stanza" if language in ["zh", "es", "de", "fr", "it", "ja", "ko", "ar", "hi", "pt", "ru", "id", "tr", "vi", "bn", "pl", "nl", "uk", "be", "ur", "mr", "te", "ta", "gu", "cs", "hu", "ml", "kn", "ne", "th", "pa"] else None
         stream.play(
             minimum_sentence_length=2,
             minimum_first_fragment_length=2,
@@ -129,6 +129,7 @@ if __name__ == "__main__":
                 "kn": "female_kannada",  # Add this line
                 "ne": "female_nepali",  # Add this line
                 "th": "female_thai", # Add this line
+                "pa": "female_punjabi",
             }
             return CoquiEngine(voice=voices[language], language=language)
         elif name == "azure":
@@ -165,7 +166,8 @@ if __name__ == "__main__":
                 "ml": "ml-IN-SobhanaNeural",  # Add this line
                 "kn": "kn-IN-SapnaNeural",  # Add this line
                 "ne": "ne-NP-HemkalaNeural",  # Add this line
-                "th": "th-TH-PremwadeeNeural"  # Add this line
+                "th": "th-TH-PremwadeeNeural",
+                "pa": "pa-IN-GurmeenNeural",
             }
             return AzureEngine(
                 os.environ.get("AZURE_SPEECH_KEY"),
@@ -211,10 +213,11 @@ if __name__ == "__main__":
                 "kn": "Microsoft Heera",  # Note: This is a placeholder, as Windows might not have a default Kannada voice
                 "ne": "Microsoft Hemkala",  # Note: This is a placeholder, as Windows might not have a default Nepali voice
                 "th": "Microsoft Premwadee",    # Note: This is a placeholder, as Windows might not have a default Thai voice
+                "pa": "Microsoft Gurpreet",  # Note: This is a placeholder name
             }
             return SystemEngine(voice=voices[language])
 
-    languages = ["zh", "en", "es", "de", "fr", "it", "ja", "ko", "ar", "hi", "pt", "ru", "id", "tr", "vi", "bn", "pl", "nl", "uk", "be", "ur", "mr", "te", "ta", "gu", "cs", "hu", "ml", "kn", "ne", "th"]
+    languages = ["zh", "en", "es", "de", "fr", "it", "ja", "ko", "ar", "hi", "pt", "ru", "id", "tr", "vi", "bn", "pl", "nl", "uk", "be", "ur", "mr", "te", "ta", "gu", "cs", "hu", "ml", "kn", "ne", "th", "pa"]
 
     for engine_name in ["coqui", "elevenlabs", "azure", "system"]:
         for language in languages:
