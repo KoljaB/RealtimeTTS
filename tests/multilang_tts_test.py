@@ -48,9 +48,9 @@ if __name__ == "__main__":
         elif language == "mr":
             yield "मला वाचायला आवडते. हवामान छान आहे. चला बागेत जाऊया. आज शुक्रवार आहे. शुभ प्रभात. हा माझा मित्र आहे. कृपया मला मदत करा. तुम्ही जेवण केले आहे का? मी मराठी शिकत आहे. शुभ रात्री."
         elif language == "te":
-            yield "నాకు చదవడం ఇష్టం. వాతావరణం బాగుంది. పార్కుకి వెళ్దాం. ఈరోజు శుక્రవారం. శుభోదయం. ఇతను నా స్నేహితుడు. దయచేసి నాకు సహాయం చేయండి. మీరు భోజనం చేశారా? నేను తెలుగు నేర్చుకుంటున్నాను. శుభరాత్రి."
+            yield "నాకు చదవడం ఇష్టం. వాతావరణం బాగుంది. పార్కుకి వెళ్దాం. ఈరోజు శుక્రవారం. శుభోదయం. ఇతను నా స్నేహితుడు. దయచేసి నాకు సహాయం చేయండి. మీరు భోజనం చేశారా? నేను తెలుగు నేర్చుకుంటున్నాను. శుభరాత്రి."
         elif language == "ta":
-            yield "எனக்கு படிக்க பிடிக்கும். வானிலை நன்றாக உள்ளது. பூங்காவிற்கு செல்வோம். இன்று வெள்ளிக்கிழமை. காலை வணக்கம். இவர் என் நண்பர். தயவுசெய்து எனக்கு உதவுங்���். நீங்கள சாப்பிட்டீர்களா? நான் தமிழ் கற்றுக்கொண்டிருக்கிறேன். இனிய இரவு வணக்கம்."
+            yield "எனக்கு படிக்க பிடிக்கும். வானிலை நன்றாக உள்ளது. பூங்காவிற்கு செல்வோம். இன்று வெள்ளிக்கிழமை. காலை வணக்கம். இவர் என் நண்பர். தயவுசெய்து எனக்கு உதவுங்். நீங்கள சாப்பிட்டீர்களா? நான் தமிழ் கற்றுக்கொண்டிருக்கிறேன். இனிய இரவு வணக்கம்."
         elif language == "gu":
             yield "મને વાંચવું ગમે છે. હવામાન સરસ છે. ચાલો પાર્કમાં જઈએ. આજે શુક્રવાર છે. સુપ્રભાત. આ મારો મિત્ર છે. કૃપા કરીને મને મદદ કરો. તમે ખાધું? હું ગુજરાતી શીખી રહ્યો છું. શુભ રાત્રી."
         elif language == "cs":
@@ -59,6 +59,8 @@ if __name__ == "__main__":
             yield "Szeretek olvasni. Az idő szép. Menjünk a parkba. Ma péntek van. Jó reggelt. Ő a barátom. Kérem, segítsen nekem. Ettél már? Magyarul tanulok. Jó éjszakát."
         elif language == "ml":
             yield "എനിക്ക് വായിക്കാൻ ഇഷ്ടമാണ്. കാലാവസ്ഥ നല്ലതാണ്. നമുക്ക് പാർക്കിലേക്ക് പോകാം. ഇന്ന് വെള്ളിയാഴ്ചയാണ്. സുപ്രഭാതം. ഇദ്ദേഹം എന്റെ സുഹൃത്താണ്. ദയവായി എന്നെ സഹായിക്കൂ. നിങ്ങൾ ഭക്ഷണം കഴിച്ചോ? ഞാൻ മലയാളം പഠിക്കുകയാണ്. ശുഭരാത്രി."
+        elif language == "kn":
+            yield "ನನಗೆ ಓದಲು ಇಷ್ಟ. ಹವಾಮಾನ ಚೆನ್ನಾಗಿದೆ. ಉದ್ಯಾನವನಕ್ಕೆ ಹೋಗೋಣ. ಇಂದು ಶುಕ್ರವಾರ. ಶುಭೋದಯ. ಇವರು ನನ್ನ ಸ್ನೇಹಿತರು. ದಯವಿಟ್ಟು ನನಗೆ ಸಹಾಯ ಮಾಡಿ. ನೀವು ಊಟ ಮಾಡಿದ್ದೀರಾ? ನಾನು ಕನ್ನಡ ಕಲಿಯುತ್ತಿದ್ದೇನೆ. ಶುಭ ರಾತ್ರಿ."
 
     def synthesize(engine, language, generator):
         stream = TextToAudioStream(engine)
@@ -68,7 +70,7 @@ if __name__ == "__main__":
         filename = f"synthesis_{language}_" + engine.engine_name
 
         tokenizer = (
-            "stanza" if language in ["zh", "es", "de", "fr", "it", "ja", "ko", "ar", "hi", "pt", "ru", "id", "tr", "vi", "bn", "pl", "nl", "uk", "be", "ur", "mr", "te", "ta", "gu", "cs", "hu", "ml"] else None
+            "stanza" if language in ["zh", "es", "de", "fr", "it", "ja", "ko", "ar", "hi", "pt", "ru", "id", "tr", "vi", "bn", "pl", "nl", "uk", "be", "ur", "mr", "te", "ta", "gu", "cs", "hu", "ml", "kn"] else None
         )
         stream.play(
             minimum_sentence_length=2,
@@ -120,6 +122,7 @@ if __name__ == "__main__":
                 "cs": "female_czech",  # Add this line
                 "hu": "female_hungarian",  # Add this line
                 "ml": "female_malayalam",  # Add this line
+                "kn": "female_kannada",  # Add this line
             }
             return CoquiEngine(voice=voices[language], language=language)
         elif name == "azure":
@@ -154,6 +157,7 @@ if __name__ == "__main__":
                 "cs": "cs-CZ-VlastaNeural",  # Add this line
                 "hu": "hu-HU-NoemiNeural",  # Add this line
                 "ml": "ml-IN-SobhanaNeural",  # Add this line
+                "kn": "kn-IN-SapnaNeural",  # Add this line
             }
             return AzureEngine(
                 os.environ.get("AZURE_SPEECH_KEY"),
@@ -196,10 +200,11 @@ if __name__ == "__main__":
                 "cs": "Microsoft Jakub",  # Note: This is a placeholder, as Windows might not have a default Czech voice
                 "hu": "Microsoft Szabolcs",  # Note: This is a placeholder, as Windows might not have a default Hungarian voice
                 "ml": "Microsoft Anjali",  # Note: This is a placeholder, as Windows might not have a default Malayalam voice
+                "kn": "Microsoft Heera",  # Note: This is a placeholder, as Windows might not have a default Kannada voice
             }
             return SystemEngine(voice=voices[language])
 
-    languages = ["zh", "en", "es", "de", "fr", "it", "ja", "ko", "ar", "hi", "pt", "ru", "id", "tr", "vi", "bn", "pl", "nl", "uk", "be", "ur", "mr", "te", "ta", "gu", "cs", "hu", "ml"]
+    languages = ["zh", "en", "es", "de", "fr", "it", "ja", "ko", "ar", "hi", "pt", "ru", "id", "tr", "vi", "bn", "pl", "nl", "uk", "be", "ur", "mr", "te", "ta", "gu", "cs", "hu", "ml", "kn"]
 
     for engine_name in ["coqui", "elevenlabs", "azure", "system"]:
         for language in languages:
