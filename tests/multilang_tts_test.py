@@ -65,6 +65,8 @@ if __name__ == "__main__":
             yield "मलाई पढ्न मन पर्छ। मौसम राम्रो छ। पार्कमा जाऔं। आज शुक्रबार हो। शुभ प्रभात। यो मेरो साथी हो। कृपया मलाई मद्दत गर्नुहोस्। के तपाईंले खाना खानुभयो? म नेपाली सिक्दैछु। शुभ रात्री।"
         elif language == "th":
             yield "ฉันชอบอ่านหนังสือ อากาศดี ไปที่สวนสาธารณะกัน วันนี้วันศุกร์ สวัสดีตอนเช้า นี่คือเพื่อนของฉัน กรุณาช่วยฉันด้วย คุณทานอาหารหรือยัง ฉันกำลังเรียนภาษาไทย ราตรีสวัสดิ์"
+        elif language == "sw":
+            yield "Ninapenda kusoma. Hali ya hewa ni nzuri. Twende bustanini. Leo ni Ijumaa. Habari za asubuhi. Huyu ni rafiki yangu. Tafadhali nisaidie. Umeshakula? Ninajifunza Kiswahili. Usiku mwema."
 
     def synthesize(engine, language, generator):
         stream = TextToAudioStream(engine)
@@ -74,7 +76,7 @@ if __name__ == "__main__":
         filename = f"synthesis_{language}_" + engine.engine_name
 
         tokenizer = (
-            tokenizer = "stanza" if language in ["zh", "es", "de", "fr", "it", "ja", "ko", "ar", "hi", "pt", "ru", "id", "tr", "vi", "bn", "pl", "nl", "uk", "be", "ur", "mr", "te", "ta", "gu", "cs", "hu", "ml", "kn", "ne", "th"] else None
+            tokenizer = "stanza" if language in ["zh", "es", "de", "fr", "it", "ja", "ko", "ar", "hi", "pt", "ru", "id", "tr", "vi", "bn", "pl", "nl", "uk", "be", "ur", "mr", "te", "ta", "gu", "cs", "hu", "ml", "kn", "ne", "th", "sw"] else None
         )
         stream.play(
             minimum_sentence_length=2,
@@ -129,6 +131,7 @@ if __name__ == "__main__":
                 "kn": "female_kannada",  # Add this line
                 "ne": "female_nepali",  # Add this line
                 "th": "female_thai", # Add this line
+                "sw": "female_swahili",  # Add this line for Swahili
             }
             return CoquiEngine(voice=voices[language], language=language)
         elif name == "azure":
@@ -166,6 +169,7 @@ if __name__ == "__main__":
                 "kn": "kn-IN-SapnaNeural",  # Add this line
                 "ne": "ne-NP-HemkalaNeural",  # Add this line
                 "th": "th-TH-PremwadeeNeural"  # Add this line
+                "sw": "sw-KE-Neural" #Add this line
             }
             return AzureEngine(
                 os.environ.get("AZURE_SPEECH_KEY"),
@@ -210,11 +214,12 @@ if __name__ == "__main__":
                 "ml": "Microsoft Anjali",  # Note: This is a placeholder, as Windows might not have a default Malayalam voice
                 "kn": "Microsoft Heera",  # Note: This is a placeholder, as Windows might not have a default Kannada voice
                 "ne": "Microsoft Hemkala",  # Note: This is a placeholder, as Windows might not have a default Nepali voice
-                "th": "Microsoft Premwadee",    # Note: This is a placeholder, as Windows might not have a default Thai voice
+                "th": "Microsoft Premwadee",  # Note: This is a placeholder, as Windows might not have a default Thai voice
+                "sw": "Microsoft Amani",  # Note: This is a placeholder, as Windows might not have a default Thai voice
             }
             return SystemEngine(voice=voices[language])
 
-    languages = ["zh", "en", "es", "de", "fr", "it", "ja", "ko", "ar", "hi", "pt", "ru", "id", "tr", "vi", "bn", "pl", "nl", "uk", "be", "ur", "mr", "te", "ta", "gu", "cs", "hu", "ml", "kn", "ne", "th"]
+    languages = ["zh", "en", "es", "de", "fr", "it", "ja", "ko", "ar", "hi", "pt", "ru", "id", "tr", "vi", "bn", "pl", "nl", "uk", "be", "ur", "mr", "te", "ta", "gu", "cs", "hu", "ml", "kn", "ne", "th", "sw"]
 
     for engine_name in ["coqui", "elevenlabs", "azure", "system"]:
         for language in languages:
