@@ -42,16 +42,34 @@ Check the [FAQ page](./FAQ.md) for answers to a lot of questions around the usag
 
 The documentation for **RealtimeTTS** is available in the following languages:
 
-- **[English Documentation](https://koljab.github.io/RealtimeTTS/en/)**
-- **[French Documentation](https://koljab.github.io/RealtimeTTS/fr/)**
-- **[Spanish Documentation](https://koljab.github.io/RealtimeTTS/es/)**
+- **[English](https://koljab.github.io/RealtimeTTS/en/)**
+- **[French](https://koljab.github.io/RealtimeTTS/fr/)**
+- **[Spanish](https://koljab.github.io/RealtimeTTS/es/)**
+- **[German](https://koljab.github.io/RealtimeTTS/de/)**
+- **[Italian](https://koljab.github.io/RealtimeTTS/it/)**
+- **[Chinese](https://koljab.github.io/RealtimeTTS/zh/)**
+- **[Japanese](https://koljab.github.io/RealtimeTTS/ja/)**
+- **[Hindi](https://koljab.github.io/RealtimeTTS/hi/)**
+- **[Korean](https://koljab.github.io/RealtimeTTS/ko/)**
+
+---
+
+Let me know if you need any adjustments or additional languages!
 
 ## Updates
 
-Latest Version: v0.4.7
+Latest Version: v0.4.8
 
 See [release history](https://github.com/KoljaB/RealtimeTTS/releases).
 
+Added ParlerEngine. Needs flash attention, then barely runs fast enough for realtime inference on a 4090. Installation for Windows:
+
+```python
+pip install RealtimeTTS[parler]
+pip install torch==2.3.1+cu121 torchaudio==2.3.1 --index-url https://download.pytorch.org/whl/cu121
+pip install https://github.com/oobabooga/flash-attention/releases/download/v2.6.3/flash_attn-2.6.3+cu122torch2.3.1cxx11abiFALSE-cp310-cp310-win_amd64.whl
+pip install "numpy<2"
+```
 ## Tech Stack
 
 This library uses:
@@ -62,6 +80,7 @@ This library uses:
   - **AzureEngine**: Microsoft's leading TTS technology. 500,000 chars free per month.
   - **ElevenlabsEngine**: Offers the best sounding voices available.
   - **GTTSEngine**: Free to use and doesn't require setting up a local GPU.
+  - **ParlerEngine**: If you have a very strong GPU and need voice prompting.
   - **SystemEngine**: Native engine for quick setup.
 
 - **Sentence Boundary Detection**
