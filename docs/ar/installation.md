@@ -42,11 +42,10 @@ pip install realtimetts[azure,elevenlabs,openai]
 
 ```
 python -m venv env_realtimetts
-env_realtimetts\Scripts\activate.
-```بات
-python.exe -m pip install --ترقية pip
+env_realtimetts\Scripts\activate.bat
+python.exe -m pip install --upgrade pip
 pip install -U realtimetts[all]
-النص للترجمة: ```
+```
 
 مزيد من المعلومات حول [تثبيت CUDA](#cuda-installation).
 
