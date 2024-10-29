@@ -1,0 +1,2155 @@
+
+<!doctype html>
+<html lang="hi" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+        <link rel="prev" href="../../zh/installation/">
+      
+      
+        <link rel="next" href="../../hi/installation/">
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.42">
+    
+    
+      
+        <title>日本語 - RealtimeTTS Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.0253249f.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#_1" class="md-skip">
+          विषय पर बढ़ें
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="शीर्षक">
+    <a href="../../.." title="RealtimeTTS Documentation" class="md-header__button md-logo" aria-label="RealtimeTTS Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            RealtimeTTS Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              日本語
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+      <div class="md-header__option">
+  <div class="md-select">
+    
+    <button class="md-header__button md-icon" aria-label="भाषा चुनें">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m12.87 15.07-2.54-2.51.03-.03A17.5 17.5 0 0 0 14.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2zm-2.62 7 1.62-4.33L19.12 17z"/></svg>
+    </button>
+    <div class="md-select__inner">
+      <ul class="md-select__list">
+        
+          <li class="md-select__item">
+            <a href="../../../ja/installation/" hreflang="en" class="md-select__link">
+              English
+            </a>
+          </li>
+        
+          <li class="md-select__item">
+            <a href="../../../fr/ja/installation/" hreflang="fr" class="md-select__link">
+              Français
+            </a>
+          </li>
+        
+          <li class="md-select__item">
+            <a href="../../../es/ja/installation/" hreflang="es" class="md-select__link">
+              Español
+            </a>
+          </li>
+        
+          <li class="md-select__item">
+            <a href="../../../de/ja/installation/" hreflang="de" class="md-select__link">
+              Deutsch
+            </a>
+          </li>
+        
+          <li class="md-select__item">
+            <a href="../../../it/ja/installation/" hreflang="it" class="md-select__link">
+              Italiano
+            </a>
+          </li>
+        
+          <li class="md-select__item">
+            <a href="../../../zh/ja/installation/" hreflang="zh" class="md-select__link">
+              中文
+            </a>
+          </li>
+        
+          <li class="md-select__item">
+            <a href="../../../ja/ja/installation/" hreflang="ja" class="md-select__link">
+              日本語
+            </a>
+          </li>
+        
+          <li class="md-select__item">
+            <a href="./" hreflang="hi" class="md-select__link">
+              हिंदी
+            </a>
+          </li>
+        
+          <li class="md-select__item">
+            <a href="../../../ko/ja/installation/" hreflang="ko" class="md-select__link">
+              한국어
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</div>
+    
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="टैब" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../en/" class="md-tabs__link">
+          
+  
+  Home
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../../en/installation/" class="md-tabs__link">
+          
+  
+  Installation
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../en/usage/" class="md-tabs__link">
+          
+  
+  Usage
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../en/api/" class="md-tabs__link">
+          
+  
+  API Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../en/contributing/" class="md-tabs__link">
+          
+  
+  Contributing
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../en/faq/" class="md-tabs__link">
+          
+  
+  FAQ
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="नैविगेशन" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="RealtimeTTS Documentation" class="md-nav__button md-logo" aria-label="RealtimeTTS Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    RealtimeTTS Documentation
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Home
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            Home
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../en/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    English
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../fr/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Français
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Español
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../de/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Deutsch
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../it/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Italiano
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../zh/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    中文
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    日本語
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../hi/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    हिंदी
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ko/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    한국어
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+      
+        
+        
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Installation
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            Installation
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../en/installation/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    English
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../fr/installation/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Français
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/installation/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Español
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../de/installation/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Deutsch
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../it/installation/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Italiano
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../zh/installation/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    中文
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    日本語
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  <span class="md-ellipsis">
+    日本語
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="विषय - सूची">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      विषय - सूची
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      フルインストール
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      カスタムインストール
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      仮想環境のインストール
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#coquiengine" class="md-nav__link">
+    <span class="md-ellipsis">
+      CoquiEngine
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cuda" class="md-nav__link">
+    <span class="md-ellipsis">
+      CUDAのインストール
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../hi/installation/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    हिंदी
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ko/installation/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    한국어
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Usage
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Usage
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../en/usage/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    English
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../fr/usage/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Français
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/usage/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Español
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../de/usage/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Deutsch
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../it/usage/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Italiano
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../zh/usage/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    中文
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../usage/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    日本語
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../hi/usage/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    हिंदी
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ko/usage/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    한국어
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    API Reference
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            API Reference
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../en/api/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    English
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../fr/api/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Français
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/api/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Español
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../de/api/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Deutsch
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../it/api/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Italiano
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../zh/api/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    中文
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    日本語
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../hi/api/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    हिंदी
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ko/api/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    한국어
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Contributing
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            Contributing
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../en/contributing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    English
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../fr/contributing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Français
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/contributing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Español
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../de/contributing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Deutsch
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../it/contributing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Italiano
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../zh/contributing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    中文
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../contributing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    日本語
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../hi/contributing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    हिंदी
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ko/contributing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    한국어
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    FAQ
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            FAQ
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../en/faq/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    English
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../fr/faq/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Français
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/faq/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Español
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../de/faq/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Deutsch
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../it/faq/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Italiano
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../zh/faq/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    中文
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../faq/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    日本語
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../hi/faq/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    हिंदी
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ko/faq/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    한국어
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="विषय - सूची">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      विषय - सूची
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      フルインストール
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      カスタムインストール
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      仮想環境のインストール
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#coquiengine" class="md-nav__link">
+    <span class="md-ellipsis">
+      CoquiEngine
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cuda" class="md-nav__link">
+    <span class="md-ellipsis">
+      CUDAのインストール
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  <h1>日本語</h1>
+
+<blockquote>
+<p><strong>注意:</strong> <code>pip install realtimetts</code> での基本インストールは推奨されなくなりました。代わりに <code>pip install realtimetts[all]</code> を使用してください。</p>
+</blockquote>
+<p>RealtimeTTSライブラリは、あなたのユースケースに応じたさまざまな依存関係のインストールオプションを提供します。 ニーズに応じてRealtimeTTSをインストールする方法はいくつかあります:</p>
+<h3 id="_1">フルインストール</h3>
+<p>すべてのTTSエンジンに対応したRealtimeTTSをインストールするには:</p>
+<pre><code>pip install -U realtimetts[all]
+</code></pre>
+<h3 id="_2">カスタムインストール</h3>
+<p>RealtimeTTSは、最小限のライブラリインストールでカスタムインストールを可能にします。 こちらが利用可能なオプションです。
+- <strong>すべて</strong>: すべてのエンジンがサポートされた完全なインストール。
+- <strong>システム</strong>: システム固有のTTS機能を含む (e.g., pyttsx3).
+- <strong>azure</strong>: Azure Cognitive Services Speechサポートを追加します。
+- <strong>elevenlabs</strong>: ElevenLabs APIとの統合が含まれています。
+- <strong>openai</strong>: OpenAIの音声サービス用。
+- <strong>gtts</strong>: Google テキスト読み上げサポート。
+- <strong>coqui</strong>: Coqui TTSエンジンをインストールします。
+- <strong>minimal</strong>: エンジンなしで基本要件のみをインストール (only needed if you want to develop an own engine)</p>
+<p>ローカルの神経系Coqui TTSでのみRealtimeTTSをインストールしたい場合は、次のようにしてください:</p>
+<pre><code>pip install realtimetts[coqui]
+</code></pre>
+<p>例えば、Azure Cognitive Services Speech、ElevenLabs、OpenAIのサポートのみでRealtimeTTSをインストールしたい場合：</p>
+<pre><code>pip install realtimetts[azure,elevenlabs,openai]
+</code></pre>
+<h3 id="_3">仮想環境のインストール</h3>
+<p>仮想環境内で完全なインストールを行いたい方は、以下の手順に従ってください。</p>
+<pre><code class="language-plaintext">python -m venv env_realtimetts
+env_realtimetts\Scripts\activate.
+```バット
+python.exe -m pip install --pipをアップグレード
+pip install -U realtimetts[all]
+テキストを翻訳してください: ```
+
+[CUDAインストール](#cuda-installation)に関する詳細情報。
+
+## エンジン要件
+
+RealtimeTTSがサポートする異なるエンジンには、それぞれ独自の要件があります。 選択したエンジンに基づいてこれらの要件を満たすようにしてください。
+
+### システムエンジン
+`SystemEngine`は、システムに内蔵されたTTS機能とそのまま使えます。 追加の設定は必要ありません。
+
+### GTTSEngine
+`GTTSEngine`は、Google翻訳のテキスト読み上げAPIを使用して、すぐに使える状態で動作します。 追加の設定は必要ありません。
+
+### OpenAIエンジン
+`OpenAIEngine`を使用するには:
+- 環境変数 OPENAI_API_KEY を設定する
+- ffmpeg をインストールする（[CUDA インストール](#cuda-installation)の3番目のポイントを参照）
+
+### AzureEngine
+`AzureEngine`を使用するには、次のものが必要です：
+- Microsoft Azure Text-to-Speech APIキー（AzureEngineコンストラクタのパラメータ「speech_key」または環境変数AZURE_SPEECH_KEYで提供されます）
+- マイクロソフトAzureサービスリージョン。
+
+`AzureEngine`を初期化する際に、これらの資格情報が利用可能で正しく設定されていることを確認してください。
+
+### ElevenlabsEngine
+`ElevenlabsEngine`には、次のものが必要です：
+- Elevenlabs APIキー（ElevenlabsEngineコンストラクタのパラメータ「api_key」または環境変数ELEVENLABS_API_KEYで提供されます）
+- システムに`mpv`がインストールされています (essential for streaming mpeg audio, Elevenlabs only delivers mpeg).
+
+  🔹 **`mpv`のインストール:**
+  - **macOS**:
+    ```plaintext
+brew install mpv
+</code></pre>
+<ul>
+<li><strong>LinuxおよびWindows</strong>: インストール手順については<a href="https://mpv.io/">mpv.io</a>をご覧ください。</li>
+</ul>
+<h3 id="coquiengine">CoquiEngine</h3>
+<p>高品質でローカルなニューラルTTSをボイスクローン機能付きで提供します。</p>
+<p>まず、ニューラルTTSモデルをダウンロードします。 ほとんどの場合、GPU合成を使用すればリアルタイムで十分な速度になります。 約4〜5GBのVRAMが必要です。</p>
+<ul>
+<li>声をクローンするには、ソース音声を含むWAVファイルのファイル名を「voice」パラメータとしてCoquiEngineコンストラクタに提出してください。</li>
+<li>声のクローンは、短い（約5〜30秒）サンプルを含む22050 Hzモノ16ビットWAVファイルで最も効果的です。</li>
+</ul>
+<p>ほとんどのシステムでは、リアルタイムで十分な速度を出すためにGPUサポートが必要です。さもなければ、カクつきが発生します。</p>
+<h3 id="cuda">CUDAのインストール</h3>
+<p>これらの手順は、<strong>より良いパフォーマンス</strong>を必要とし、互換性のあるNVIDIA GPUを持っている方に推奨されます。</p>
+<blockquote>
+<p><strong>注意</strong>: <em>お使いのNVIDIA GPUがCUDAをサポートしているか確認するには、<a href="https://developer.nvidia.com/cuda-gpus">公式CUDA GPUリスト</a>をご覧ください。</em></p>
+</blockquote>
+<p>CUDAをサポートするTorchを使用するには、次の手順に従ってください。</p>
+<blockquote>
+<p><strong>注意</strong>: <em>新しいPyTorchのインストールでは、<a href="https://stackoverflow.com/a/77069523">かもしれない</a>（未確認）がToolkit（およびおそらくcuDNN）のインストールを必要としないかもしれません。</em></p>
+</blockquote>
+<ol>
+<li>
+<p><strong>NVIDIA CUDA Toolkitをインストールする</strong>:
+    例えば、Toolkit 12.Xをインストールするには、</p>
+<ul>
+<li><a href="https://developer.nvidia.com/cuda-downloads">NVIDIA CUDA Downloads</a>を訪れてください。</li>
+<li>オペレーティングシステム、システムアーキテクチャ、およびOSバージョンを選択してください。
+ソフトウェアをダウンロードしてインストールしてください。</li>
+</ul>
+<p>または、Toolkit 11.8をインストールするには、
+- <a href="https://developer.nvidia.com/cuda-11-8-0-download-archive">NVIDIA CUDA Toolkit Archive</a>をご覧ください。
+- オペレーティングシステム、システムアーキテクチャ、およびOSバージョンを選択してください。
+ソフトウェアをダウンロードしてインストールしてください。</p>
+</li>
+<li>
+<p><strong>NVIDIA cuDNNをインストールする</strong>:</p>
+<p>例えば、CUDA 11.x用のcuDNN 8.7.0をインストールするには、次の手順を行ってください。
+- <a href="https://developer.nvidia.com/rdp/cudnn-archive">NVIDIA cuDNNアーカイブ</a>を訪問してください。
+「Download cuDNN v8.7.0 (November 28th, 2022), for CUDA 11.x」をクリックしてください。
+ソフトウェアをダウンロードしてインストールしてください。</p>
+</li>
+<li>
+<p><strong>ffmpegをインストールする</strong>:</p>
+<p><a href="https://ffmpeg.org/download.html">ffmpegウェブサイト</a>からお使いのOS用のインストーラーをダウンロードできます。</p>
+<p>またはパッケージマネージャーを使用してください:</p>
+<ul>
+<li>
+<p><strong>UbuntuまたはDebianの場合</strong>:
+    <code>sudo apt update &amp;&amp; sudo apt install ffmpeg</code></p>
+</li>
+<li>
+<p><strong>Arch Linuxで</strong>:
+    <code>sudo pacman -S ffmpeg</code></p>
+</li>
+<li>
+<p><strong>Homebrewを使用してMacOSで</strong> (<a href="https://brew.sh/">https://brew.sh/</a>):
+    ```plaintext
+brew install ffmpeg</p>
+</li>
+</ul>
+</li>
+</ol>
+<pre><code>
+    - **Chocolateyを使用してWindowsで** ([https://chocolatey.org/](https://chocolatey.org/)):
+        ```
+        choco install ffmpeg
+</code></pre>
+<pre><code>- **Scoopを使用してWindowsで** ([https://scoop.sh/](https://scoop.sh/)):
+    ```
+    scoop install ffmpeg
+</code></pre>
+<pre><code>
+4. **CUDAサポート付きのPyTorchをインストールする**:
+
+    CUDAでGPUサポートを有効にするためにPyTorchのインストールをアップグレードするには、特定のCUDAバージョンに基づいてこれらの指示に従ってください。 これは、CUDA機能を使用してRealtimeSTTのパフォーマンスを向上させたい場合に役立ちます。
+
+    - **CUDA 11.8の場合：**
+
+        PyTorchとTorchaudioをCUDA 11.8に対応させるために、次のコマンドを使用してください。
+
+        ```plaintext
+pip install torch==2.3.1+cu118 torchaudio==2.3.1 --index-url https://download.pytorch.org/whl/cu118
+</code></pre>
+<pre><code>    テキストを翻訳する: ```
+
+- **CUDA 12.Xの場合：**
+
+
+    PyTorchとTorchaudioをCUDA 12.Xに対応させるために、次のコマンドを実行してください。
+
+    ```plaintext
+</code></pre>
+<p>pip install torch==2.3.1+cu121 torchaudio==2.3.1 --index-url https://download.pytorch.org/whl/cu121
+<code>テキストを翻訳する:</code></p>
+<pre><code>`2.3.1` をあなたのシステムと要件に合ったPyTorchのバージョンに置き換えてください。
+</code></pre>
+<ol>
+<li><strong>互換性の問題を解決するための修正</strong>:
+    ライブラリの互換性の問題が発生した場合は、これらのライブラリを固定バージョンに設定してみてください。</li>
+</ol>
+<p>テキストを翻訳する: ``` </p>
+<pre><code>pip install networkx==2.8.8
+
+pip install typing_extensions==4.8.0
+
+pip install fsspec==2023.6.0
+
+pip install imageio==2.31.6
+
+pip install networkx==2.8.8
+
+pip install numpy==1.24.3
+
+pip install requests==2.31.0
+</code></pre>
+<p>```</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  शीर्षभाग पर लौटें
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "../../..", "features": ["navigation.instant", "navigation.top", "navigation.tabs"], "search": "../../../assets/javascripts/workers/search.6ce7567c.min.js", "translations": {"clipboard.copied": "\u0915\u094d\u0932\u093f\u092a\u092c\u094b\u0930\u094d\u0921 \u092a\u0930 \u0915\u0949\u092a\u0940 \u0915\u0930 \u0926\u093f\u092f\u093e \u0917\u092f\u093e", "clipboard.copy": "\u0915\u094d\u0932\u093f\u092a\u092c\u094b\u0930\u094d\u0921 \u092a\u0930 \u0915\u0949\u092a\u0940 \u0915\u0930\u0947\u0902", "search.result.more.one": "1 \u0914\u0930 \u0907\u0938 \u092a\u0943\u0937\u094d\u0920 \u092a\u0930", "search.result.more.other": "# \u0914\u0930 \u0907\u0938 \u092a\u0943\u0937\u094d\u0920 \u092a\u0930", "search.result.none": "\u0915\u094b\u0908 \u092e\u093f\u0932\u093e\u0928 \u0921\u0949\u0915\u094d\u092f\u0942\u092e\u0947\u0902\u091f \u0928\u0939\u0940\u0902", "search.result.one": "1 \u092e\u093f\u0932\u093e\u0928 \u0921\u0949\u0915\u094d\u092f\u0942\u092e\u0947\u0902\u091f", "search.result.other": "# \u092e\u093f\u0932\u093e\u0928 \u0921\u093e\u0915\u094d\u092f\u0942\u092e\u0947\u0902\u091f\u094d\u0938", "search.result.placeholder": "\u0916\u094b\u091c \u0936\u0941\u0930\u0942 \u0915\u0930\u0928\u0947 \u0915\u0947 \u0932\u093f\u090f \u091f\u093e\u0907\u092a \u0915\u0930\u0947\u0902", "search.result.term.missing": "\u095a\u093e\u092f\u092c", "select.version": "\u0935\u0930\u094d\u0936\u0928 \u091a\u0941\u0928\u0947\u0902"}}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.83f73b43.min.js"></script>
+      
+    
+  </body>
+</html>

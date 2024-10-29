@@ -1,0 +1,2839 @@
+
+<!doctype html>
+<html lang="ja" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+        <link rel="prev" href="../../en/api/">
+      
+      
+        <link rel="next" href="../../es/api/">
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.42">
+    
+    
+      
+        <title>Français - RealtimeTTS Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.0253249f.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#configuration" class="md-skip">
+          コンテンツにスキップ
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="ヘッダー">
+    <a href="../../.." title="RealtimeTTS Documentation" class="md-header__button md-logo" aria-label="RealtimeTTS Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            RealtimeTTS Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Français
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+      <div class="md-header__option">
+  <div class="md-select">
+    
+    <button class="md-header__button md-icon" aria-label="言語切り替え">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m12.87 15.07-2.54-2.51.03-.03A17.5 17.5 0 0 0 14.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2zm-2.62 7 1.62-4.33L19.12 17z"/></svg>
+    </button>
+    <div class="md-select__inner">
+      <ul class="md-select__list">
+        
+          <li class="md-select__item">
+            <a href="../../../fr/api/" hreflang="en" class="md-select__link">
+              English
+            </a>
+          </li>
+        
+          <li class="md-select__item">
+            <a href="../../../fr/fr/api/" hreflang="fr" class="md-select__link">
+              Français
+            </a>
+          </li>
+        
+          <li class="md-select__item">
+            <a href="../../../es/fr/api/" hreflang="es" class="md-select__link">
+              Español
+            </a>
+          </li>
+        
+          <li class="md-select__item">
+            <a href="../../../de/fr/api/" hreflang="de" class="md-select__link">
+              Deutsch
+            </a>
+          </li>
+        
+          <li class="md-select__item">
+            <a href="../../../it/fr/api/" hreflang="it" class="md-select__link">
+              Italiano
+            </a>
+          </li>
+        
+          <li class="md-select__item">
+            <a href="../../../zh/fr/api/" hreflang="zh" class="md-select__link">
+              中文
+            </a>
+          </li>
+        
+          <li class="md-select__item">
+            <a href="./" hreflang="ja" class="md-select__link">
+              日本語
+            </a>
+          </li>
+        
+          <li class="md-select__item">
+            <a href="../../../hi/fr/api/" hreflang="hi" class="md-select__link">
+              हिंदी
+            </a>
+          </li>
+        
+          <li class="md-select__item">
+            <a href="../../../ko/fr/api/" hreflang="ko" class="md-select__link">
+              한국어
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</div>
+    
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="タブ" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../en/" class="md-tabs__link">
+          
+  
+  Home
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../en/installation/" class="md-tabs__link">
+          
+  
+  Installation
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../en/usage/" class="md-tabs__link">
+          
+  
+  Usage
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../../en/api/" class="md-tabs__link">
+          
+  
+  API Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../en/contributing/" class="md-tabs__link">
+          
+  
+  Contributing
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../en/faq/" class="md-tabs__link">
+          
+  
+  FAQ
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="ナビゲーション" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="RealtimeTTS Documentation" class="md-nav__button md-logo" aria-label="RealtimeTTS Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    RealtimeTTS Documentation
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Home
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            Home
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../en/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    English
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Français
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Español
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../de/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Deutsch
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../it/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Italiano
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../zh/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    中文
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ja/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    日本語
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../hi/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    हिंदी
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ko/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    한국어
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Installation
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            Installation
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../en/installation/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    English
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../installation/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Français
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/installation/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Español
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../de/installation/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Deutsch
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../it/installation/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Italiano
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../zh/installation/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    中文
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ja/installation/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    日本語
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../hi/installation/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    हिंदी
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ko/installation/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    한국어
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Usage
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Usage
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../en/usage/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    English
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../usage/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Français
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/usage/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Español
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../de/usage/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Deutsch
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../it/usage/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Italiano
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../zh/usage/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    中文
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ja/usage/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    日本語
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../hi/usage/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    हिंदी
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ko/usage/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    한국어
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+      
+        
+        
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    API Reference
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            API Reference
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../en/api/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    English
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Français
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  <span class="md-ellipsis">
+    Français
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="目次">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      目次
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      Configuration
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Configuration">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#parametres-dinitialisation-pour-texttoaudiostream" class="md-nav__link">
+    <span class="md-ellipsis">
+      Paramètres d'initialisation pour `TextToAudioStream
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#baseengine" class="md-nav__link">
+    <span class="md-ellipsis">
+      `(BaseEngine)
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="`(BaseEngine)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_text_stream_start-appelable" class="md-nav__link">
+    <span class="md-ellipsis">
+      _text_stream_start (appelable)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_text_stream_stop-appelable" class="md-nav__link">
+    <span class="md-ellipsis">
+      _text_stream_stop (appelable)
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_audio_stream_start-appelable" class="md-nav__link">
+    <span class="md-ellipsis">
+      _audio_stream_start` (appelable)
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="_audio_stream_start` (appelable)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_audio_stream_stop-appelable" class="md-nav__link">
+    <span class="md-ellipsis">
+      _audio_stream_stop (appelable)
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#on_character-appelable" class="md-nav__link">
+    <span class="md-ellipsis">
+      on_character` (appelable)
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="on_character` (appelable)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_device_index-int" class="md-nav__link">
+    <span class="md-ellipsis">
+      _device_index (int)
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tokenizerchaine" class="md-nav__link">
+    <span class="md-ellipsis">
+      (tokenizer(chaîne)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#languagechaine" class="md-nav__link">
+    <span class="md-ellipsis">
+      `language(chaîne)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mutedbool" class="md-nav__link">
+    <span class="md-ellipsis">
+      muted(bool)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#level-int" class="md-nav__link">
+    <span class="md-ellipsis">
+      level (int)
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="level (int)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#exemple-dutilisation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Exemple d'utilisation :
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#methodes" class="md-nav__link">
+    <span class="md-ellipsis">
+      Méthodes
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#play-etplay_async" class="md-nav__link">
+    <span class="md-ellipsis">
+      play etplay_async`
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="play etplay_async`">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#parametres" class="md-nav__link">
+    <span class="md-ellipsis">
+      Paramètres :
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Paramètres :">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#fast_sentence_fragment-bool" class="md-nav__link">
+    <span class="md-ellipsis">
+      fast_sentence_fragment (bool)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fast_sentence_fragment_allsentencesbool" class="md-nav__link">
+    <span class="md-ellipsis">
+      fast_sentence_fragment_allsentences(bool)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fast_sentence_fragment_allsentences_multiple-bool" class="md-nav__link">
+    <span class="md-ellipsis">
+      fast_sentence_fragment_allsentences_multiple (bool)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_threshold_seconds-flotteur" class="md-nav__link">
+    <span class="md-ellipsis">
+      _threshold_seconds (flotteur)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_sentence_length-int" class="md-nav__link">
+    <span class="md-ellipsis">
+      _sentence_length (int)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_first_fragment_lengthint" class="md-nav__link">
+    <span class="md-ellipsis">
+      _first_fragment_length(int)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_synthesized_text-bool" class="md-nav__link">
+    <span class="md-ellipsis">
+      _synthesized_text (bool)
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#reset_generated_text-bool" class="md-nav__link">
+    <span class="md-ellipsis">
+      #reset_generated_text` (bool)
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="#reset_generated_text` (bool)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_wavfile-str" class="md-nav__link">
+    <span class="md-ellipsis">
+      _wavfile (str)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_sentence_synthesized-appelable" class="md-nav__link">
+    <span class="md-ellipsis">
+      `_sentence_synthesized (appelable)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#before_sentence_synthesized-appelable" class="md-nav__link">
+    <span class="md-ellipsis">
+      before`_sentence_synthesized (appelable)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_audio_chunk-appelable" class="md-nav__link">
+    <span class="md-ellipsis">
+      _audio_chunk (appelable)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#str" class="md-nav__link">
+    <span class="md-ellipsis">
+      ```(str)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_sentences-appelable" class="md-nav__link">
+    <span class="md-ellipsis">
+      _sentences (appelable)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#angustr" class="md-nav__link">
+    <span class="md-ellipsis">
+      angu(str)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_sizeint" class="md-nav__link">
+    <span class="md-ellipsis">
+      _size(int)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_size_look_overhead-int" class="md-nav__link">
+    <span class="md-ellipsis">
+      _size_look_overhead (int)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mute-bool" class="md-nav__link">
+    <span class="md-ellipsis">
+      mute (bool)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ence_fragment_delimiters-str" class="md-nav__link">
+    <span class="md-ellipsis">
+      ence_fragment_delimiters (str)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_first_fragment_after_words-int" class="md-nav__link">
+    <span class="md-ellipsis">
+      _first_fragment_after_words (int)
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/api/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Español
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../de/api/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Deutsch
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../it/api/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Italiano
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../zh/api/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    中文
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ja/api/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    日本語
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../hi/api/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    हिंदी
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ko/api/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    한국어
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Contributing
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            Contributing
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../en/contributing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    English
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../contributing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Français
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/contributing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Español
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../de/contributing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Deutsch
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../it/contributing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Italiano
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../zh/contributing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    中文
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ja/contributing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    日本語
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../hi/contributing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    हिंदी
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ko/contributing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    한국어
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    FAQ
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            FAQ
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../en/faq/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    English
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../faq/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Français
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../es/faq/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Español
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../de/faq/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Deutsch
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../it/faq/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Italiano
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../zh/faq/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    中文
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ja/faq/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    日本語
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../hi/faq/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    हिंदी
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ko/faq/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    한국어
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="目次">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      目次
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      Configuration
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Configuration">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#parametres-dinitialisation-pour-texttoaudiostream" class="md-nav__link">
+    <span class="md-ellipsis">
+      Paramètres d'initialisation pour `TextToAudioStream
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#baseengine" class="md-nav__link">
+    <span class="md-ellipsis">
+      `(BaseEngine)
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="`(BaseEngine)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_text_stream_start-appelable" class="md-nav__link">
+    <span class="md-ellipsis">
+      _text_stream_start (appelable)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_text_stream_stop-appelable" class="md-nav__link">
+    <span class="md-ellipsis">
+      _text_stream_stop (appelable)
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_audio_stream_start-appelable" class="md-nav__link">
+    <span class="md-ellipsis">
+      _audio_stream_start` (appelable)
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="_audio_stream_start` (appelable)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_audio_stream_stop-appelable" class="md-nav__link">
+    <span class="md-ellipsis">
+      _audio_stream_stop (appelable)
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#on_character-appelable" class="md-nav__link">
+    <span class="md-ellipsis">
+      on_character` (appelable)
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="on_character` (appelable)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_device_index-int" class="md-nav__link">
+    <span class="md-ellipsis">
+      _device_index (int)
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tokenizerchaine" class="md-nav__link">
+    <span class="md-ellipsis">
+      (tokenizer(chaîne)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#languagechaine" class="md-nav__link">
+    <span class="md-ellipsis">
+      `language(chaîne)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mutedbool" class="md-nav__link">
+    <span class="md-ellipsis">
+      muted(bool)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#level-int" class="md-nav__link">
+    <span class="md-ellipsis">
+      level (int)
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="level (int)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#exemple-dutilisation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Exemple d'utilisation :
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#methodes" class="md-nav__link">
+    <span class="md-ellipsis">
+      Méthodes
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#play-etplay_async" class="md-nav__link">
+    <span class="md-ellipsis">
+      play etplay_async`
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="play etplay_async`">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#parametres" class="md-nav__link">
+    <span class="md-ellipsis">
+      Paramètres :
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Paramètres :">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#fast_sentence_fragment-bool" class="md-nav__link">
+    <span class="md-ellipsis">
+      fast_sentence_fragment (bool)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fast_sentence_fragment_allsentencesbool" class="md-nav__link">
+    <span class="md-ellipsis">
+      fast_sentence_fragment_allsentences(bool)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fast_sentence_fragment_allsentences_multiple-bool" class="md-nav__link">
+    <span class="md-ellipsis">
+      fast_sentence_fragment_allsentences_multiple (bool)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_threshold_seconds-flotteur" class="md-nav__link">
+    <span class="md-ellipsis">
+      _threshold_seconds (flotteur)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_sentence_length-int" class="md-nav__link">
+    <span class="md-ellipsis">
+      _sentence_length (int)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_first_fragment_lengthint" class="md-nav__link">
+    <span class="md-ellipsis">
+      _first_fragment_length(int)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_synthesized_text-bool" class="md-nav__link">
+    <span class="md-ellipsis">
+      _synthesized_text (bool)
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#reset_generated_text-bool" class="md-nav__link">
+    <span class="md-ellipsis">
+      #reset_generated_text` (bool)
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="#reset_generated_text` (bool)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_wavfile-str" class="md-nav__link">
+    <span class="md-ellipsis">
+      _wavfile (str)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_sentence_synthesized-appelable" class="md-nav__link">
+    <span class="md-ellipsis">
+      `_sentence_synthesized (appelable)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#before_sentence_synthesized-appelable" class="md-nav__link">
+    <span class="md-ellipsis">
+      before`_sentence_synthesized (appelable)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_audio_chunk-appelable" class="md-nav__link">
+    <span class="md-ellipsis">
+      _audio_chunk (appelable)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#str" class="md-nav__link">
+    <span class="md-ellipsis">
+      ```(str)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_sentences-appelable" class="md-nav__link">
+    <span class="md-ellipsis">
+      _sentences (appelable)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#angustr" class="md-nav__link">
+    <span class="md-ellipsis">
+      angu(str)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_sizeint" class="md-nav__link">
+    <span class="md-ellipsis">
+      _size(int)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_size_look_overhead-int" class="md-nav__link">
+    <span class="md-ellipsis">
+      _size_look_overhead (int)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mute-bool" class="md-nav__link">
+    <span class="md-ellipsis">
+      mute (bool)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ence_fragment_delimiters-str" class="md-nav__link">
+    <span class="md-ellipsis">
+      ence_fragment_delimiters (str)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_first_fragment_after_words-int" class="md-nav__link">
+    <span class="md-ellipsis">
+      _first_fragment_after_words (int)
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  <h1>Français</h1>
+
+<h2 id="configuration">Configuration</h2>
+<h3 id="parametres-dinitialisation-pour-texttoaudiostream">Paramètres d'initialisation pour `TextToAudioStream</h3>
+<p>Lorsque vous initialisez la classe <code>TextToAudioStream</code>, vous disposez de diverses options pour personnaliser son comportement. Voici les paramètres disponibles :</p>
+<h3 id="baseengine">`(BaseEngine)</h3>
+<ul>
+<li><strong>Type</strong>: BaseEngine</li>
+<li><strong>Obligatoire</strong>: Oui</li>
+<li><strong>Description</strong> : Le moteur sous-jacent responsable de la synthèse texte-audio. Vous devez fournir une instance de <code>ine</code> ou sa sous-classe pour permettre la synthèse audio.</li>
+</ul>
+<h4 id="_text_stream_start-appelable"><code>_text_stream_start</code> (appelable)</h4>
+<ul>
+<li><strong>Type</strong>: Fonction appelable</li>
+<li><strong>Obligatoire</strong>: Non</li>
+<li><strong>Description</strong> : Cette fonction de rappel optionnelle est déclenchée lorsque le flux de texte commence. Utilisez-le pour toute configuration ou journalisation dont vous pourriez avoir besoin.</li>
+</ul>
+<h4 id="_text_stream_stop-appelable"><code>_text_stream_stop</code> (appelable)</h4>
+<ul>
+<li><strong>Type</strong>: Fonction appelable</li>
+<li><strong>Obligatoire</strong>: Non</li>
+<li><strong>Description</strong> : Cette fonction de rappel optionnelle est activée à la fin du flux de texte. Vous pouvez l'utiliser pour des tâches de nettoyage ou de journalisation.</li>
+</ul>
+<h3 id="_audio_stream_start-appelable"><code></code>_audio_stream_start` (appelable)</h3>
+<ul>
+<li><strong>Type</strong>: Fonction appelable</li>
+<li><strong>Obligatoire</strong>: Non</li>
+<li><strong>Description</strong> : Cette fonction de rappel facultative est invoquée au démarrage du flux audio. Utile pour les mises à jour de l'interface utilisateur ou la journalisation des événements.</li>
+</ul>
+<h4 id="_audio_stream_stop-appelable"><code>_audio_stream_stop</code> (appelable)</h4>
+<ul>
+<li><strong>Type</strong>: Fonction appelable</li>
+<li><strong>Obligatoire</strong>: Non</li>
+<li><strong>Description</strong> : Cette fonction de rappel optionnelle est appelée lorsque le flux audio s'arrête. Idéal pour les tâches de nettoyage des ressources ou de post-traitement.</li>
+</ul>
+<h3 id="on_character-appelable"><code></code>on_character` (appelable)</h3>
+<ul>
+<li><strong>Type</strong>: Fonction appelable</li>
+<li><strong>Obligatoire</strong>: Non</li>
+<li><strong>Description</strong> : Cette fonction de rappel optionnelle est appelée lorsqu'un seul caractère est traité.</li>
+</ul>
+<h4 id="_device_index-int"><code>_device_index</code> (int)</h4>
+<ul>
+<li><strong>Type</strong>: Entier</li>
+<li><strong>Obligatoire</strong>: Non</li>
+<li><strong>Par défaut</strong>: Aucun</li>
+<li><strong>Description</strong> : Spécifie l'index du périphérique de sortie à utiliser. Aucun n'utilise le périphérique par défaut.</li>
+</ul>
+<h3 id="tokenizerchaine"><code>(tokenizer</code>(chaîne)</h3>
+<ul>
+<li><strong>Type</strong>: Chaîne</li>
+<li><strong>Obligatoire</strong>: Non</li>
+<li><strong>Par défaut</strong>: nltk</li>
+<li><strong>Description</strong> : Tokenizer à utiliser pour le fractionnement des phrases (actuellement « nltk » et « stroza » sont pris en charge).</li>
+</ul>
+<h3 id="languagechaine">`language(chaîne)</h3>
+<ul>
+<li><strong>Type</strong>: Chaîne</li>
+<li><strong>Obligatoire</strong>: Non</li>
+<li><strong>Par défaut</strong>: fr</li>
+<li><strong>Description</strong> : Langue à utiliser pour le fractionnement des phrases.</li>
+</ul>
+<h3 id="mutedbool"><code>muted</code>(bool)</h3>
+<ul>
+<li><strong>Type</strong>: Bool</li>
+<li><strong>Obligatoire</strong>: Non</li>
+<li><strong>Par défaut</strong>: Faux</li>
+<li><strong>Description</strong> : Paramètre global coupé. Si True, aucun flux pyAudio ne sera ouvert. Désactive la lecture audio via des haut-parleurs locaux (au cas où vous souhaitez synthétiser dans un fichier ou traiter des morceaux audio) et remplace le paramètre de mise en sourdine des paramètres de lecture.</li>
+</ul>
+<h3 id="level-int"><code>level</code> (int)</h3>
+<ul>
+<li><strong>Type</strong>: Entier</li>
+<li><strong>Obligatoire</strong>: Non</li>
+<li><strong>Défaut</strong>:<code>logging.AVERTISSEMENT</code></li>
+<li><strong>Description</strong> : Définit le niveau de journalisation pour l'enregistreur interne. Cela peut être n'importe quelle constante entière du module <code>ging</code> intégré de Python.</li>
+</ul>
+<h4 id="exemple-dutilisation">Exemple d'utilisation :</h4>
+<p><code>``(`python
+moteur = YourEngine () # Remplacez-vous par votre moteur
+flux = TextToAudioStream(
+    moteur=engine,
+    on_text_stream_start=my_text_start_func,
+    on_text_stream_stop=my_text_stop_func,
+    on_audio_stream_start=my_audio_start_func,
+    on_audio_stream_stop=my_audio_stop_func,
+    niveau=logging.INFO
+)</code></p>
+<h3 id="methodes">Méthodes</h3>
+<h3 id="play-etplay_async"><code>play et</code>play_async`</h3>
+<p>Ces méthodes sont responsables de l'exécution de la synthèse texte-audio et de la lecture du flux audio. La différence est que <code>play</code> est une fonction de blocage, tandis que <code>play_async</code> s'exécute dans un thread séparé, permettant à d'autres opérations de se poursuivre.</p>
+<h5 id="parametres">Paramètres :</h5>
+<h6 id="fast_sentence_fragment-bool">fast<code>_sentence_fragment</code> (bool)</h6>
+<ul>
+<li><strong>Par défaut</strong>: <code>True</code></li>
+<li><strong>Description</strong> : Lorsqu'elle est définie sur <code>True</code>, la méthode donnera la priorité à la vitesse, générant et jouant plus rapidement des fragments de phrases. Ceci est utile pour les applications où la latence est importante.</li>
+</ul>
+<h6 id="fast_sentence_fragment_allsentencesbool">fast<code>_sentence_fragment_allsentences</code>(bool)</h6>
+<ul>
+<li><strong>Par défaut</strong>: <code>False</code></li>
+<li><strong>Description</strong> : Lorsqu'il est défini sur <code>True</code>, applique le traitement rapide des fragments de phrase à toutes les phrases, pas seulement à la première.</li>
+</ul>
+<h6 id="fast_sentence_fragment_allsentences_multiple-bool">fast<code>_sentence_fragment_allsentences_multiple</code> (bool)</h6>
+<ul>
+<li><strong>Par défaut</strong>: <code>False</code></li>
+<li><strong>Description</strong> : Lorsqu'il est défini sur <code>True</code>, permet de produire plusieurs fragments de phrase au lieu d'un seul.</li>
+</ul>
+<h6 id="_threshold_seconds-flotteur"><code>_threshold_seconds</code> (flotteur)</h6>
+<ul>
+<li><strong>Par défaut</strong>: <code>0.0</code></li>
+<li>
+<p><strong>Description</strong> : Spécifie le temps en secondes pour le seuil de mise en mémoire tampon, ce qui a un impact sur la douceur et la continuité de la lecture audio.</p>
+</li>
+<li>
+<p><strong>Comment ça marche</strong> : Avant de synthétiser une nouvelle phrase, le système vérifie s'il reste plus de matériel audio dans le tampon que le temps spécifié par <code>buffer_threshold_seconds</code>. Si tel est le cas, il récupère une autre phrase du générateur de texte, en supposant qu'il peut récupérer et synthétiser cette nouvelle phrase dans la fenêtre temporelle fournie par l'audio restant dans le tampon. Ce processus permet au moteur de synthèse vocale d'avoir plus de contexte pour une meilleure synthèse, améliorant ainsi l'expérience utilisateur.</p>
+</li>
+</ul>
+<p>Une valeur plus élevée garantit qu'il y a plus d'audio pré-tamponné, réduisant ainsi le risque de silence ou de lacunes pendant la lecture. Si vous rencontrez des pauses ou des pauses, envisagez d'augmenter cette valeur.</p>
+<h6 id="_sentence_length-int"><code>_sentence_length</code> (int)</h6>
+<ul>
+<li><strong>Par défaut</strong>: <code>10</code></li>
+<li><strong>Description</strong> : Définit la longueur minimale des caractères pour considérer une chaîne comme une phrase à synthétiser. Cela affecte la façon dont les morceaux de texte sont traités et lus.</li>
+</ul>
+<h6 id="_first_fragment_lengthint"><code>_first_fragment_length</code>(int)</h6>
+<ul>
+<li><strong>Par défaut</strong>: <code>10</code></li>
+<li><strong>Description</strong> : Le nombre minimum de caractères requis pour le premier fragment de phrase avant de céder.</li>
+</ul>
+<h6 id="_synthesized_text-bool"><code>_synthesized_text</code> (bool)</h6>
+<ul>
+<li><strong>Par défaut</strong>: <code>False</code></li>
+<li><strong>Description</strong> : Lorsqu'il est activé, enregistre les morceaux de texte au fur et à mesure de leur synthèse en audio. Utile pour l'audit et le débogage.</li>
+</ul>
+<h5 id="reset_generated_text-bool">#reset_generated_text` (bool)</h5>
+<ul>
+<li><strong>Par défaut</strong>: <code>True</code></li>
+<li><strong>Description</strong> : Si Vrai, réinitialisez le texte généré avant le traitement.</li>
+</ul>
+<h6 id="_wavfile-str"><code>_wavfile</code> (str)</h6>
+<ul>
+<li><strong>Par défaut</strong>: <code>None</code></li>
+<li><strong>Description</strong> : Si défini, enregistrez l'audio dans le fichier WAV spécifié.</li>
+</ul>
+<h6 id="_sentence_synthesized-appelable">`_sentence_synthesized (appelable)</h6>
+<ul>
+<li><strong>Par défaut</strong>: <code>None</code></li>
+<li><strong>Description</strong> : Une fonction de rappel appelée après un seul fragment de phrase a été synthétisée.</li>
+</ul>
+<h6 id="before_sentence_synthesized-appelable">before`_sentence_synthesized (appelable)</h6>
+<ul>
+<li><strong>Par défaut</strong>: <code>None</code></li>
+<li><strong>Description</strong> : Une fonction de rappel qui est appelée avant qu'un seul fragment de phrase ne soit synthétisé.</li>
+</ul>
+<h6 id="_audio_chunk-appelable"><code>_audio_chunk</code> (appelable)</h6>
+<ul>
+<li><strong>Par défaut</strong>: <code>None</code></li>
+<li><strong>Description</strong> : Fonction de rappel qui est appelée lorsqu'un seul morceau audio est prêt.</li>
+</ul>
+<h6 id="str">```(str)</h6>
+<ul>
+<li><strong>Par défaut</strong>:<code>"nltk"</code></li>
+<li><strong>Description</strong> : Tokenizer à utiliser pour le fractionnement des phrases. Prend actuellement en charge « nltk » et « stroza ».</li>
+</ul>
+<h6 id="_sentences-appelable"><code>_sentences</code> (appelable)</h6>
+<ul>
+<li><strong>Par défaut</strong>: <code>None</code></li>
+<li><strong>Description</strong> : Une fonction personnalisée qui tokenise les phrases du texte saisi. Vous pouvez fournir votre propre tokenizer léger si vous n'êtes pas satisfait de nltk et stanza. Il doit prendre du texte comme chaîne et renvoyer des phrases divisées comme liste de chaînes.</li>
+</ul>
+<h6 id="angustr"><code>angu</code>(str)</h6>
+<ul>
+<li><strong>Par défaut</strong>:<code>"en"</code></li>
+<li><strong>Description</strong> : Langue à utiliser pour le fractionnement des phrases.</li>
+</ul>
+<h6 id="_sizeint"><code>_size</code>(int)</h6>
+<ul>
+<li><strong>Par défaut</strong>: <code>12</code></li>
+<li><strong>Description</strong> : Le nombre de caractères utilisés pour établir le contexte pour la détection des limites de phrase. Un contexte plus large améliore la précision de la détection des limites des phrases.</li>
+</ul>
+<h6 id="_size_look_overhead-int"><code>_size_look_overhead</code> (int)</h6>
+<ul>
+<li><strong>Par défaut</strong>: <code>12</code></li>
+<li><strong>Description</strong> : Taille de contexte supplémentaire pour regarder vers l'avenir lors de la détection des limites des phrases.</li>
+</ul>
+<h6 id="mute-bool"><code>mute</code> (bool)</h6>
+<ul>
+<li><strong>Par défaut</strong>: <code>False</code></li>
+<li><strong>Description</strong> : Si vrai, désactive la lecture audio via des haut-parleurs locaux. Utile lorsque vous souhaitez synthétiser dans un fichier ou traiter des morceaux audio sans les lire.</li>
+</ul>
+<h6 id="ence_fragment_delimiters-str"><code>ence_fragment_delimiters</code> (str)</h6>
+<ul>
+<li><strong>Par défaut</strong>:<code>"?!;::\n...)]}-</code></li>
+<li><strong>Description</strong> : Une chaîne de caractères qui sont considérés comme des délimiteurs de phrases.</li>
+</ul>
+<h6 id="_first_fragment_after_words-int"><code>_first_fragment_after_</code>words (int)</h6>
+<ul>
+<li><strong>Par défaut</strong>: <code>15</code></li>
+<li><strong>Description</strong> : Le nombre de mots après lesquels le fragment de la première phrase est forcé d'être donné.</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  ページトップへ戻る
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "../../..", "features": ["navigation.instant", "navigation.top", "navigation.tabs"], "search": "../../../assets/javascripts/workers/search.6ce7567c.min.js", "translations": {"clipboard.copied": "\u30b3\u30d4\u30fc\u3057\u307e\u3057\u305f", "clipboard.copy": "\u30af\u30ea\u30c3\u30d7\u30dc\u30fc\u30c9\u3078\u30b3\u30d4\u30fc", "search.result.more.one": "\u3053\u306e\u30da\u30fc\u30b8\u5185\u306b\u3082\u30461\u4ef6\u898b\u3064\u304b\u308a\u307e\u3057\u305f", "search.result.more.other": "\u3053\u306e\u30da\u30fc\u30b8\u5185\u306b\u3042\u3068#\u4ef6\u898b\u3064\u304b\u308a\u307e\u3057\u305f", "search.result.none": "\u4f55\u3082\u898b\u3064\u304b\u308a\u307e\u305b\u3093\u3067\u3057\u305f", "search.result.one": "1\u4ef6\u898b\u3064\u304b\u308a\u307e\u3057\u305f", "search.result.other": "#\u4ef6\u898b\u3064\u304b\u308a\u307e\u3057\u305f", "search.result.placeholder": "\u691c\u7d22\u30ad\u30fc\u30ef\u30fc\u30c9\u3092\u5165\u529b\u3057\u3066\u304f\u3060\u3055\u3044", "search.result.term.missing": "\u691c\u7d22\u306b\u542b\u307e\u308c\u306a\u3044", "select.version": "\u30d0\u30fc\u30b8\u30e7\u30f3\u5207\u308a\u66ff\u3048"}}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.83f73b43.min.js"></script>
+      
+    
+  </body>
+</html>
