@@ -1,26 +1,26 @@
-
 # azure-cognitiveservices-speech is for AzureEngine
-azure-cognitiveservices-speech==1.40.0
+azure-cognitiveservices-speech==1.41.1
 
 # coqui_tts is for CoquiEngine
 coqui_tts==0.24.2
 
 # elevenlabs is for ElevenlabsEngine
-elevenlabs==1.9.0
+elevenlabs==1.11.0
 
 # gtts is for GTTSEngine
 gtts==2.5.3
 
 # openai is for OpenAIEngine
-openai==1.51.2
+openai==1.52.2
+
+# pyttsx3 is for SystemEngine
+pyttsx3==2.98
 
 # pyaudio is for playing chunks over output device
 pyaudio==0.2.14
 
 # pydub is used to convert chunks from mp3 to pcm (for openai tts)
 pydub==0.25.1
-# pyttsx3 is for SystemEngine
-pyttsx3==2.98
 
 # stream2sentence is to quickly convert streamed text into sentences for real-time synthesis
 stream2sentence==0.2.5
