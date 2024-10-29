@@ -1,6 +1,6 @@
 # リアルタイムTTS
 
-[EN](../en/index.md) | [FR](../fr/index.md) | [ES](../es/index.md) | [DE](../de/index.md) | [IT](../it/index.md) | [ZH](../zh/index.md) | [JA](../ja/index.md)
+[EN](../en/index.md) | [FR](../fr/index.md) | [ES](../es/index.md) | [DE](../de/index.md) | [IT](../it/index.md) | [ZH](../zh/index.md) | [JA](../ja/index.md) | [HI](../hi/index.md) | [KO](../ko/index.md)
 
 *リアルタイムアプリケーション向けの使いやすく、低遅延のテキスト読み上げライブラリ*
 
