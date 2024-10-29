@@ -36,3 +36,9 @@ try:
     from gtts import gTTS
 except ImportError:
     GTTSEngine, GTTSVoice, gTTS = None, None, None
+
+try:
+    from .parler_engine import ParlerEngine, ParlerVoice  # noqa: F401
+except ImportError as e:
+    print(f"NIX PARLER: {e}")
+    ParlerEngine, ParlerVoice = None, None
