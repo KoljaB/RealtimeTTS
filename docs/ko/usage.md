@@ -1,52 +1,51 @@
+# 사용 방법
 
-# 使用方法
+## 빠른 시작
 
-## クイックスタート
-
-基本的な使用例は以下の通りです：
+기본적인 사용 예는 다음과 같습니다:
 
 ```python
 from RealtimeTTS import TextToAudioStream, SystemEngine, AzureEngine, ElevenlabsEngine
-
-engine = SystemEngine() # TTSエンジンを指定
-stream = TextToAudioStream(engine)
-stream.feed("Hello world! How are you today?")
-stream.play_async()
 ```
 
-## テキストのフィード
+engine = SystemEngine() # TTS 엔진을 지정
+stream = TextToAudioStream(engine)
+stream.feed("안녕하세요, 세상!") 오늘 기분이 어떠세요?
+stream.play_async()
 
-個々の文字列をフィードすることができます：
+## 텍스트 피드
+
+개별 문자열을 입력할 수 있습니다:
 
 ```python
-stream.feed("Hello, this is a sentence.")
+stream.feed("안녕하세요, 이것은 문장입니다.")
 ```
 
-リアルタイムストリーミング用のジェネレータや文字イテレータをフィードすることも可能です：
+실시간 스트리밍용 제너레이터나 문자 이터레이터를 피드하는 것도 가능합니다:
 
 ```python
 def write(prompt: str):
-    for chunk in openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
-        messages=[{"role": "user", "content" : prompt}],
-        stream=True
+    for chunk in openai.
+```채팅 완료.생성(
+        모델="gpt-3.5-turbo",
+        메시지=[{"역할": "사용자", "내용": 프롬프트}],
+        스트림=True
     ):
-        if (text_chunk := chunk["choices"][0]["delta"].get("content")) is not None:
-            yield text_chunk
+        만약 (text_chunk := chunk["choices"][0]["델타"].get("content"))는 None이 아닙니다:
+            텍스트 청크를 생성하다
 
-text_stream = write("3文のリラックスしたスピーチ。")
+텍스트_스트림 = 쓰기3문으로 된 편안한 연설.
 
-stream.feed(text_stream)
-```
+스트림.피드(텍스트_스트림)
 
 ```python
-char_iterator = iter("文字ごとにこれをストリーミングします。")
-stream.feed(char_iterator)
+char_iterator = iter("문자마다 스트리밍합니다.")
 ```
+stream.feed(char_iterator)
 
-## 再生
+## 재생
 
-非同期再生：
+비동기 재생:
 
 ```python
 stream.play_async()
@@ -54,41 +53,41 @@ while stream.is_playing():
     time.sleep(0.1)
 ```
 
-同期再生：
+동기 재생:
 
 ```python
 stream.play()
 ```
 
-## ライブラリのテスト
+## 라이브러리 테스트
 
-testサブディレクトリには、RealtimeTTSライブラリの機能を評価および理解するためのスクリプトが含まれています。
+test 서브디렉토리에는 RealtimeTTS 라이브러리의 기능을 평가하고 이해하기 위한 스크립트가 포함되어 있습니다.
 
-古いOpenAI API (<1.0.0) に依存しているテストが多いため、新しいOpenAI APIの使用例はopenai_1.0_test.pyで確認できます。
+오래된 OpenAI API (<1.0.0)에 의존하는 테스트가 많기 때문에, 새로운 OpenAI API의 사용 예는 openai_1.0_test.py에서 확인할 수 있습니다.
 
 - **simple_test.py**
-    - **説明**: ライブラリの最も簡単な使用法を示す「Hello World」スタイルのデモ。
+    - **설명**: 라이브러리의 가장 간단한 사용법을 보여주는 "Hello World" 스타일의 데모.
 
 - **complex_test.py**
-    - **説明**: ライブラリの大半の機能を網羅した包括的なデモ。
+    - **설명**: 라이브러리의 대부분 기능을 포괄하는 종합적인 데모.
 
 - **coqui_test.py**
-    - **説明**: ローカルのCoqui TTSエンジンのテスト。
+    - **설명**: 로컬 Coqui TTS 엔진의 테스트.
 
 - **translator.py**
-    - **依存関係**: `pip install openai realtimestt` を実行。
-    - **説明**: 6つの異なる言語へのリアルタイム翻訳。
+    - **의존성**: `pip install openai realtimestt`를 실행하세요.
+    - **설명**: 6개의 다른 언어로 실시간 번역.
 
 - **openai_voice_interface.py**
-    - **依存関係**: `pip install openai realtimestt` を実行。
-    - **説明**: 起動ワードで開始される音声ベースのOpenAI APIインターフェイス。
+    - **의존성**: `pip install openai realtimestt`를 실행하십시오.
+    - **설명**: 시작 단어로 시작되는 음성 기반의 OpenAI API 인터페이스.
 
 - **advanced_talk.py**
-    - **依存関係**: `pip install openai keyboard realtimestt` を実行。
-    - **説明**: TTSエンジンと声を選んでAI会話を開始。
+    - **의존성**: `pip install openai keyboard realtimestt`를 실행하십시오.
+    - **설명**: TTS 엔진과 목소리를 선택하여 AI 대화를 시작하세요.
 
 - **minimalistic_talkbot.py**
-    - **依存関係**: `pip install openai realtimestt` を実行。
+    - **의존성**: `pip install openai realtimestt` 실행.
     - **説明**: 20行のコードで作成されたシンプルなトークボット。
 
 - **simple_llm_test.py**
@@ -144,3 +143,4 @@ stream.stop()
 - **openai**: OpenAIのTTS APIとのインタラクション用
 
 - **gtts**: Google翻訳テキスト読み上げ変換
+
