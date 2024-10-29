@@ -1,28 +1,27 @@
+# Usage
 
-# 使用方法
+## Quick Start
 
-## クイックスタート
-
-基本的な使用例は以下の通りです：
+Here's a basic usage example:
 
 ```python
 from RealtimeTTS import TextToAudioStream, SystemEngine, AzureEngine, ElevenlabsEngine
 
-engine = SystemEngine() # TTSエンジンを指定
+engine = SystemEngine() # replace with your TTS engine
 stream = TextToAudioStream(engine)
 stream.feed("Hello world! How are you today?")
 stream.play_async()
 ```
 
-## テキストのフィード
+## Feed Text
 
-個々の文字列をフィードすることができます：
+You can feed individual strings:
 
 ```python
 stream.feed("Hello, this is a sentence.")
 ```
 
-リアルタイムストリーミング用のジェネレータや文字イテレータをフィードすることも可能です：
+Or you can feed generators and character iterators for real-time streaming:
 
 ```python
 def write(prompt: str):
@@ -34,19 +33,19 @@ def write(prompt: str):
         if (text_chunk := chunk["choices"][0]["delta"].get("content")) is not None:
             yield text_chunk
 
-text_stream = write("3文のリラックスしたスピーチ。")
+text_stream = write("A three-sentence relaxing speech.")
 
 stream.feed(text_stream)
 ```
 
 ```python
-char_iterator = iter("文字ごとにこれをストリーミングします。")
+char_iterator = iter("Streaming this character by character.")
 stream.feed(char_iterator)
 ```
 
-## 再生
+## Playback
 
-非同期再生：
+Asynchronously:
 
 ```python
 stream.play_async()
@@ -54,93 +53,93 @@ while stream.is_playing():
     time.sleep(0.1)
 ```
 
-同期再生：
+Synchronously:
 
 ```python
 stream.play()
 ```
 
-## ライブラリのテスト
+## Testing the Library
 
-testサブディレクトリには、RealtimeTTSライブラリの機能を評価および理解するためのスクリプトが含まれています。
+The test subdirectory contains a set of scripts to help you evaluate and understand the capabilities of the RealtimeTTS library.
 
-古いOpenAI API (<1.0.0) に依存しているテストが多いため、新しいOpenAI APIの使用例はopenai_1.0_test.pyで確認できます。
+Note that most of the tests still rely on the "old" OpenAI API (<1.0.0). Usage of the new OpenAI API is demonstrated in openai_1.0_test.py.
 
 - **simple_test.py**
-    - **説明**: ライブラリの最も簡単な使用法を示す「Hello World」スタイルのデモ。
+    - **Description**: A "hello world" styled demonstration of the library's simplest usage.
 
 - **complex_test.py**
-    - **説明**: ライブラリの大半の機能を網羅した包括的なデモ。
+    - **Description**: A comprehensive demonstration showcasing most of the features provided by the library.
 
 - **coqui_test.py**
-    - **説明**: ローカルのCoqui TTSエンジンのテスト。
+    - **Description**: Test of local coqui TTS engine.
 
 - **translator.py**
-    - **依存関係**: `pip install openai realtimestt` を実行。
-    - **説明**: 6つの異なる言語へのリアルタイム翻訳。
+    - **Dependencies**: Run `pip install openai realtimestt`.
+    - **Description**: Real-time translations into six different languages.
 
 - **openai_voice_interface.py**
-    - **依存関係**: `pip install openai realtimestt` を実行。
-    - **説明**: 起動ワードで開始される音声ベースのOpenAI APIインターフェイス。
+    - **Dependencies**: Run `pip install openai realtimestt`.
+    - **Description**: Wake word activated and voice based user interface to the OpenAI API.
 
 - **advanced_talk.py**
-    - **依存関係**: `pip install openai keyboard realtimestt` を実行。
-    - **説明**: TTSエンジンと声を選んでAI会話を開始。
+    - **Dependencies**: Run `pip install openai keyboard realtimestt`.
+    - **Description**: Choose TTS engine and voice before starting AI conversation.
 
 - **minimalistic_talkbot.py**
-    - **依存関係**: `pip install openai realtimestt` を実行。
-    - **説明**: 20行のコードで作成されたシンプルなトークボット。
+    - **Dependencies**: Run `pip install openai realtimestt`.
+    - **Description**: A basic talkbot in 20 lines of code.
 
 - **simple_llm_test.py**
-    - **依存関係**: `pip install openai`。
-    - **説明**: ラージランゲージモデル（LLM）との統合の簡単なデモ。
+    - **Dependencies**: Run `pip install openai`.
+    - **Description**: Simple demonstration of how to integrate the library with large language models (LLMs).
 
 - **test_callbacks.py**
-    - **依存関係**: `pip install openai`。
-    - **説明**: コールバックを紹介し、実環境での待機時間をチェック可能。
+    - **Dependencies**: Run `pip install openai`.
+    - **Description**: Showcases the callbacks and lets you check the latency times in a real-world application environment.
 
-## 一時停止、再開 & 停止
+## Pause, Resume & Stop
 
-オーディオストリームを一時停止：
+Pause the audio stream:
 
 ```python
 stream.pause()
 ```
 
-一時停止したストリームを再開：
+Resume a paused stream:
 
 ```python
 stream.resume()
 ```
 
-ストリームをすぐに停止：
+Stop the stream immediately:
 
 ```python
 stream.stop()
 ```
 
-## 必要要件の説明
+## Requirements Explained
 
-- **Pythonバージョン**:
-  - **必須**: Python >= 3.9, < 3.13
-  - **理由**: ライブラリはCoquiのGitHubライブラリ「TTS」に依存しており、Pythonのこのバージョン範囲が必要です。
+- **Python Version**:
+  - **Required**: Python >= 3.9, < 3.13
+  - **Reason**: The library depends on the GitHub library "TTS" from coqui, which requires Python versions in this range.
 
-- **PyAudio**: 出力オーディオストリームを作成するため
+- **PyAudio**: to create an output audio stream
 
-- **stream2sentence**: 入力されるテキストストリームを文単位に分割するため
+- **stream2sentence**: to split the incoming text stream into sentences
 
-- **pyttsx3**: システムテキスト読み上げエンジン
+- **pyttsx3**: System text-to-speech conversion engine
 
-- **pydub**: オーディオチャンクの形式変換用
+- **pydub**: to convert audio chunk formats
 
-- **azure-cognitiveservices-speech**: Azureテキスト読み上げエンジン
+- **azure-cognitiveservices-speech**: Azure text-to-speech conversion engine
 
-- **elevenlabs**: Elevenlabsテキスト読み上げエンジン
+- **elevenlabs**: Elevenlabs text-to-speech conversion engine
 
-- **coqui-TTS**: 高品質なローカルニューラルTTS用CoquiのXTTSテキスト読み上げライブラリ
+- **coqui-TTS**: Coqui's XTTS text-to-speech library for high-quality local neural TTS
 
-  [Idiap研究所](https://github.com/idiap)が管理する[Coqui TTSのフォーク](https://github.com/idiap/coqui-ai-TTS)に感謝。
+  Shoutout to [Idiap Research Institute](https://github.com/idiap) for maintaining a [fork of coqui tts](https://github.com/idiap/coqui-ai-TTS).
 
-- **openai**: OpenAIのTTS APIとのインタラクション用
+- **openai**: to interact with OpenAI's TTS API
 
-- **gtts**: Google翻訳テキスト読み上げ変換
+- **gtts**: Google translate text-to-speech conversion
