@@ -62,14 +62,17 @@ Latest Version: v0.4.8
 
 See [release history](https://github.com/KoljaB/RealtimeTTS/releases).
 
-Added ParlerEngine. Needs flash attention, then barely runs fast enough for realtime inference on a 4090. Installation for Windows:
+Added ParlerEngine. Needs flash attention, then barely runs fast enough for realtime inference on a 4090.
+
+Parler Installation for Windows (after installing RealtimeTTS):
 
 ```python
-pip install RealtimeTTS[parler]
+pip install git+https://github.com/huggingface/parler-tts.git
 pip install torch==2.3.1+cu121 torchaudio==2.3.1 --index-url https://download.pytorch.org/whl/cu121
 pip install https://github.com/oobabooga/flash-attention/releases/download/v2.6.3/flash_attn-2.6.3+cu122torch2.3.1cxx11abiFALSE-cp310-cp310-win_amd64.whl
 pip install "numpy<2"
 ```
+
 ## Tech Stack
 
 This library uses:

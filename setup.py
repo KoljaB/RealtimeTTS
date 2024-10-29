@@ -41,14 +41,12 @@ extras_require = {
     + [requirements["openai"]]
     + [requirements["gtts"]]
     + [requirements["coqui_tts"]]
-    + ["parler-tts @ git+https://github.com/huggingface/parler-tts.git"],
     "system": base_requirements + [requirements["pyttsx3"]],
     "azure": base_requirements + [requirements["azure-cognitiveservices-speech"]],
     "elevenlabs": base_requirements + [requirements["elevenlabs"]],
     "openai": base_requirements + [requirements["openai"]],
     "gtts": base_requirements + [requirements["gtts"]],
     "coqui": base_requirements + [requirements["coqui_tts"]],
-    "parler": base_requirements + ["parler-tts @ git+https://github.com/huggingface/parler-tts.git"],
     "jp": base_requirements + ["mecab-python3==1.0.6", "unidic-lite==1.0.8", "cutlet"],
     "ko": base_requirements + ["hangul_romanize"],
 }
