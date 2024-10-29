@@ -39,13 +39,12 @@ pip install realtimetts[azure,elevenlabs,openai]
 
 가상 환경 내에서 전체 설치를 수행하려는 분들은 다음 단계를 따르세요:
 
-```python
+```
 python -m venv env_realtimetts
-env_realtimetts\Scripts\activate.
-```배트
-python.exe -m pip install --pip 업그레이드
+env_realtimetts\Scripts\activate.bat
+python.exe -m pip install --upgrade pip
 pip install -U realtimetts[all]
-텍스트를 번역할 내용: ```
+```
 
 [CUDA 설치](#cuda-installation)에 대한 자세한 정보.
 

@@ -6,13 +6,13 @@
 
 ```python
 from RealtimeTTS import TextToAudioStream, SystemEngine, AzureEngine, ElevenlabsEngine
-```
+
 
 engine = SystemEngine() # TTS 엔진을 지정
 stream = TextToAudioStream(engine)
-stream.feed("안녕하세요, 세상!") 오늘 기분이 어떠세요?
+stream.feed("Hello world! How are you today?")
 stream.play_async()
-
+```
 ## 텍스트 피드
 
 개별 문자열을 입력할 수 있습니다:
@@ -25,23 +25,23 @@ stream.feed("안녕하세요, 이것은 문장입니다.")
 
 ```python
 def write(prompt: str):
-    for chunk in openai.
-```채팅 완료.생성(
-        모델="gpt-3.5-turbo",
-        메시지=[{"역할": "사용자", "내용": 프롬프트}],
-        스트림=True
+    for chunk in openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=[{"role": "user", "content" : prompt}],
+        stream=True
     ):
-        만약 (text_chunk := chunk["choices"][0]["델타"].get("content"))는 None이 아닙니다:
-            텍스트 청크를 생성하다
+        if (text_chunk := chunk["choices"][0]["delta"].get("content")) is not None:
+            yield text_chunk
 
-텍스트_스트림 = 쓰기3문으로 된 편안한 연설.
+text_stream = write("A three-sentence relaxing speech.")
 
-스트림.피드(텍스트_스트림)
+stream.feed(text_stream)
+```
 
 ```python
-char_iterator = iter("문자마다 스트리밍합니다.")
-```
+char_iterator = iter("Streaming this character by character.")
 stream.feed(char_iterator)
+```
 
 ## 재생
 
