@@ -38,6 +38,10 @@ plugins:
         - locale: ko  
           name: 한국어  
           build: true  
+        - locale: pt  
+          name: Português
+          build: true 
+
 nav:
   - Home: 
     - English: en/index.md
@@ -49,6 +53,7 @@ nav:
     - 日本語: ja/index.md  
     - हिंदी: hi/index.md  
     - 한국어: ko/index.md  
+    - Português: pt/index.md 
   - Installation: 
     - English: en/installation.md
     - Français: fr/installation.md
@@ -59,6 +64,7 @@ nav:
     - 日本語: ja/installation.md  
     - हिंदी: hi/installation.md  
     - 한국어: ko/installation.md  
+    - Português: pt/installation.md
   - Usage: 
     - English: en/usage.md
     - Français: fr/usage.md
@@ -69,6 +75,7 @@ nav:
     - 日本語: ja/usage.md  
     - हिंदी: hi/usage.md  
     - 한국어: ko/usage.md  
+    - Português: pt/usage.md 
   - API Reference: 
     - English: en/api.md
     - Français: fr/api.md
@@ -79,6 +86,7 @@ nav:
     - 日本語: ja/api.md  
     - हिंदी: hi/api.md  
     - 한국어: ko/api.md  
+    - Português: pt/api.md  
   - Contributing: 
     - English: en/contributing.md
     - Français: fr/contributing.md
@@ -89,6 +97,7 @@ nav:
     - 日本語: ja/contributing.md  
     - हिंदी: hi/contributing.md  
     - 한국어: ko/contributing.md  
+    - Português: pt/contributing.md
   - FAQ: 
     - English: en/faq.md
     - Français: fr/faq.md
@@ -99,3 +108,4 @@ nav:
     - 日本語: ja/faq.md  
     - हिंदी: hi/faq.md  
     - 한국어: ko/faq.md  
+    - Português: pt/faq.md 
