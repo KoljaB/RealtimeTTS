@@ -1,6 +1,6 @@
 # RealtimeTTS
 [![PyPI](https://img.shields.io/pypi/v/RealtimeTTS)](https://pypi.org/project/RealtimeTTS/)
-[![Downloads](https://static.pepy.tech/badge/RealtimeTTS)](https://pepy.tech/project/KoljaB/RealtimeTTS)
+[![Downloads](https://static.pepy.tech/badge/RealtimeTTS)](https://www.pepy.tech/projects/realtimetts)
 [![GitHub release](https://img.shields.io/github/release/KoljaB/RealtimeTTS.svg)](https://GitHub.com/KoljaB/RealtimeTTS/releases/)
 [![GitHub commits](https://badgen.net/github/commits/KoljaB/RealtimeTTS)](https://GitHub.com/Naereen/KoljaB/RealtimeTTS/commit/)
 [![GitHub forks](https://img.shields.io/github/forks/KoljaB/RealtimeTTS.svg?style=social&label=Fork&maxAge=2592000)](https://GitHub.com/KoljaB/RealtimeTTS/network/)
@@ -26,7 +26,7 @@ https://github.com/KoljaB/RealtimeTTS/assets/7604638/87dcd9a5-3a4e-4f57-be45-837
 - **High-Quality Audio**
   - generates clear and natural-sounding speech
 - **Multiple TTS Engine Support**
-  - supports OpenAI TTS, Elevenlabs, Azure Speech Services, Coqui TTS, gTTS and System TTS
+  - supports OpenAI TTS, Elevenlabs, Azure Speech Services, Coqui TTS, gTTS, Parler TTS and System TTS
 - **Multilingual**
 - **Robust and Reliable**:
   - ensures continuous operation through a fallback mechanism
