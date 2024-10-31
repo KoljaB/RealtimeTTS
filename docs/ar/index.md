@@ -1,6 +1,6 @@
 # RealtimeTTS
 
-[EN](../en/index.md) | [FR](../fr/index.md) | [ES](../es/index.md) | [DE](../de/index.md) | [IT](../it/index.md) | [ZH](../zh/index.md) | [JA](../ja/index.md)
+[EN](../en/index.md) | [FR](../fr/index.md) | [ES](../es/index.md) | [DE](../de/index.md) | [IT](../it/index.md) | [ZH](../zh/index.md) | [JA](../ja/index.md) | [HI](../hi/index.md) | [KO](../ko/index.md) | [RU](../ru/index.md)
 
 *مكتبة تحويل النص إلى كلام سهلة الاستخدام ومنخفضة الكمون للتطبيقات في الوقت الحقيقي*
 
