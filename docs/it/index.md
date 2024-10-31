@@ -1,6 +1,6 @@
 #RealtimeTTS
 
-[EN](../en/index.md) | [FR](../fr/index.md) | [ES](../es/index.md) | [DE](../de/index.md) | [IT](../it/index.md) | [ZH](../zh/index.md) | [JA](../ja/index.md) | [HI](../hi/index.md) | [KO](../ko/index.md)
+[EN](../en/index.md) | [FR](../fr/index.md) | [ES](../es/index.md) | [DE](../de/index.md) | [IT](../it/index.md) | [ZH](../zh/index.md) | [JA](../ja/index.md) | [HI](../hi/index.md) | [KO](../ko/index.md) | [RU](../ru/index.md)
 
 *Libreria text-to-speech facile da usare e a bassa latenza per applicazioni in tempo reale*
 

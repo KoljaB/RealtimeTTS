@@ -1,6 +1,6 @@
 # RealtimeTTS
 
-[PT](../pt/index.md) | [FR](../fr/index.md) | [ES](../es/index.md) | [DE](../de/index.md) | [IT](../it/index.md) | [ZH](../zh/index.md) | [JA](../ja/index.md) | [HI](../hi/index.md) | [KO](../ko/index.md)
+[PT](../pt/index.md) | [FR](../fr/index.md) | [ES](../es/index.md) | [DE](../de/index.md) | [IT](../it/index.md) | [ZH](../zh/index.md) | [JA](../ja/index.md) | [HI](../hi/index.md) | [KO](../ko/index.md) | [RU](../ru/index.md)
 
 *Biblioteca de texto para fala fácil de usar e de baixa latência para aplicações em tempo real*
 
