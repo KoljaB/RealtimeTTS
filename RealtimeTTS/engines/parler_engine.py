@@ -115,36 +115,60 @@ class ParlerEngine(BaseEngine):
             **self.voice_parameters,  # Merge with any additional voice parameters
         }
 
-        # Start the audio generation in a separate thread
-        generation_thread = Thread(target=self.model.generate, kwargs=generation_kwargs)
-        generation_thread.start()
-
-        # Buffer audio for the desired duration before streaming
+        # Initialize variables for buffering
         audio_buffer = []
         buffer_length_s = 0.0
+        generation_completed = False
 
-        for new_audio in streamer:
-            if new_audio.shape[0] == 0:
-                break
+        # Start the audio generation (blocking call)
+        def generate_audio():
+            self.model.generate(**generation_kwargs)
 
-            audio_chunk = new_audio
-            audio_buffer.append(audio_chunk)
-            buffer_length_s += new_audio.shape[0] / sampling_rate
+        # Start the generation in a separate thread
+        generation_thread = Thread(target=generate_audio)
+        generation_thread.start()
 
-            # If we've buffered enough audio, start streaming the buffer
-            if buffer_length_s >= self.buffer_duration_s:
+        # Process the streamer in the main thread
+        while not generation_completed:
+            try:
+                new_audio = next(streamer)
+                if new_audio.shape[0] == 0:
+                    # Streamer signaled completion
+                    generation_completed = True
+                    break
+
+                audio_chunk = new_audio
+                audio_buffer.append(audio_chunk)
+                buffer_length_s += new_audio.shape[0] / sampling_rate
+
+                if buffer_length_s >= self.buffer_duration_s:
+                    # Buffering complete, start streaming
+                    break
+            except StopIteration:
+                # No more audio data
+                generation_completed = True
                 break
 
         # Queue the buffered audio chunks
         for buffered_chunk in audio_buffer:
             self.queue.put(buffered_chunk.tobytes())
 
-        # Stream audio in real-time as it's generated after buffering
-        for new_audio in streamer:
-            if new_audio.shape[0] == 0:
+        # Continue streaming the rest of the audio
+        while not generation_completed:
+            try:
+                new_audio = next(streamer)
+                if new_audio.shape[0] == 0:
+                    # Streamer signaled completion
+                    generation_completed = True
+                    break
+                audio_chunk = new_audio
+                self.queue.put(audio_chunk.tobytes())
+            except StopIteration:
+                generation_completed = True
                 break
-            audio_chunk = new_audio
-            self.queue.put(audio_chunk.tobytes())
+
+        # Ensure the generation thread has completed
+        generation_thread.join()
 
     def get_voices(self):
         """

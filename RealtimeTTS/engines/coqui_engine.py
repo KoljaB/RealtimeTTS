@@ -78,6 +78,7 @@ class CoquiEngine(BaseEngine):
         comma_silence_duration=0.3,
         sentence_silence_duration=0.6,
         default_silence_duration=0.3,
+        print_realtime_factor=False,
     ):
         """
         Initializes a coqui voice realtime text to speech engine object.
@@ -162,6 +163,7 @@ class CoquiEngine(BaseEngine):
         self.comma_silence_duration = comma_silence_duration
         self.sentence_silence_duration = sentence_silence_duration
         self.default_silence_duration = default_silence_duration
+        self.print_realtime_factor = print_realtime_factor
 
         self.cloning_reference_wav = voice
         self.speed = speed
@@ -258,6 +260,7 @@ class CoquiEngine(BaseEngine):
                 self.comma_silence_duration,
                 self.sentence_silence_duration,
                 self.default_silence_duration,
+                self.print_realtime_factor,
             ),
         )
         self.synthesize_process.start()
@@ -298,6 +301,7 @@ class CoquiEngine(BaseEngine):
         comma_silence_duration,
         sentence_silence_duration,
         default_silence_duration,
+        print_realtime_factor,
     ):
         """
         Worker process for the coqui text to speech synthesis model.
@@ -724,8 +728,9 @@ class CoquiEngine(BaseEngine):
                         raw_inference_factor = raw_inference_time / (
                             full_generated_seconds - first_chunk_length_seconds
                         )
-                        # print(realtime_factor)
-                        # print(raw_inference_factor)
+                        if print_realtime_factor:
+                            print(f"Realtime Factor: {realtime_factor}")
+                            print(f"Raw Inference Factor: {raw_inference_factor}")
 
                     # Send silent audio
                     sample_rate = config.audio.sample_rate

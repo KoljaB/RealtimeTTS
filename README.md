@@ -58,7 +58,7 @@ Let me know if you need any adjustments or additional languages!
 
 ## Updates
 
-Latest Version: v0.4.8
+Latest Version: v0.4.9
 
 See [release history](https://github.com/KoljaB/RealtimeTTS/releases).
 

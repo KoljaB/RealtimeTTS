@@ -40,7 +40,7 @@ extras_require = {
     + [requirements["elevenlabs"]]
     + [requirements["openai"]]
     + [requirements["gtts"]]
-    + [requirements["coqui_tts"]]
+    + [requirements["coqui_tts"]],
     "system": base_requirements + [requirements["pyttsx3"]],
     "azure": base_requirements + [requirements["azure-cognitiveservices-speech"]],
     "elevenlabs": base_requirements + [requirements["elevenlabs"]],
@@ -53,7 +53,7 @@ extras_require = {
 
 setuptools.setup(
     name="RealTimeTTS",
-    version="0.4.8",
+    version="0.4.9",
     author="Kolja Beigel",
     author_email="kolja.beigel@web.de",
     description="Stream text into audio with an easy-to-use, highly configurable library delivering voice output with minimal latency.",
