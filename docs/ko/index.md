@@ -1,6 +1,6 @@
 # 실시간TTS
 
-[EN](../en/index.md) | [FR](../fr/index.md) | [ES](../es/index.md) | [DE](../de/index.md) | [IT](../it/index.md) | [ZH](../zh/index.md) | [JA](../ja/index.md) | [HI](../hi/index.md) | [KO](../ko/index.md)
+[EN](../en/index.md) | [FR](../fr/index.md) | [ES](../es/index.md) | [DE](../de/index.md) | [IT](../it/index.md) | [ZH](../zh/index.md) | [JA](../ja/index.md) | [HI](../hi/index.md) | [KO](../ko/index.md) | [RU](../ru/index.md)
 
 *실시간 애플리케이션을 위한 사용하기 쉽고 저지연 텍스트 음성 변환 라이브러리*
 
