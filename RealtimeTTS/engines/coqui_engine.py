@@ -555,8 +555,6 @@ class CoquiEngine(BaseEngine):
                 tts = setup_tts_model(config)
                 logging.debug(f"  xtts load_checkpoint({checkpoint})")
 
-                print(f"LOADING CONFIG JSON FROM {os.path.join(checkpoint, 'config.json')}")
-
                 tts.load_checkpoint(
                     config,
                     checkpoint_dir=checkpoint,
