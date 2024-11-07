@@ -1,15 +1,26 @@
-if __name__ == "__main__":
-    print("Starting server")
-    import logging
+import argparse
+import os
 
-    # Enable or disable debug logging
-    DEBUG_LOGGING = False
+parser = argparse.ArgumentParser(description="Run the TTS FastAPI server.")
+parser.add_argument("-p", "--port", type=int, default=int(os.environ.get("TTS_FASTAPI_PORT", 8000)),
+                    help="Port to run the FastAPI server on (default: 8000 or TTS_FASTAPI_PORT env var).")
+parser.add_argument('-D', '--debug', action='store_true', help='Enable debug logging for detailed server operations')
+
+args = parser.parse_args()
+
+PORT = args.port
+DEBUG_LOGGING = args.debug
+
+if __name__ == "__main__":
+    import logging
 
     if DEBUG_LOGGING:
         logging.basicConfig(level=logging.DEBUG)
     else:
         logging.basicConfig(level=logging.WARNING)
 
+if __name__ == "__main__":
+    print(f"Starting server on port {PORT}")
 
 from RealtimeTTS import (
     TextToAudioStream,
@@ -31,9 +42,6 @@ import logging
 import uvicorn
 import wave
 import io
-import os
-
-PORT = int(os.environ.get("TTS_FASTAPI_PORT", 8000))
 
 SUPPORTED_ENGINES = [
     "azure",
@@ -43,8 +51,7 @@ SUPPORTED_ENGINES = [
     "coqui",  # comment coqui out for tests where you need server start often
 ]
 
-# change start engine by moving engine name
-# to the first position in SUPPORTED_ENGINES
+# change start engine:
 START_ENGINE = SUPPORTED_ENGINES[0]
 
 BROWSER_IDENTIFIERS = [
@@ -114,11 +121,6 @@ async def favicon():
     return FileResponse("static/favicon.ico")
 
 
-def on_audio_chunk(chunk):
-    logging.debug("Received chunk")
-    audio_queue.put(chunk)
-
-
 def _set_engine(engine_name):
     global current_engine, stream
     if current_engine is None:
@@ -145,8 +147,12 @@ def set_engine(request: Request, engine_name: str = Query(...)):
         return {"error": "Failed to switch engine"}
 
 
-def play_text_to_speech(stream, text):
+def play_text_to_speech(stream, text, audio_queue):
     set_speaking(text, True)
+
+    def on_audio_chunk(chunk):
+        logging.debug("Received chunk")
+        audio_queue.put(chunk)
 
     try:
         stream.feed(text)
@@ -156,6 +162,7 @@ def play_text_to_speech(stream, text):
         audio_queue.put(None)
     finally:
         set_speaking(text, False)
+        play_text_to_speech_semaphore.release()
 
 
 def is_browser_request(request):
@@ -188,8 +195,7 @@ def create_wave_header_for_engine(engine):
 
     return final_wave_header.getvalue()
 
-
-def audio_chunk_generator(send_wave_headers):
+def audio_chunk_generator(audio_queue, send_wave_headers):
     with gen_lock:
         first_chunk = False
         try:
@@ -224,33 +230,26 @@ def set_speaking(text, status):
 
 @app.get("/tts")
 def tts(request: Request, text: str = Query(...)):
-    with tts_lock:
-        browser_request = is_browser_request(request)
+    browser_request = is_browser_request(request)
+    audio_queue = Queue()
 
-        if play_text_to_speech_semaphore.acquire(blocking=False):
-            try:
-                if not is_currently_speaking(text):
-                    threading.Thread(
-                        target=play_text_to_speech, args=(stream, text), daemon=True
-                    ).start()
-            finally:
-                play_text_to_speech_semaphore.release()
+    if play_text_to_speech_semaphore.acquire(blocking=False):
+        threading.Thread(
+            target=play_text_to_speech, args=(stream, text, audio_queue), daemon=True
+        ).start()
+    else:
+        raise HTTPException(
+            status_code=503,
+            detail="Service unavailable, currently processing another request. Please try again shortly.",
+            headers={"Retry-After": "10"},
+        )
 
-        if is_currently_speaking(text):
-            logging.debug(f"Currently speaking: {text}")
-            return StreamingResponse(
-                audio_chunk_generator(browser_request),
-                media_type="audio/wav"
-                if current_engine.engine_name != "elevenlabs"
-                else "audio/mpeg",
-            )
-        else:
-            print("Service unavailable, returning 503.")
-            raise HTTPException(
-                status_code=503,
-                detail="Service unavailable, currently processing another request. Please try again shortly.",
-                headers={"Retry-After": "10"},
-            )
+    return StreamingResponse(
+        audio_chunk_generator(audio_queue, browser_request),
+        media_type="audio/wav"
+        if current_engine.engine_name != "elevenlabs"
+        else "audio/mpeg",
+    )
 
 
 @app.get("/tts-text")
@@ -421,6 +420,7 @@ if __name__ == "__main__":
         if "openai" == engine_name:
             print("Initializing openai engine")
             engines["openai"] = OpenAIEngine()
+
 
     for _engine in engines.keys():
         print(f"Retrieving voices for TTS Engine {_engine}")

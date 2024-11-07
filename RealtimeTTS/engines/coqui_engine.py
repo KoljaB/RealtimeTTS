@@ -79,6 +79,9 @@ class CoquiEngine(BaseEngine):
         sentence_silence_duration=0.6,
         default_silence_duration=0.3,
         print_realtime_factor=False,
+        load_balancing=False,
+        load_balancing_buffer_length=0,
+        load_balancing_cut_off=0,
     ):
         """
         Initializes a coqui voice realtime text to speech engine object.
@@ -140,6 +143,16 @@ class CoquiEngine(BaseEngine):
               Duration of the silence after a comma.
             sentence_silence_duration (float):
               Duration of the silence after a sentence.
+            default_silence_duration (float):
+                Default duration of the silence.
+            print_realtime_factor (bool):
+                Print the realtime factor for the coqui model.
+            load_balancing (bool):
+                Enable load balancing for the coqui model.
+            load_balancing_buffer_length (int):
+                Buffer length for the load balancing.
+            load_balancing_cut_off (int):
+                Cut off for the load balancing.
         """
 
         self._synthesize_lock = Lock()
@@ -164,6 +177,9 @@ class CoquiEngine(BaseEngine):
         self.sentence_silence_duration = sentence_silence_duration
         self.default_silence_duration = default_silence_duration
         self.print_realtime_factor = print_realtime_factor
+        self.load_balancing = load_balancing
+        self.load_balancing_buffer_length = load_balancing_buffer_length
+        self.load_balancing_cut_off = load_balancing_cut_off
 
         self.cloning_reference_wav = voice
         self.speed = speed
@@ -261,6 +277,9 @@ class CoquiEngine(BaseEngine):
                 self.sentence_silence_duration,
                 self.default_silence_duration,
                 self.print_realtime_factor,
+                self.load_balancing,
+                self.load_balancing_buffer_length,
+                self.load_balancing_cut_off,
             ),
         )
         self.synthesize_process.start()
@@ -302,6 +321,9 @@ class CoquiEngine(BaseEngine):
         sentence_silence_duration,
         default_silence_duration,
         print_realtime_factor,
+        load_balancing,
+        load_balancing_buffer_length,
+        load_balancing_cut_off,
     ):
         """
         Worker process for the coqui text to speech synthesis model.
@@ -612,17 +634,8 @@ class CoquiEngine(BaseEngine):
                         continue
                 else:
                     # Poll timed out, continue without blocking
-                    time.sleep(0.01)  # You can adjust this sleep to fit your needs
+                    time.sleep(0.01)
                     continue
-                # try:
-                #     message = conn.recv()
-                # except Exception as e:
-                #     logging.error(
-                #         f"conn.recv() error: {e} occured in "
-                #         "synthesize worker thread of coqui engine."
-                #     )
-                #     time.sleep(1)
-                #     continue
 
                 command = message["command"]
                 data = message["data"]
@@ -715,6 +728,18 @@ class CoquiEngine(BaseEngine):
                                 seconds_to_first_chunk = (
                                     raw_inference_start - time_start
                                 )
+                            else:
+                                chunk_production_seconds = time.time() - time_start
+                                generated_audio_seconds = full_generated_seconds
+
+                                # wait only if we are faster than realtime, meaning
+                                # that chunk_production_seconds is smaller than generated_audio_seconds
+                                if load_balancing:
+                                    if chunk_production_seconds < (generated_audio_seconds + load_balancing_buffer_length):
+                                        waiting_time = generated_audio_seconds - chunk_production_seconds - load_balancing_cut_off
+                                        if waiting_time > 0:
+                                            print(f"Waiting for {waiting_time} seconds")
+                                            time.sleep(waiting_time)
 
                     time_end = time.time()
                     seconds = time_end - time_start
@@ -731,6 +756,7 @@ class CoquiEngine(BaseEngine):
                         if print_realtime_factor:
                             print(f"Realtime Factor: {realtime_factor}")
                             print(f"Raw Inference Factor: {raw_inference_factor}")
+
 
                     # Send silent audio
                     sample_rate = config.audio.sample_rate
@@ -750,6 +776,8 @@ class CoquiEngine(BaseEngine):
                     conn.send(("success", silent_chunk.tobytes()))
 
                     conn.send(("finished", ""))
+
+                    end_time = time.time()
 
         except KeyboardInterrupt:
             logging.info("Keyboard interrupt received. " "Exiting worker process.")
