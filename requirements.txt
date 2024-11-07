@@ -2,16 +2,16 @@
 azure-cognitiveservices-speech==1.41.1
 
 # coqui_tts is for CoquiEngine
-coqui_tts==0.24.2
+coqui_tts==0.24.3
 
 # elevenlabs is for ElevenlabsEngine
-elevenlabs==1.11.0
+elevenlabs==1.12.1
 
 # gtts is for GTTSEngine
 gtts==2.5.3
 
 # openai is for OpenAIEngine
-openai==1.52.2
+openai==1.54.3
 
 # pyttsx3 is for SystemEngine
 pyttsx3==2.98
@@ -23,4 +23,4 @@ pyaudio==0.2.14
 pydub==0.25.1
 
 # stream2sentence is to quickly convert streamed text into sentences for real-time synthesis
-stream2sentence==0.2.5
+stream2sentence==0.2.7
