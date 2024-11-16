@@ -22,5 +22,8 @@ pyaudio==0.2.14
 # pydub is used to convert chunks from mp3 to pcm (for openai tts)
 pydub==0.25.1
 
+# resampy is used to resample from the tts to the target device sample rate 
+resampy==0.4.3
+
 # stream2sentence is to quickly convert streamed text into sentences for real-time synthesis
 stream2sentence==0.2.7

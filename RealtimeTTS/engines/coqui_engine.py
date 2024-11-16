@@ -212,7 +212,10 @@ class CoquiEngine(BaseEngine):
         # Start the worker process
         try:
             # Only set the start method if it hasn't been set already
-            if mp.get_start_method(allow_none=True) is None:
+                # Check the current platform and set the start method
+            if sys.platform.startswith('linux') or sys.platform == 'darwin':  # For Linux or macOS
+                mp.set_start_method("spawn")
+            elif mp.get_start_method(allow_none=True) is None:
                 mp.set_start_method("spawn")
         except RuntimeError as e:
             print("Start method has already been set. Details:", e)
@@ -715,6 +718,7 @@ class CoquiEngine(BaseEngine):
                         for i, chunk in enumerate(chunks):
                             chunk = postprocess_wave(chunk)
                             chunk_bytes = chunk.tobytes()
+
                             conn.send(("success", chunk_bytes))
                             chunk_duration = len(chunk_bytes) / (
                                 4 * 24000
@@ -942,6 +946,7 @@ class CoquiEngine(BaseEngine):
                         logging.error(f"Error synthesizing text: {text}")
                         logging.error(f"Error: {result}")
                     return False
+
                 self.queue.put(result)
                 status, result = self.parent_synthesize_pipe.recv()
 

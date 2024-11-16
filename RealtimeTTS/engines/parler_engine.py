@@ -5,6 +5,7 @@ from threading import Thread
 from typing import Union
 import pyaudio
 import torch
+import time
 
 
 class ParlerVoice:
@@ -24,6 +25,7 @@ class ParlerEngine(BaseEngine):
         torch_dtype=torch.bfloat16,
         buffer_duration_s=1.0,
         play_steps_in_s=0.5,
+        print_time_to_first_token=False,
     ):
         """
         Initializes the Parler TTS engine.
@@ -43,6 +45,7 @@ class ParlerEngine(BaseEngine):
         self.play_steps_in_s = play_steps_in_s
         self.voice_parameters = {}
         self.buffer_duration_s = buffer_duration_s
+        self.print_time_to_first_token = print_time_to_first_token
 
         self.initialize_model()
 
@@ -91,6 +94,7 @@ class ParlerEngine(BaseEngine):
         Args:
             text (str): Text to synthesize.
         """
+        start_time = time.time()
         frame_rate = self.model.audio_encoder.config.frame_rate
         sampling_rate = self.model.audio_encoder.config.sampling_rate
 
@@ -154,6 +158,7 @@ class ParlerEngine(BaseEngine):
             self.queue.put(buffered_chunk.tobytes())
 
         # Continue streaming the rest of the audio
+        first_token = False
         while not generation_completed:
             try:
                 new_audio = next(streamer)
@@ -162,7 +167,11 @@ class ParlerEngine(BaseEngine):
                     generation_completed = True
                     break
                 audio_chunk = new_audio
+                if not first_token and self.print_time_to_first_token:
+                    end_time = time.time()
+                    print(f"Time to first token: {end_time - start_time:.2f} s")
                 self.queue.put(audio_chunk.tobytes())
+                first_token = True
             except StopIteration:
                 generation_completed = True
                 break
