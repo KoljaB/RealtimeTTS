@@ -41,3 +41,8 @@ try:
     from .parler_engine import ParlerEngine, ParlerVoice  # noqa: F401
 except ImportError as e:
     ParlerEngine, ParlerVoice = None, None
+
+try:
+    from .style_engine import StyleTTSEngine  # noqa: F401
+except ImportError as e:
+    StyleTTSEngine = None
