@@ -135,14 +135,17 @@ class AudioStream:
         desired_rate = self.config.rate
         pyOutput_device_index = self.config.output_device_index
 
-        # Determine the best sample rate
-        best_rate = self._get_best_sample_rate(pyOutput_device_index, desired_rate)
-        self.actual_sample_rate = best_rate
-
         if self.config.muted:
             logging.debug("Muted mode, no opening stream")
+            
+            # can't determine best sample rate so we assume 16000 instead
+            self.actual_sample_rate = desired_rate
 
         else:
+            # Determine the best sample rate
+            best_rate = self._get_best_sample_rate(pyOutput_device_index, desired_rate)
+            self.actual_sample_rate = best_rate
+
             if self.config.format == pyaudio.paCustomFormat:
                 pyFormat = self.pyaudio_instance.get_format_from_width(2)
                 logging.debug(

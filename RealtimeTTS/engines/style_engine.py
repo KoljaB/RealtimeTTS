@@ -1,19 +1,25 @@
 from .base_engine import BaseEngine
-import torch
-import numpy as np
 from queue import Queue
+import numpy as np
+import torch
+import sys
 import os
 
+
 class StyleTTSEngine(BaseEngine):
-    def __init__(self, model_config_path: str, model_checkpoint_path: str, device: str = 'cuda'):
+    def __init__(self, style_root: str, model_config_path: str, model_checkpoint_path: str, device: str = 'cuda'):
         """
         Initializes the StyleTTS engine.
         Args:
+            style_root (str): Path to the root directory of the StyleTTS repository. If you use relative paths, consider you have to reference from the RealtimeTTS engine's root directory.
             model_config_path (str): Path to the StyleTTS model config YAML file.
             model_checkpoint_path (str): Path to the pre-trained StyleTTS model checkpoint.
             device (str): Device to run inference on ('cuda' or 'cpu').
         """
         self.device = device if torch.cuda.is_available() else 'cpu'
+        # Add the root directory to sys.path
+        sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), style_root)))
+
         self.queue = Queue()
         self.load_model(model_config_path, model_checkpoint_path)
         self.post_init()
@@ -65,8 +71,8 @@ class StyleTTSEngine(BaseEngine):
         import torchaudio
         from nltk.tokenize import word_tokenize
         from munch import Munch
-        from models import build_model
-        from utils import load_ASR_models, load_F0_models, recursive_munch
+        from models import build_model, load_ASR_models, load_F0_models
+        from utils import recursive_munch
         from text_utils import TextCleaner
         from Modules.diffusion.sampler import DiffusionSampler, ADPM2Sampler, KarrasSchedule
         import numpy as np
