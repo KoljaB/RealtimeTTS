@@ -97,6 +97,12 @@ You may want to use this together with the parameter "muted=True" of stream.play
 ## I have probs running this on Linux/Unix
 
 Try:
+
+```bash
+sudo apt install portaudio19-dev
+```
+
+If this is not sufficient you might also try:
 ```bash
 sudo apt update
 sudo apt install python3-dev build-essential
