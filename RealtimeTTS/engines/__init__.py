@@ -41,3 +41,10 @@ try:
     from .parler_engine import ParlerEngine, ParlerVoice  # noqa: F401
 except ImportError as e:
     ParlerEngine, ParlerVoice = None, None
+
+try:
+    from .edge_engine import EdgeEngine, EdgeVoice  # noqa: F401
+except ImportError as e:
+    print("EdgeEngine not found")
+    EdgeEngine, EdgeVoice = None, None
+

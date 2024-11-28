@@ -60,7 +60,7 @@ class OpenAIEngine(BaseEngine):
         response = self.client.audio.speech.create(
             model=self.model,
             voice=self.voice,
-            input=text,
+            input=text
         )
 
         for data in response.iter_bytes():

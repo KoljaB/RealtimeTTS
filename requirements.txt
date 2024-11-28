@@ -16,6 +16,9 @@ openai==1.54.3
 # pyttsx3 is for SystemEngine
 pyttsx3==2.98
 
+# edge-tts is for EdgeEngine
+edge-tts==6.1.19
+
 # pyaudio is for playing chunks over output device
 pyaudio==0.2.14
 

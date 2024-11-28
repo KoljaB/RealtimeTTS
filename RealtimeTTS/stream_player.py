@@ -166,7 +166,10 @@ class AudioStream:
                     output=True,
                 )
             except Exception as e:
-                print(f"Error opening stream: {e}")
+                print(
+                    "Error opening stream with parameters:"
+                    f" format={pyFormat}, channels={pyChannels}, rate={best_rate}, output_device_index={pyOutput_device_index}"
+                    f"Error message: {e}")
 
                 # Get the number of available audio devices
                 device_count = self.pyaudio_instance.get_device_count()
@@ -319,14 +322,15 @@ class StreamPlayer:
             chunk: Chunk of audio data to be played.
         """
 
-        sample_width = self.audio_stream.pyaudio_instance.get_sample_size(self.audio_stream.config.format)
-        channels = self.audio_stream.config.channels
-
         # handle mpeg
         if self.audio_stream.config.format == pyaudio.paCustomFormat:
-            # convert to pcm using pydub
             segment = AudioSegment.from_file(io.BytesIO(chunk), format="mp3")
             chunk = segment.raw_data
+            sample_width = segment.sample_width
+            channels = segment.channels
+        else:
+            sample_width = self.audio_stream.pyaudio_instance.get_sample_size(self.audio_stream.config.format)
+            channels = self.audio_stream.config.channels
 
         if self.audio_stream.config.rate != self.audio_stream.actual_sample_rate:
             if self.audio_stream.config.format == pyaudio.paFloat32:

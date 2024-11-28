@@ -118,7 +118,7 @@ class TextToAudioStream:
         format, channels, rate = self.engine.get_stream_info()
 
         # Check if the engine doesn't support consuming generators directly
-        if not self.engine.can_consume_generators:
+        if not self.engine.can_consume_generators and not self.engine.can_playout:
             config = AudioConfiguration(
                 format,
                 channels,
@@ -337,8 +337,9 @@ class TextToAudioStream:
         else:
             try:
                 # Start the audio player to handle playback
-                self.player.start()
-                self.player.on_audio_chunk = self._on_audio_chunk
+                if self.player: 
+                    self.player.start()
+                    self.player.on_audio_chunk = self._on_audio_chunk
 
                 # Generate sentences from the characters
                 generate_sentences = s2s.generate_sentences(
@@ -451,7 +452,8 @@ class TextToAudioStream:
 
             finally:
                 try:
-                    self.player.stop()
+                    if self.player: 
+                        self.player.stop()
 
                     self.abort_events.remove(abort_event)
                     self.stream_running = False
@@ -465,7 +467,10 @@ class TextToAudioStream:
                         self.wf.close()
                         self.wf = None
 
-            if len(self.char_iter.items) > 0 and self.char_iter.iterated_text == "":
+            if (len(self.char_iter.items) > 0
+                and self.char_iter.iterated_text == ""
+                and not self.char_iter.immediate_stop.is_set()):
+
                 # new text was feeded while playing audio but after the last character was processed
                 # we need to start another play() call (!recursively!)
                 self.play(
@@ -690,7 +695,10 @@ class TextToAudioStream:
         # Iterates over each chunk from the provided generator
         for chunk in generator:
             # Fetch the total seconds of buffered audio
-            buffered_audio_seconds = self.player.get_buffered_seconds()
+            if self.player:
+                buffered_audio_seconds = self.player.get_buffered_seconds()
+            else:
+                buffered_audio_seconds = 0
 
             # Append the current chunk (and a space) to the accumulated synthesis_chunk
             synthesis_chunk += chunk + " "

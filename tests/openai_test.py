@@ -1,12 +1,12 @@
 if __name__ == "__main__":
-    from RealtimeTTS import TextToAudioStream, ParlerEngine
+    from RealtimeTTS import TextToAudioStream, OpenAIEngine
 
     def dummy_generator():
         yield "Hey guys! These here are realtime spoken sentences based on local text synthesis. "
         yield "With a local, neuronal, cloned voice. So every spoken sentence sounds unique."
 
     # for normal use with minimal logging:
-    engine = ParlerEngine(print_time_to_first_token=True)
+    engine = OpenAIEngine()
 
     # test with extended logging:
     # import logging

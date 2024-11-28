@@ -19,16 +19,16 @@ class GTTSVoice:
         tld: str = "com",
         chunk_length: int = 100,
         crossfade_length: int = 10,
-        speed_increase: float = 1.0,
+        speed: float = 1.0,
     ):
         self.language = language
         self.tld = tld
         self.chunk_length = chunk_length
         self.crossfade_length = crossfade_length
-        self.speed_increase = speed_increase
+        self.speed = speed
 
     def __repr__(self):
-        return f"{self.language} ({self.tld}), Chunk: {self.chunk_length}, Crossfade: {self.crossfade_length}, Speedup: {self.speed_increase}"
+        return f"{self.language} ({self.tld}), Chunk: {self.chunk_length}, Crossfade: {self.crossfade_length}, Speedup: {self.speed}"
 
 
 class GTTSEngine(BaseEngine):
@@ -82,9 +82,9 @@ class GTTSEngine(BaseEngine):
 
                 audio = AudioSegment.from_file(f, format="mp3")
 
-                if self.voice.speed_increase != 1.0:
+                if self.voice.speed != 1.0:
                     audio = audio.speedup(
-                        playback_speed=self.voice.speed_increase,
+                        playback_speed=self.voice.speed,
                         chunk_size=self.voice.chunk_length,
                         crossfade=self.voice.crossfade_length,
                     )

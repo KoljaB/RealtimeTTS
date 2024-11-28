@@ -5,7 +5,7 @@ if __name__ == "__main__":
         yield "Hey guys! These here are realtime spoken sentences based on gtts text synthesis. "
         yield "With a voice based on google translate. "
 
-    voice = GTTSVoice(speed_increase=1.4)
+    voice = GTTSVoice(speed=1.3)
     engine = GTTSEngine(voice)
     stream = TextToAudioStream(engine)
 

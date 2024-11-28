@@ -30,6 +30,9 @@ class BaseEngine(ABC, metaclass=BaseInitMeta):
         # Indicates if the engine can handle generators.
         self.can_consume_generators = False
 
+        # Indicates if the engine can playout for itself.
+        self.can_playout = False
+
         # Queue to manage tasks or data for the engine.
         self.queue = queue.Queue()
 
