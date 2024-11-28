@@ -58,7 +58,7 @@ Let me know if you need any adjustments or additional languages!
 
 ## Updates
 
-Latest Version: v0.4.9
+Latest Version: v0.4.12
 
 See [release history](https://github.com/KoljaB/RealtimeTTS/releases).
 
@@ -96,6 +96,8 @@ This library uses:
 ## Installation
 
 > **Note:** Basic Installation with `pip install realtimetts` is not recommended anymore, use `pip install realtimetts[all]` instead.
+
+> **Note:** Set `output_device_index` in TextToAudioStream if needed. Linux users: Install portaudio via `apt-get install -y portaudio19-dev`
 
 The RealtimeTTS library provides installation options for various dependencies for your use case. Here are the different ways you can install RealtimeTTS depending on your needs:
 
@@ -567,7 +569,7 @@ To use a torch with support via CUDA please follow these steps:
         To update PyTorch and Torchaudio to support CUDA 11.8, use the following commands:
 
         ```bash
-        pip install torch==2.3.1+cu118 torchaudio==2.3.1 --index-url https://download.pytorch.org/whl/cu118
+        pip install torch==2.5.1+cu118 torchaudio==2.5.1 --index-url https://download.pytorch.org/whl/cu118
         ```
 
     - **For CUDA 12.X:**
@@ -576,7 +578,7 @@ To use a torch with support via CUDA please follow these steps:
         To update PyTorch and Torchaudio to support CUDA 12.X, execute the following:
 
         ```bash
-        pip install torch==2.3.1+cu121 torchaudio==2.3.1 --index-url https://download.pytorch.org/whl/cu121
+        pip install torch==2.5.1+cu121 torchaudio==2.5.1 --index-url https://download.pytorch.org/whl/cu121
         ```
 
     Replace `2.3.1` with the version of PyTorch that matches your system and requirements.
