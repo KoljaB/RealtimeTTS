@@ -26,7 +26,7 @@ https://github.com/KoljaB/RealtimeTTS/assets/7604638/87dcd9a5-3a4e-4f57-be45-837
 - **High-Quality Audio**
   - generates clear and natural-sounding speech
 - **Multiple TTS Engine Support**
-  - supports OpenAI TTS, Elevenlabs, Azure Speech Services, Coqui TTS, gTTS, Parler TTS and System TTS
+  - supports OpenAI TTS, Elevenlabs, Azure Speech Services, Coqui TTS, gTTS, Edge TTS, Parler TTS and System TTS
 - **Multilingual**
 - **Robust and Reliable**:
   - ensures continuous operation through a fallback mechanism
@@ -78,13 +78,14 @@ pip install "numpy<2"
 This library uses:
 
 - **Text-to-Speech Engines**
-  - **OpenAIEngine**: OpenAI's TTS system offers 6 natural sounding voices.
-  - **CoquiEngine**: High quality local neural TTS.
-  - **AzureEngine**: Microsoft's leading TTS technology. 500,000 chars free per month.
-  - **ElevenlabsEngine**: Offers the best sounding voices available.
-  - **GTTSEngine**: Free to use and doesn't require setting up a local GPU.
-  - **ParlerEngine**: If you have a very strong GPU and need voice prompting.
-  - **SystemEngine**: Native engine for quick setup.
+  - **OpenAIEngine** 🌐: OpenAI's TTS with 6 premium voices
+  - **CoquiEngine** 💻: High-quality neural TTS with local processing
+  - **AzureEngine** 🌐: Microsoft's TTS with 500k free chars/month
+  - **ElevenlabsEngine** 🌐: Premium voice quality with extensive options
+  - **GTTSEngine** 🌐: Free Google Translate TTS, no GPU needed
+  - **EdgeEngine** 🌐: Edge free TTS service (Microsoft Azure)
+  - **ParlerEngine** 💻: Local neural TTS for high-end GPUs
+  - **SystemEngine** 💻: Built-in system TTS for quick setup
 
 - **Sentence Boundary Detection**
   - **NLTK Sentence Tokenizer**: Natural Language Toolkit's sentence tokenizer for straightforward text-to-speech tasks in English or when simplicity is preferred.
@@ -108,28 +109,19 @@ pip install -U realtimetts[all]
 
 ### Custom Installation
 
-RealtimeTTS allows for custom installation with minimal library installations. Here are the options available:
-- **all**: Full installation with every engine supported.
-- **system**: Includes system-specific TTS capabilities (e.g., pyttsx3).
-- **azure**: Adds Azure Cognitive Services Speech support.
-- **elevenlabs**: Includes integration with ElevenLabs API.
-- **openai**: For OpenAI voice services.
-- **gtts**: Google Text-to-Speech support.
-- **coqui**: Installs the Coqui TTS engine.
-- **minimal**: Installs only the base requirements with no engine (only needed if you want to develop an own engine)
+Install only required dependencies using these options:
 
+- **all**: Complete package with all engines
+- **system**: Local system TTS via pyttsx3
+- **azure**: Azure Speech Services support
+- **elevenlabs**: ElevenLabs API integration
+- **openai**: OpenAI TTS services
+- **gtts**: Google Text-to-Speech
+- **edge**: Microsoft Edge TTS
+- **coqui**: Coqui TTS engine
+- **minimal**: Core package only (for custom engine development)
 
-Say you want to install RealtimeTTS only for local neuronal Coqui TTS usage, then you should use:
-
-```bash
-pip install realtimetts[coqui]
-```
-
-For example, if you want to install RealtimeTTS with only Azure Cognitive Services Speech, ElevenLabs, and OpenAI support:
-
-```bash
-pip install realtimetts[azure,elevenlabs,openai]
-```
+Example: `pip install realtimetts[all]`, `pip install realtimetts[azure]`, `pip install realtimetts[azure,elevenlabs,openai]`
 
 ### Virtual Environment Installation
 
