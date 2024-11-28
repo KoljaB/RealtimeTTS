@@ -79,13 +79,16 @@ This library uses:
 
 - **Text-to-Speech Engines**
   - **OpenAIEngine** 🌐: OpenAI's TTS with 6 premium voices
-  - **CoquiEngine** 💻: High-quality neural TTS with local processing
+  - **CoquiEngine** 🏠: High-quality neural TTS with local processing
   - **AzureEngine** 🌐: Microsoft's TTS with 500k free chars/month
   - **ElevenlabsEngine** 🌐: Premium voice quality with extensive options
   - **GTTSEngine** 🌐: Free Google Translate TTS, no GPU needed
   - **EdgeEngine** 🌐: Edge free TTS service (Microsoft Azure)
-  - **ParlerEngine** 💻: Local neural TTS for high-end GPUs
-  - **SystemEngine** 💻: Built-in system TTS for quick setup
+  - **ParlerEngine** 🏠: Local neural TTS for high-end GPUs
+  - **SystemEngine** 🏠: Built-in system TTS for quick setup
+
+🏠 Local processing (no internet required)
+🌐 Requires internet connection
 
 - **Sentence Boundary Detection**
   - **NLTK Sentence Tokenizer**: Natural Language Toolkit's sentence tokenizer for straightforward text-to-speech tasks in English or when simplicity is preferred.
