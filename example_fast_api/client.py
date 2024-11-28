@@ -109,17 +109,22 @@ def play_audio():
 def request_tts(text):
     global start_time
     start_time = time.time()
-    response = requests.get(SERVER_URL, params={"text": text}, stream=True)
+    try:
+        response = requests.get(SERVER_URL, params={"text": text}, stream=True, timeout=10)
+        response.raise_for_status()  # Raises an HTTPError if the response status is 4xx/5xx
 
-    # Read data as it becomes available
-    for chunk in response.iter_content(chunk_size=None):
-        if chunk:
-            if write_to_file:
+        # Read data as it becomes available
+        for chunk in response.iter_content(chunk_size=None):
+            if chunk and write_to_file:
                 wav_file.writeframes(chunk)
-            chunk_queue.put(chunk)
+                chunk_queue.put(chunk)
+        
+        # Signal the end of the stream
+        chunk_queue.put(None)
 
-    # Signal the end of the stream
-    chunk_queue.put(None)
+    except requests.exceptions.RequestException as e:
+        print(f"Error occurred: {e}")
+        chunk_queue.put(None)  # Ensure that playback thread exits gracefully
 
 # Start audio playback thread
 playback_thread = threading.Thread(target=play_audio)

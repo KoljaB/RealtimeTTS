@@ -1,3 +1,6 @@
+RealtimeTTS[coqui]
+fastapi==0.115.4
+uvicorn==0.32.0
 fairseq==0.12.2
 faiss-cpu==1.7.3
 huggingface_hub==0.24.5
