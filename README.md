@@ -99,8 +99,6 @@ This library uses:
 
 > **Note:** Set `output_device_index` in TextToAudioStream if needed. Linux users: Install portaudio via `apt-get install -y portaudio19-dev`
 
-> **Note:** I noticed you have to manually do `pip install resampy` currently. I have no idea why this not installed 
-
 The RealtimeTTS library provides installation options for various dependencies for your use case. Here are the different ways you can install RealtimeTTS depending on your needs:
 
 ### Full Installation
@@ -109,7 +107,6 @@ To install RealtimeTTS with support for all TTS engines:
 
 ```bash
 pip install -U realtimetts[all]
-pip install resampy
 ```
 
 ### Custom Installation
