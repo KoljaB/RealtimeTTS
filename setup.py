@@ -1,4 +1,4 @@
-current_version = "0.4.12"
+current_version = "0.4.13"
 
 import setuptools
 
@@ -6,6 +6,34 @@ import setuptools
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
+long_description = """
+To install RealTimeTTS, you need to specify the TTS engine(s) you wish to use. 
+
+For example, to install all supported engines:
+
+    pip install realtimetts[all]
+
+To install with the Coqui TTS engine:
+
+    pip install realtimetts[coqui]
+
+Available engine options include:
+
+- **all**: Install all supported engines
+- **system**: Local system TTS via `pyttsx3`
+- **azure**: Azure Speech Services support
+- **elevenlabs**: ElevenLabs API integration
+- **openai**: OpenAI TTS services
+- **gtts**: Google Text-to-Speech
+- **edge**: Microsoft Edge TTS
+- **coqui**: Coqui TTS engine
+- **minimal**: Core package only (for custom engine development)
+
+You can install multiple engines by separating them with commas. For example:
+
+    pip install realtimetts[azure,elevenlabs,openai]
+
+""" + long_description
 
 # Read requirements.txt and parse it
 def parse_requirements(filename):
@@ -31,6 +59,7 @@ base_requirements = [
     requirements["stream2sentence"],
     requirements["pydub"],
     requirements["pyaudio"],
+    requirements["resampy"],
 ]
 
 # Define subsets of requirements for each engine
