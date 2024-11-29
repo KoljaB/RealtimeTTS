@@ -1,4 +1,4 @@
-current_version = "0.4.13"
+current_version = "0.4.14"
 
 import setuptools
 
@@ -7,7 +7,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 long_description = """
-To install RealTimeTTS, you need to specify the TTS engine(s) you wish to use. 
+To install realtimetts, you need to specify the TTS engine(s) you wish to use. 
 
 For example, to install all supported engines:
 
@@ -85,14 +85,14 @@ extras_require = {
 }
 
 setuptools.setup(
-    name="RealTimeTTS",
+    name="realtimetts",
     version=current_version,
     author="Kolja Beigel",
     author_email="kolja.beigel@web.de",
     description="Stream text into audio with an easy-to-use, highly configurable library delivering voice output with minimal latency.",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/KoljaB/RealTimeTTS",
+    url="https://github.com/KoljaB/realtimetts",
     packages=setuptools.find_packages(),
     classifiers=[
         "Programming Language :: Python :: 3",

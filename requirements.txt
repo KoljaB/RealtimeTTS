@@ -1,3 +1,6 @@
+# stream2sentence is the core of RealtimeTTS - it quickly converts streamed text into sentences for real-time synthesis
+stream2sentence==0.2.9
+
 # azure-cognitiveservices-speech is for AzureEngine
 azure-cognitiveservices-speech==1.41.1
 
@@ -27,6 +30,3 @@ pydub==0.25.1
 
 # resampy is used to resample from the tts to the target device sample rate 
 resampy==0.4.3
-
-# stream2sentence is to quickly convert streamed text into sentences for real-time synthesis
-stream2sentence==0.2.7

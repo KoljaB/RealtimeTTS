@@ -170,14 +170,14 @@ class TextToAudioStream:
         context_size_look_overhead: int = 12,
         muted: bool = False,
         sentence_fragment_delimiters: str = ".?!;:,\n…)]}。-",
-        force_first_fragment_after_words=15,
+        force_first_fragment_after_words=30,
+        debug=False,
     ):
         """
         Async handling of text to audio synthesis, see play() method.
         """
         if not self.is_playing_flag:
             self.is_playing_flag = True
-            # Pass additional parameter to differentiate external call
             args = (
                 fast_sentence_fragment,
                 fast_sentence_fragment_allsentences,
@@ -200,15 +200,12 @@ class TextToAudioStream:
                 sentence_fragment_delimiters,
                 force_first_fragment_after_words,
                 True,
+                debug,
             )
             self.play_thread = threading.Thread(target=self.play, args=args)
             self.play_thread.start()
         else:
             logging.warning("play_async() called while already playing audio, skipping")
-
-        # self.play_thread = threading.Thread(target=self.play, args=(fast_sentence_fragment, buffer_threshold_seconds, minimum_sentence_length, minimum_first_fragment_length, log_synthesized_text, reset_generated_text, output_wavfile, on_sentence_synthesized, on_audio_chunk, tokenizer, language, context_size, muted, sentence_fragment_delimiters, force_first_fragment_after_words))
-        # self.play_thread.daemon = True
-        # self.play_thread.start()
 
     def play(
         self,
@@ -231,8 +228,9 @@ class TextToAudioStream:
         context_size_look_overhead: int = 12,
         muted: bool = False,
         sentence_fragment_delimiters: str = ".?!;:,\n…)]}。-",
-        force_first_fragment_after_words=15,
+        force_first_fragment_after_words=30,
         is_external_call=True,
+        debug=False,
     ):
         """
         Handles the synthesis of text to audio.
@@ -263,7 +261,9 @@ class TextToAudioStream:
             considered sentence delimiters. Default is ".?!;:,\n…)]}。-".
         - force_first_fragment_after_words (int): The number of words after
             which the first sentence fragment is forced to be yielded.
-            Default is 15 words.
+            Default is 30 words.
+        - is_external_call: If True, the method is called from an external source.
+        - debug: If True, enables debug mode.
         """
         if self.global_muted:
             muted = True
@@ -359,6 +359,7 @@ class TextToAudioStream:
                     log_characters=self.log_characters,
                     sentence_fragment_delimiters=sentence_fragment_delimiters,
                     force_first_fragment_after_words=force_first_fragment_after_words,
+                    debug=debug,
                 )
 
                 # Create the synthesis chunk generator with the given sentences
@@ -490,6 +491,7 @@ class TextToAudioStream:
                     sentence_fragment_delimiters=sentence_fragment_delimiters,
                     force_first_fragment_after_words=force_first_fragment_after_words,
                     is_external_call=False,
+                    debug=debug,
                 )
 
             if is_external_call:
