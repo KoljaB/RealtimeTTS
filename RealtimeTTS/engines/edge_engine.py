@@ -9,12 +9,46 @@ import asyncio
 
 
 class EdgeVoice:
-    def __init__(self, name):
+    def __init__(self, name, full_name=None, gender=None, friendly_name=None, locale=None, status=None, suggested_codec=None, voice_tag=None):
         self.name = name
+        self.full_name = full_name
+        self.gender = gender
+        self.friendly_name = friendly_name
+        self.locale = locale
+        self.status = status
+        self.suggested_codec = suggested_codec
+        self.voice_tag = voice_tag
+
+    def __str__(self):
+        # ANSI color codes for short format
+        YELLOW = '\033[33m'
+        RESET = '\033[0m'
+        BLUE = '\033[38;2;51;153;255m'
+        PINK = '\033[38;2;255;128;128m'
+
+        return f"{YELLOW}{self.name}{RESET} ({BLUE if self.gender.lower() == 'male' else PINK}{self.gender}{RESET})"
 
     def __repr__(self):
-        return f"{self.name}"
+        # ANSI color codes
+        YELLOW = '\033[33m'
+        RESET = '\033[0m'
+        BLUE = '\033[38;2;51;153;255m'
+        PINK = '\033[38;2;255;128;128m'
 
+        # Format tags with proper indentation aligned with vertical bar
+        tags = '\n'.join(f"  • {k}: {YELLOW}{v}{RESET}" for k, v in self.voice_tag.items())
+
+        return f"""\
+Name:   {YELLOW}{self.name}{RESET}
+Gender: {BLUE if self.gender.lower() == 'male' else PINK}{self.gender}{RESET}
+Full:   {YELLOW}{self.full_name}{RESET}
+Human:  {YELLOW}{self.friendly_name}{RESET}
+Locale: {YELLOW}{self.locale}{RESET}
+Status: {YELLOW}{self.status}{RESET}
+Codec:  {YELLOW}{self.suggested_codec}{RESET}
+Tags:
+{tags}
+"""
 
 class EdgeEngine(BaseEngine):
     def __init__(
@@ -34,7 +68,6 @@ class EdgeEngine(BaseEngine):
         self.current_voice = None
 
     def post_init(self):
-        self.can_playout = True
         self.engine_name = "edge"
 
     def get_stream_info(self):
@@ -55,25 +88,8 @@ class EdgeEngine(BaseEngine):
         return pyaudio.paCustomFormat, -1, -1
 
     def synthesize(self, text):
-        if not self.is_installed("mpv"):
-            message = (
-                "mpv not found, necessary to stream audio. "
-                "On mac you can install it with 'brew install mpv'. "
-                "On linux and windows you can install it from https://mpv.io/"
-            )
-            raise ValueError(message)
-
-        if not self.muted:
-            mpv_command = ["mpv", "--no-cache", "--no-terminal", "--", "fd://0"]
-            self.mpv_process = subprocess.Popen(
-                mpv_command,
-                stdin=subprocess.PIPE,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-            )
 
         self.on_playback_started = False
-        print(f"Synthesizing text: {text}")
 
         if self.current_voice is None:
             self.set_voice("en-US-EmmaMultilingualNeural")
@@ -93,8 +109,8 @@ class EdgeEngine(BaseEngine):
         async def process_stream():
             try:
                 async for chunk in communicate.stream():
-                    chunk_queue.put(chunk)
-                chunk_queue.put(None)  # Signal end of stream
+                    if chunk["type"] == "audio":
+                        self.queue.put(chunk["data"])
             except Exception as e:
                 print(f"Stream processing error: {e}")
                 chunk_queue.put(None)
@@ -106,35 +122,9 @@ class EdgeEngine(BaseEngine):
 
         thread = threading.Thread(target=run_async_stream)
         thread.start()
+        thread.join()
 
-        # Process chunks as they arrive
-        try:
-            while True:
-                chunk = chunk_queue.get()
-                if chunk is None:
-                    break
-                if chunk["type"] == "audio":
-                    audio_chunk = chunk["data"]
-
-                    if not self.on_playback_started and self.on_playback_start:
-                        self.on_playback_start()
-                    self.on_playback_started = True
-                    if not self.muted:
-                        self.mpv_process.stdin.write(audio_chunk)
-                        self.mpv_process.stdin.flush()
-                    if self.on_audio_chunk:
-                        self.on_audio_chunk(audio_chunk)
-            return True
-        except Exception as e:
-            print(f"Chunk processing error: {e}")
-            return False
-        finally:
-            thread.join()
-
-            if not self.muted:
-                if self.mpv_process.stdin:
-                    self.mpv_process.stdin.close()
-                self.mpv_process.wait()            
+        return True
 
     def get_voices(self):
         """
@@ -153,6 +143,13 @@ class EdgeEngine(BaseEngine):
         for voice_data in voices:
             voice = EdgeVoice(
                 name=voice_data['ShortName'],
+                full_name=voice_data['Name'],
+                gender=voice_data['Gender'],
+                friendly_name=voice_data['FriendlyName'],
+                locale=voice_data['Locale'],
+                status=voice_data['Status'],
+                suggested_codec=voice_data['SuggestedCodec'],
+                voice_tag=voice_data['VoiceTag'],
             )
             voice_objects.append(voice)        
 

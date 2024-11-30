@@ -4,10 +4,12 @@ Stream management
 
 from pydub import AudioSegment
 import numpy as np
+import subprocess
 import threading
 import resampy
 import pyaudio
 import logging
+import shutil
 import queue
 import time
 import io
@@ -55,6 +57,7 @@ class AudioStream:
         self.stream = None
         self.pyaudio_instance = pyaudio.PyAudio()
         self.actual_sample_rate = 0
+        self.mpv_process = None
 
     def get_supported_sample_rates(self, device_index):
         """
@@ -127,6 +130,24 @@ class AudioStream:
             logging.warning(f"Error determining sample rate: {e}")
             return 44100  # Safe fallback
 
+    def is_installed(self, lib_name: str) -> bool:
+        """
+        Check if the given library or software is installed and accessible.
+
+        This method uses shutil.which to determine if the given library or software is
+        installed and available in the system's PATH.
+
+        Args:
+            lib_name (str): Name of the library or software to check.
+
+        Returns:
+            bool: True if the library is installed, otherwise False.
+        """
+        lib = shutil.which(lib_name)
+        if lib is None:
+            return False
+        return True
+
     def open_stream(self):
         """Opens an audio stream."""
 
@@ -135,14 +156,45 @@ class AudioStream:
         desired_rate = self.config.rate
         pyOutput_device_index = self.config.output_device_index
 
-        # Determine the best sample rate
-        best_rate = self._get_best_sample_rate(pyOutput_device_index, desired_rate)
-        self.actual_sample_rate = best_rate
-
         if self.config.muted:
             logging.debug("Muted mode, no opening stream")
 
         else:
+            if self.config.format == pyaudio.paCustomFormat and pyChannels == -1 and desired_rate == -1:
+                logging.debug("Opening mpv stream for mpeg audio chunks, no need to determine sample rate")
+                if not self.is_installed("mpv"):
+                    message = (
+                        "mpv not found, necessary to stream audio. "
+                        "On mac you can install it with 'brew install mpv'. "
+                        "On linux and windows you can install it from https://mpv.io/"
+                    )
+                    raise ValueError(message)
+
+                mpv_command = [
+                    "mpv",
+                    "--no-terminal",
+                    "--stream-buffer-size=4096",
+                    "--demuxer-max-bytes=4096",
+                    "--demuxer-max-back-bytes=4096",
+                    "--ad-queue-max-bytes=4096",
+                    "--cache=no",
+                    "--cache-secs=0",
+                    "--",
+                    "fd://0"
+                ]
+
+                self.mpv_process = subprocess.Popen(
+                    mpv_command,
+                    stdin=subprocess.PIPE,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
+                return
+
+            # Determine the best sample rate
+            best_rate = self._get_best_sample_rate(pyOutput_device_index, desired_rate)
+            self.actual_sample_rate = best_rate
+
             if self.config.format == pyaudio.paCustomFormat:
                 pyFormat = self.pyaudio_instance.get_format_from_width(2)
                 logging.debug(
@@ -205,6 +257,11 @@ class AudioStream:
             self.stop_stream()
             self.stream.close()
             self.stream = None
+        elif self.mpv_process:
+            if self.mpv_process.stdin:
+                self.mpv_process.stdin.close()
+            self.mpv_process.wait()
+            self.mpv_process.terminate()
 
     def is_stream_active(self) -> bool:
         """
@@ -221,11 +278,12 @@ class AudioBufferManager:
     Manages an audio buffer, allowing addition and retrieval of audio data.
     """
 
-    def __init__(self, audio_buffer: queue.Queue):
+    def __init__(self, audio_buffer: queue.Queue, config: AudioConfiguration):
         """
         Args:
             audio_buffer (queue.Queue): Queue to be used as the audio buffer.
         """
+        self.config = config
         self.audio_buffer = audio_buffer
         self.total_samples = 0
 
@@ -261,7 +319,32 @@ class AudioBufferManager:
         """
         try:
             chunk = self.audio_buffer.get(timeout=timeout)
-            self.total_samples -= len(chunk) // 2
+            # Map PyAudio format to bytes per sample
+            format_bytes = {
+                pyaudio.paCustomFormat: 4,
+                pyaudio.paFloat32: 4,
+                pyaudio.paInt32: 4,
+                pyaudio.paInt24: 3,
+                pyaudio.paInt16: 2,
+                pyaudio.paInt8: 1,
+                pyaudio.paUInt8: 1
+            }
+
+            # Get format and channels from config
+            audio_format = self.config.format
+            channels = self.config.channels
+
+            # Log if format is unknown
+            if audio_format not in format_bytes:
+                print(f"Warning: Unknown audio format {audio_format} (0x{audio_format:x})")
+                print(f"Available formats: {[hex(k) for k in format_bytes.keys()]}")
+                format_bytes[audio_format] = 4  # Default to 4 bytes
+
+            # Calculate bytes per frame
+            bytes_per_frame = format_bytes[audio_format] * channels
+
+            # Update total samples counter
+            self.total_samples -= len(chunk) // bytes_per_frame
             return chunk
         except queue.Empty:
             return None
@@ -302,7 +385,7 @@ class StreamPlayer:
             on_playback_stop (Callable, optional): Callback function to be
               called at the stop of playback. Defaults to None.
         """
-        self.buffer_manager = AudioBufferManager(audio_buffer)
+        self.buffer_manager = AudioBufferManager(audio_buffer, config)
         self.audio_stream = AudioStream(config)
         self.playback_active = False
         self.immediate_stop = threading.Event()
@@ -323,6 +406,29 @@ class StreamPlayer:
         """
 
         # handle mpeg
+        if self.audio_stream.config.format == pyaudio.paCustomFormat and self.audio_stream.config.channels == -1 and self.audio_stream.config.rate == -1:
+            try:
+                # Pause playback if the event is set
+                if not self.first_chunk_played and self.on_playback_start:
+                    self.on_playback_start()
+                    self.first_chunk_played = True
+
+                if not self.muted:
+                    if self.audio_stream.mpv_process and self.audio_stream.mpv_process.stdin:
+                        self.audio_stream.mpv_process.stdin.write(chunk)
+                        self.audio_stream.mpv_process.stdin.flush()
+
+                if self.on_audio_chunk:
+                    self.on_audio_chunk(chunk)
+
+                import time
+                while self.pause_event.is_set():
+                    time.sleep(0.01)
+
+            except Exception as e:
+                print(f"Error sending audio data to mpv: {e}")
+            return
+
         if self.audio_stream.config.format == pyaudio.paCustomFormat:
             segment = AudioSegment.from_file(io.BytesIO(chunk), format="mp3")
             chunk = segment.raw_data
@@ -412,10 +518,11 @@ class StreamPlayer:
         Returns:
             float: Duration of buffered audio in seconds.
         """
-        total_samples = sum(
-            len(chunk) // 2 for chunk in list(self.buffer_manager.audio_buffer.queue)
-        )
-        return total_samples / self.audio_stream.config.rate
+        return self.buffer_manager.get_buffered_seconds(self.audio_stream.config.rate)
+        # total_samples = sum(
+        #     len(chunk) // 2 for chunk in list(self.buffer_manager.audio_buffer.queue)
+        # )
+        # return total_samples / self.audio_stream.config.rate
 
     def start(self):
         """Starts audio playback."""

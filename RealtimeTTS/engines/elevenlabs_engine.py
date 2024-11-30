@@ -6,6 +6,7 @@ import subprocess
 import threading
 import logging
 import pyaudio
+import os
 
 
 class ElevenlabsVoice:
@@ -54,11 +55,14 @@ class ElevenlabsEngine(BaseEngine):
         self.stability = stability
         self.style_exxageration = style_exxageration
         self.model = model
-        self.pause_event = threading.Event()
-        self.immediate_stop = threading.Event()
-        self.on_audio_chunk = None
-        self.muted = False
-        self.on_playback_started = False
+        if not api_key:
+            api_key = os.environ.get("ELEVENLABS_API_KEY")
+        if not api_key:
+            raise ValueError(
+                "Missing ElevenLabs API key. Either:\n"
+                "1. Pass the API key as a parameter\n" 
+                "2. Set ELEVENLABS_API_KEY environment variable"
+            )
 
         self.client = ElevenLabs(api_key=api_key)
 
@@ -79,23 +83,6 @@ class ElevenlabsEngine(BaseEngine):
         """
         return pyaudio.paCustomFormat, -1, -1
 
-    def pause(self):
-        """Pauses playback of the synthesized audio stream (won't work properly with elevenlabs)."""
-        self.pause_event.set()
-
-    def set_muted(self, muted: bool):
-        """Mutes the audio stream."""
-        self.muted = muted
-
-    def resume(self):
-        """Resumes a previously paused playback of the synthesized audio stream (won't work properly with elevenlabs)."""
-        self.pause_event.clear()
-
-    def stop(self):
-        """Stops the playback of the synthesized audio stream immediately."""
-        self.mpv_process.terminate()
-        return True
-
     def synthesize(self, generator: Iterator[str]) -> bool:
         """
         Synthesizes text to audio stream.
@@ -103,10 +90,6 @@ class ElevenlabsEngine(BaseEngine):
         Args:
             text (str): Text to synthesize.
         """
-
-        self.on_playback_started = False
-        self.immediate_stop.clear()
-
         voice = Voice(
             voice_id=self.id,
             settings=VoiceSettings(
@@ -121,7 +104,10 @@ class ElevenlabsEngine(BaseEngine):
             text=generator, voice=voice, model=self.model, stream=True
         )
 
-        self.stream(self.audio_stream)
+        # self.stream(self.audio_stream)
+        for chunk in self.audio_stream:
+            if chunk is not None:
+                self.queue.put(chunk)
 
         return True
 
@@ -135,68 +121,6 @@ class ElevenlabsEngine(BaseEngine):
         self.api_key = api_key
         if api_key:
             self.client = ElevenLabs(api_key=api_key)
-
-    def stream(self, audio_stream: Iterator[bytes]) -> bytes:
-        """
-        Stream the audio data using the 'mpv' player.
-
-        This method takes the audio_stream iterator, which contains bytes of audio data,
-        and plays them using the 'mpv' player. The function will continuously feed the
-        'mpv' process with chunks of audio data until the audio is finished or an error
-        occurs.
-
-        If the 'mpv' player is not installed, a ValueError is raised.
-
-        Args:
-            audio_stream (Iterator[bytes]): An iterator that yields bytes of audio data.
-            filename (Optional[str], optional): The filename to save the audio to. Defaults to None.
-
-        Returns:
-            bytes: The concatenated bytes of the entire audio stream.
-
-        Raises:
-            ValueError: If the 'mpv' player is not found.
-        """
-        if not self.is_installed("mpv"):
-            message = (
-                "mpv not found, necessary to stream audio. "
-                "On mac you can install it with 'brew install mpv'. "
-                "On linux and windows you can install it from https://mpv.io/"
-            )
-            raise ValueError(message)
-
-        if not self.muted:
-            mpv_command = ["mpv", "--no-cache", "--no-terminal", "--", "fd://0"]
-            self.mpv_process = subprocess.Popen(
-                mpv_command,
-                stdin=subprocess.PIPE,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-            )
-
-        audio = b""
-
-        try:
-            for chunk in audio_stream:
-                if chunk is not None:
-                    if not self.on_playback_started and self.on_playback_start:
-                        self.on_playback_start()
-                    self.on_playback_started = True
-                    if not self.muted:
-                        self.mpv_process.stdin.write(chunk)
-                        self.mpv_process.stdin.flush()
-                    audio += chunk
-                    if self.on_audio_chunk:
-                        self.on_audio_chunk(chunk)
-        except BrokenPipeError:
-            pass
-
-        if not self.muted:
-            if self.mpv_process.stdin:
-                self.mpv_process.stdin.close()
-            self.mpv_process.wait()
-
-        return audio
 
     def get_voices(self):
         """

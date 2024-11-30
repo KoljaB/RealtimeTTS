@@ -118,21 +118,17 @@ class TextToAudioStream:
         format, channels, rate = self.engine.get_stream_info()
 
         # Check if the engine doesn't support consuming generators directly
-        if not self.engine.can_consume_generators and not self.engine.can_playout:
-            config = AudioConfiguration(
-                format,
-                channels,
-                rate,
-                self.output_device_index,
-                muted=self.global_muted,
-            )
+        config = AudioConfiguration(
+            format,
+            channels,
+            rate,
+            self.output_device_index,
+            muted=self.global_muted,
+        )
 
-            self.player = StreamPlayer(
-                self.engine.queue, config, on_playback_start=self._on_audio_stream_start
-            )
-        else:
-            self.engine.on_playback_start = self._on_audio_stream_start
-            self.player = None
+        self.player = StreamPlayer(
+            self.engine.queue, config, on_playback_start=self._on_audio_stream_start
+        )
 
         logging.info(f"loaded engine {self.engine.engine_name}")
 
@@ -169,7 +165,7 @@ class TextToAudioStream:
         context_size: int = 12,
         context_size_look_overhead: int = 12,
         muted: bool = False,
-        sentence_fragment_delimiters: str = ".?!;:,\n…)]}。-",
+        sentence_fragment_delimiters: str = ".?!;:,\n…。",
         force_first_fragment_after_words=30,
         debug=False,
     ):
@@ -227,7 +223,7 @@ class TextToAudioStream:
         context_size: int = 12,
         context_size_look_overhead: int = 12,
         muted: bool = False,
-        sentence_fragment_delimiters: str = ".?!;:,\n…)]}。-",
+        sentence_fragment_delimiters: str = ".?!;:,\n…。",
         force_first_fragment_after_words=30,
         is_external_call=True,
         debug=False,
@@ -312,18 +308,39 @@ class TextToAudioStream:
         # Check if the engine can handle generators directly
         if self.engine.can_consume_generators:
             try:
+                # Start the audio player to handle playback
+                if self.player:
+                    self.player.start()
+                    self.player.on_audio_chunk = self._on_audio_chunk
+
                 # Directly synthesize audio using the character iterator
                 self.char_iter.log_characters = self.log_characters
 
-                self.engine.on_audio_chunk = self._on_audio_chunk
                 self.engine.synthesize(self.char_iter)
 
-                if self.on_audio_stream_stop:
-                    self.on_audio_stream_stop()
-
             finally:
+
+                try:
+                    if self.player:
+                        self.player.stop()
+
+                    self.abort_events.remove(abort_event)
+                    self.stream_running = False
+                    logging.info("stream stop")
+
+                    self.output_wavfile = None
+                    self.chunk_callback = None
+
+                finally:
+                    if output_wavfile and self.wf:
+                        self.wf.close()
+                        self.wf = None
+
+                if is_external_call:
+                    if self.on_audio_stream_stop:
+                        self.on_audio_stream_stop()
+
                 # Once done, set the stream running flag to False and log the stream stop
-                self.stream_running = False
                 logging.info("stream stop")
 
                 # Accumulate the generated text and reset the character iterators
@@ -337,7 +354,8 @@ class TextToAudioStream:
         else:
             try:
                 # Start the audio player to handle playback
-                if self.player: 
+
+                if self.player:
                     self.player.start()
                     self.player.on_audio_chunk = self._on_audio_chunk
 
@@ -377,7 +395,7 @@ class TextToAudioStream:
 
                         synthesis_successful = False
                         if log_synthesized_text:
-                            logging.info(f"synthesizing: {sentence}")
+                            print(f"\033[96m\033[1m⚡ synthesizing\033[0m \033[37m→ \033[2m'\033[22m{sentence}\033[2m'\033[0m")
 
                         while not synthesis_successful:
                             try:
@@ -453,7 +471,7 @@ class TextToAudioStream:
 
             finally:
                 try:
-                    if self.player: 
+                    if self.player:
                         self.player.stop()
 
                     self.abort_events.remove(abort_event)
@@ -507,10 +525,7 @@ class TextToAudioStream:
         """
         if self.is_playing():
             logging.info("stream pause")
-            if self.engine.can_consume_generators:
-                self.engine.pause()
-            else:
-                self.player.pause()
+            self.player.pause()
 
     def resume(self):
         """
@@ -519,10 +534,7 @@ class TextToAudioStream:
         """
         if self.is_playing():
             logging.info("stream resume")
-            if self.engine.can_consume_generators:
-                self.engine.resume()
-            else:
-                self.player.resume()
+            self.player.resume()
 
     def stop(self):
         """
@@ -534,12 +546,8 @@ class TextToAudioStream:
 
         if self.is_playing():
             self.char_iter.stop()
-            if self.engine.can_consume_generators:
-                if self.engine.stop():
-                    self.stream_running = False
-            else:
-                self.player.stop(immediate=True)
-                self.stream_running = False
+            self.player.stop(immediate=True)
+            self.stream_running = False
 
         if self.play_thread is not None:
             if self.play_thread.is_alive():
