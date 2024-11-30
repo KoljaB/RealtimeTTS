@@ -43,12 +43,6 @@ if __name__ == "__main__":
         for i, voice in enumerate(all_voices):
             gender = str(voice.gender)
             gender_lower = gender.lower()
-            if "fe" not in gender_lower:
-                continue
-
-            locale = voice.locale
-            if "en" not in locale:
-                continue
 
             if print_detailed_voices:
                 print(f"Voice {i + 1}:\n{repr(voice)}")
