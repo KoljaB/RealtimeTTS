@@ -51,6 +51,8 @@ if __name__ == "__main__":
         exit(0)
 
     stream = TextToAudioStream(engine)
+    if voice:
+        engine.set_voice(voice)
 
     def signal_handler(sig, frame):
         print("\nCtrl+C detected. Cleaning up...")
