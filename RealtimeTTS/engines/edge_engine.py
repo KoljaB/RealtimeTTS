@@ -97,9 +97,9 @@ class EdgeEngine(BaseEngine):
         communicate = Communicate(
             text,
             self.current_voice.name,
-            rate=f"+{self.rate}%",
-            volume=f"+{self.volume}%",
-            pitch=f"+{self.pitch}Hz",
+            rate=f"{'+' if self.rate >= 0 else ''}{self.rate}%",
+            volume=f"{'+' if self.volume >= 0 else ''}{self.volume}%",
+            pitch=f"{'+' if self.pitch >= 0 else ''}{self.pitch}Hz",
             proxy=None,
         )        
         # Create queue for passing chunks between async and sync code
