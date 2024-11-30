@@ -58,7 +58,11 @@ Let me know if you need any adjustments or additional languages!
 
 ## Updates
 
-Latest Version: v0.4.14
+Latest Version: v0.4.17
+
+Introducing EdgeTTS engine:
+
+https://github.com/user-attachments/assets/73ec6258-23ba-4bc6-acc7-7351a13c5509
 
 See [release history](https://github.com/KoljaB/RealtimeTTS/releases).
 
