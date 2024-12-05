@@ -438,7 +438,7 @@ class StreamPlayer:
             sample_width = self.audio_stream.pyaudio_instance.get_sample_size(self.audio_stream.config.format)
             channels = self.audio_stream.config.channels
 
-        if self.audio_stream.config.rate != self.audio_stream.actual_sample_rate:
+        if self.audio_stream.config.rate != self.audio_stream.actual_sample_rate and self.audio_stream.actual_sample_rate > 0:
             if self.audio_stream.config.format == pyaudio.paFloat32:
                 audio_data = np.frombuffer(chunk, dtype=np.float32)
                 resampled_data = resampy.resample(audio_data, self.audio_stream.config.rate, self.audio_stream.actual_sample_rate)
