@@ -58,7 +58,10 @@ Let me know if you need any adjustments or additional languages!
 
 ## Updates
 
-Latest Version: v0.4.17
+Latest Version: v0.4.19
+
+Introducing StyleTTS2 engine:
+
 
 Introducing EdgeTTS engine:
 

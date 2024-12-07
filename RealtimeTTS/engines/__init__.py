@@ -45,6 +45,9 @@ except ImportError as e:
 try:
     from .edge_engine import EdgeEngine, EdgeVoice  # noqa: F401
 except ImportError as e:
-    print("EdgeEngine not found")
     EdgeEngine, EdgeVoice = None, None
 
+try:
+    from .style_engine import StyleTTSEngine  # noqa: F401
+except ImportError as e:
+    StyleTTSEngine = None

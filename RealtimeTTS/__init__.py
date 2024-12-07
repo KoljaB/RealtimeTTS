@@ -47,3 +47,8 @@ try:
     from .engines import EdgeEngine, EdgeVoice  # noqa: F401
 except ImportError:
     EdgeEngine, EdgeVoice = None, None
+
+try:
+    from .engines import StyleTTSEngine  # noqa: F401
+except ImportError:
+    StyleTTSEngine = None

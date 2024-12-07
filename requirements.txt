@@ -5,16 +5,16 @@ stream2sentence==0.2.9
 azure-cognitiveservices-speech==1.41.1
 
 # coqui_tts is for CoquiEngine
-coqui_tts==0.24.3
+coqui_tts==0.25.0
 
 # elevenlabs is for ElevenlabsEngine
-elevenlabs==1.12.1
+elevenlabs==1.13.3
 
 # gtts is for GTTSEngine
-gtts==2.5.3
+gtts==2.5.4
 
 # openai is for OpenAIEngine
-openai==1.54.3
+openai==1.57.0
 
 # pyttsx3 is for SystemEngine
 pyttsx3==2.98
