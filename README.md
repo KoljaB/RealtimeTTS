@@ -62,6 +62,7 @@ Latest Version: v0.4.19
 
 Introducing StyleTTS2 engine:
 
+https://github.com/user-attachments/assets/d1634012-ba53-4445-a43a-7042826eedd7
 
 Introducing EdgeTTS engine:
 
