@@ -53,7 +53,7 @@ class BaseEngine(ABC, metaclass=BaseInitMeta):
             "The get_stream_info method must be implemented by the derived class."
         )
 
-    def synthesize(self, text: str) -> bool:
+    def synthesize(self, text: str, *args, **kwargs) -> bool:
         """
         Synthesizes text to audio stream.
 
