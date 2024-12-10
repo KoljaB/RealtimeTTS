@@ -4,18 +4,59 @@ import numpy as np
 import torch
 import sys
 import os
+import gc
+import time
+from numba import cuda
+
+class StyleTTSVoice:
+    def __init__(self,
+                 model_config_path: str,
+                 model_checkpoint_path: str,
+                 ref_audio_path: str):
+        """
+        Represents a StyleTTS voice configuration.
+
+        Args:
+            model_config_path (str): Path to the StyleTTS model configuration file.
+            model_checkpoint_path (str): Path to the StyleTTS model checkpoint file.
+            ref_audio_path (str): Path to the reference audio file for extracting style.
+        """
+        self.model_config_path = model_config_path
+        self.model_checkpoint_path = model_checkpoint_path
+        self.ref_audio_path = ref_audio_path
+
+    def __str__(self):
+        """
+        String representation of the StyleTTS voice configuration.
+        """
+        return (
+            f"StyleTTSVoice("
+            f"Config: {self.model_config_path}, "
+            f"Checkpoint: {self.model_checkpoint_path}, "
+            f"Reference Audio: {self.ref_audio_path})"
+        )
+
+    def __repr__(self):
+        """
+        Detailed representation of the StyleTTS voice configuration.
+        """
+        return (
+            f"StyleTTSVoice:\n"
+            f"  Model Config Path:    {self.model_config_path}\n"
+            f"  Model Checkpoint Path: {self.model_checkpoint_path}\n"
+            f"  Reference Audio Path: {self.ref_audio_path}"
+        )
 
 class StyleTTSEngine(BaseEngine):
     def __init__(self, 
                  style_root: str, 
-                 model_config_path: str, 
-                 model_checkpoint_path: str, 
-                 ref_audio_path: str,  # path to reference audio for style
+                 voice: StyleTTSVoice,
                  device: str = 'cuda',
                  alpha: float = 0.3,
                  beta: float = 0.7,
                  diffusion_steps: int = 5,
-                 embedding_scale: float = 1.0):
+                 embedding_scale: float = 1.0,
+                 cuda_reset_delay: float = 0.0):  # Delay after resetting CUDA device
         """
         Initializes the StyleTTS engine with customizable parameters.
         
@@ -66,18 +107,24 @@ class StyleTTSEngine(BaseEngine):
                 - A higher scale (e.g., 1.2 or 1.5) strengthens the alignment with the text and reference, 
                   potentially enhancing style adherence and expressiveness.
                 - A very high scale might introduce artifacts or unnatural audio, so fine-tuning is recommended.
+
+            cuda_reset_delay (float): Time in seconds to wait after resetting the CUDA device.
         """
         self.device = device if torch.cuda.is_available() else 'cpu'
         self.style_root = style_root.replace("\\", "/")
-        self.model_config_path = model_config_path.replace("\\", "/")
-        self.model_checkpoint_path = model_checkpoint_path.replace("\\", "/")
-        self.ref_audio_path = ref_audio_path
+
+        # Use the properties from the StyleTTSVoice instance
+        self.voice = voice
+        self.model_config_path = self.voice.model_config_path.replace("\\", "/")
+        self.model_checkpoint_path = self.voice.model_checkpoint_path.replace("\\", "/")
+        self.ref_audio_path = self.voice.ref_audio_path
 
         # Parameters for synthesis
         self.alpha = alpha
         self.beta = beta
         self.diffusion_steps = diffusion_steps
         self.embedding_scale = embedding_scale
+        self.cuda_reset_delay = cuda_reset_delay  # Store the delay parameter
 
         # Add the root directory to sys.path
         sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), self.style_root)))
@@ -90,20 +137,83 @@ class StyleTTSEngine(BaseEngine):
     def post_init(self):
         self.engine_name = "styletts"
 
+    def unload_model(self):
+        """
+        Unloads the current model and clears VRAM to prevent memory leaks.
+
+        Steps:
+            1. Move models to CPU to ensure PyTorch releases GPU memory.
+            2. Delete references to the model and other components to allow garbage collection.
+            3. Trigger garbage collection and clear the CUDA memory cache.
+        """
+        # Move models to CPU first
+        if hasattr(self, 'model'):
+            for key in self.model:
+                self.model[key].to('cpu')
+        # Explanation: Moving models to the CPU ensures that all tensors allocated on the GPU
+        # are detached from the GPU's memory. If a model is directly deleted while still residing
+        # on the GPU, PyTorch may not fully release its VRAM due to lingering device-side context.
+
+        # Delete references
+        if hasattr(self, 'model'):
+            del self.model  # Remove the main model
+        if hasattr(self, 'sampler'):
+            del self.sampler  # Remove the diffusion sampler
+        if hasattr(self, 'text_aligner'):
+            del self.text_aligner  # Remove the ASR-based text aligner
+        if hasattr(self, 'pitch_extractor'):
+            del self.pitch_extractor  # Remove the pitch extraction model
+        if hasattr(self, 'plbert'):
+            del self.plbert  # Remove the pre-trained BERT model used for prosody
+
+        # Force garbage collection and try to free cache
+        gc.collect()
+        torch.cuda.empty_cache()
+        # Explanation: After removing references, garbage collection ensures that
+        # Python clears any remaining objects that might still hold references to GPU memory.
+        # `torch.cuda.empty_cache()` clears PyTorch's internal GPU memory management cache,
+        # freeing up VRAM for the next model or process.
+
+    def set_model_config_path(self, new_path: str):
+        self.unload_model()
+        self.model_config_path = new_path.replace("\\", "/")
+        self.load_model()
+        print(f"Model config updated to: {new_path}")
+
+    def set_model_checkpoint_path(self, new_path: str):
+        self.unload_model()
+        self.model_checkpoint_path = new_path.replace("\\", "/")
+        self.load_model()
+        print(f"Model checkpoint updated to: {new_path}")
+
+    def set_ref_audio_path(self, new_path: str):
+        # Updating the reference audio doesn't require unloading the model.
+        # We're just recomputing style embeddings.
+        self.ref_audio_path = new_path
+        self.compute_reference_style(self.ref_audio_path)
+        print(f"Reference audio updated to: {new_path}")
+
+    def set_all_parameters(self, model_config_path: str, model_checkpoint_path: str, ref_audio_path: str):
+        """
+        Updates model config, checkpoint, and reference audio simultaneously,
+        reloading the model only once.
+        """
+        self.unload_model()  # Unload the previous model
+        self.model_config_path = model_config_path.replace("\\", "/")
+        self.model_checkpoint_path = model_checkpoint_path.replace("\\", "/")
+        self.ref_audio_path = ref_audio_path
+        self.load_model()  # Reload the new model with updated config and checkpoint
+        self.compute_reference_style(self.ref_audio_path)  # Recompute style embeddings
+        print(f"Updated all parameters:\n - Model config: {model_config_path}\n - Model checkpoint: {model_checkpoint_path}\n - Reference audio: {ref_audio_path}")
+
     def get_stream_info(self):
-        """
-        Returns the PyAudio stream configuration:
-          - Format: pyaudio.paInt16 (16-bit)
-          - Channels: 1 (mono)
-          - Sample Rate: 24000 Hz
-        """
         import pyaudio
         return pyaudio.paInt16, 1, 24000
 
     def synthesize(self, text: str) -> bool:
         """
         Synthesizes text to audio stream using the loaded StyleTTS model.
-        
+
         Args:
             text (str): Text to synthesize.
         """
@@ -186,7 +296,7 @@ class StyleTTSEngine(BaseEngine):
                     state_dict = params[key]
                     new_state_dict = OrderedDict()
                     for k, v in state_dict.items():
-                        name = k[7:]  # remove `module.`
+                        name = k[7:]
                         new_state_dict[name] = v
                     self.model[key].load_state_dict(new_state_dict, strict=False)
         _ = [self.model[key].eval() for key in self.model]
@@ -198,8 +308,8 @@ class StyleTTSEngine(BaseEngine):
 
         # Initialize phonemizer
         self.global_phonemizer = phonemizer.backend.EspeakBackend(language='en-us', 
-                                                                 preserve_punctuation=True,
-                                                                 with_stress=True)
+                                                                  preserve_punctuation=True,
+                                                                  with_stress=True)
 
         # Initialize diffusion sampler
         self.sampler = DiffusionSampler(
@@ -241,7 +351,7 @@ class StyleTTSEngine(BaseEngine):
                   embedding_scale: float = 1.0) -> np.ndarray:
         """
         Run inference with given parameters and return audio waveform.
-        
+
         Args:
             text (str): Text to synthesize.
             alpha (float): Timbre blending factor.
@@ -322,3 +432,23 @@ class StyleTTSEngine(BaseEngine):
             waveform = waveform[..., :-50]
 
         return waveform
+
+    def get_voices(self):
+        """
+        Retrieves the installed voices available for the StyleTTS engine.
+        We return an empty list since StyleTTS does not support voice retrieval.
+        """
+        voice_objects = []
+        return voice_objects
+
+    def set_voice(self, voice: StyleTTSVoice):
+        """
+        Sets the voice to be used for speech synthesis.
+        """
+        if isinstance(voice, StyleTTSVoice):
+            self.voice = voice
+            self.set_all_parameters(
+                model_config_path=voice.model_config_path,
+                model_checkpoint_path=voice.model_checkpoint_path,
+                ref_audio_path=voice.ref_audio_path,
+            )

@@ -58,7 +58,7 @@ Let me know if you need any adjustments or additional languages!
 
 ## Updates
 
-Latest Version: v0.4.19
+Latest Version: v0.4.20
 
 Introducing StyleTTS2 engine:
 
@@ -665,13 +665,7 @@ While the source of this library is open-source, the usage of many of the engine
 Kolja Beigel
 Email: kolja.beigel@web.de
 
-
-
 <p align="center">
-  <a href="https://github.com/KoljaB/RealtimeTTS" target="_blank">
-    <img src="https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white" alt="GitHub">
-  </a>
-  &nbsp;&nbsp;&nbsp;
   <a href="#realtimetts" target="_blank">
     <img src="https://img.shields.io/badge/Back%20to%20Top-000000?style=for-the-badge" alt="Back to Top">
   </a>

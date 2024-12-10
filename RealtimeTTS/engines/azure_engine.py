@@ -1,4 +1,5 @@
 import azure.cognitiveservices.speech as tts
+from azure.cognitiveservices.speech import SpeechSynthesisOutputFormat
 from .base_engine import BaseEngine
 from typing import Union
 import requests
@@ -49,6 +50,16 @@ class AzureVoice:
 
 
 class AzureEngine(BaseEngine):
+    SUPPORTED_AUDIO_FORMATS = {
+        "riff-16khz-16bit-mono-pcm": 16000,
+        "riff-24khz-16bit-mono-pcm": 24000,
+        "riff-48khz-16bit-mono-pcm": 48000,
+    }
+    AUDIO_FORMAT_MAP = {
+        "riff-16khz-16bit-mono-pcm": tts.SpeechSynthesisOutputFormat.Riff16Khz16BitMonoPcm,
+        "riff-24khz-16bit-mono-pcm": tts.SpeechSynthesisOutputFormat.Riff24Khz16BitMonoPcm,
+        "riff-48khz-16bit-mono-pcm": tts.SpeechSynthesisOutputFormat.Riff48Khz16BitMonoPcm,
+    }
     def __init__(
         self,
         speech_key: str = "",
@@ -56,6 +67,7 @@ class AzureEngine(BaseEngine):
         voice: str = "en-US-AshleyNeural",
         rate: float = 0.0,
         pitch: float = 0.0,
+        audio_format: str = "riff-16khz-16bit-mono-pcm",
     ):
         """
         Initializes an azure voice realtime text to speech engine object.
@@ -66,8 +78,17 @@ class AzureEngine(BaseEngine):
             voice (str, optional): Voice name. Defaults to "en-US-AshleyNeural".
             rate (float, optional): Speech speed as a percentage. Defaults to "0.0". Indicating the relative change.
             pitch (float, optional): Speech pitch as a percentage. Defaults to "0.0". Indicating the relative change.
+            audio_format (str, optional): Audio format for output. Defaults to "riff-16khz-16bit-mono-pcm". Must be one of these supported formats: "riff-16khz-16bit-mono-pcm", "riff-24khz-16bit-mono-pcm", "riff-48khz-16bit-mono-pcm".
+        Raises:
+            ValueError: If the provided audio_format is not supported.
         """
+        if audio_format not in self.SUPPORTED_AUDIO_FORMATS:
+            raise ValueError(
+                f"Invalid audio_format '{audio_format}'. Supported formats are: {list(self.SUPPORTED_AUDIO_FORMATS.keys())}"
+            )
 
+        self.audio_format = audio_format
+        self.sample_rate = self.SUPPORTED_AUDIO_FORMATS[audio_format]
         self.speech_key = speech_key
         self.service_region = service_region
         self.language = voice[:5]
@@ -138,7 +159,7 @@ class AzureEngine(BaseEngine):
                   - Channels (int): The number of audio channels. 1 represents mono audio.
                   - Sample Rate (int): The sample rate of the audio in Hz. 16000 represents 16kHz sample rate.
         """
-        return pyaudio.paInt16, 1, 16000
+        return pyaudio.paInt16, 1, self.sample_rate
 
     def synthesize(self, text: str) -> bool:
         """
@@ -152,6 +173,7 @@ class AzureEngine(BaseEngine):
         speech_config = tts.SpeechConfig(
             subscription=self.speech_key, region=self.service_region
         )
+        speech_config.set_speech_synthesis_output_format(self.AUDIO_FORMAT_MAP[self.audio_format])
         stream_callback = PushAudioOutputStreamSampleCallback(self.queue)
         push_stream = tts.audio.PushAudioOutputStream(stream_callback)
         stream_config = tts.audio.AudioOutputConfig(stream=push_stream)

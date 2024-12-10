@@ -48,6 +48,6 @@ except ImportError as e:
     EdgeEngine, EdgeVoice = None, None
 
 try:
-    from .style_engine import StyleTTSEngine  # noqa: F401
+    from .style_engine import StyleTTSEngine, StyleTTSVoice  # noqa: F401
 except ImportError as e:
-    StyleTTSEngine = None
+    StyleTTSEngine, StyleTTSVoice = None
