@@ -1,26 +1,26 @@
 # stream2sentence is the core of RealtimeTTS - it quickly converts streamed text into sentences for real-time synthesis
-stream2sentence==0.2.9
+stream2sentence==0.3.0
 
 # azure-cognitiveservices-speech is for AzureEngine
 azure-cognitiveservices-speech==1.41.1
 
 # coqui_tts is for CoquiEngine
-coqui_tts==0.25.0
+coqui_tts==0.25.1
 
 # elevenlabs is for ElevenlabsEngine
-elevenlabs==1.13.3
+elevenlabs==1.50.1
 
 # gtts is for GTTSEngine
 gtts==2.5.4
 
 # openai is for OpenAIEngine
-openai==1.57.0
+openai==1.57.4
 
 # pyttsx3 is for SystemEngine
 pyttsx3==2.98
 
 # edge-tts is for EdgeEngine
-edge-tts==6.1.19
+edge-tts==7.0.0
 
 # pyaudio is for playing chunks over output device
 pyaudio==0.2.14

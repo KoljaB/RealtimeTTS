@@ -1,12 +1,11 @@
 from .base_engine import BaseEngine
 from queue import Queue
 import numpy as np
+import random
 import torch
 import sys
 import os
 import gc
-import time
-from numba import cuda
 
 class StyleTTSVoice:
     def __init__(self,
@@ -56,7 +55,9 @@ class StyleTTSEngine(BaseEngine):
                  beta: float = 0.7,
                  diffusion_steps: int = 5,
                  embedding_scale: float = 1.0,
-                 cuda_reset_delay: float = 0.0):  # Delay after resetting CUDA device
+                 cuda_reset_delay: float = 0.0,
+                 seed: int = -1,
+        ):
         """
         Initializes the StyleTTS engine with customizable parameters.
         
@@ -125,6 +126,8 @@ class StyleTTSEngine(BaseEngine):
         self.diffusion_steps = diffusion_steps
         self.embedding_scale = embedding_scale
         self.cuda_reset_delay = cuda_reset_delay  # Store the delay parameter
+        self.seed = seed
+        self.set_seeds(self.seed)
 
         # Add the root directory to sys.path
         sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), self.style_root)))
@@ -133,6 +136,18 @@ class StyleTTSEngine(BaseEngine):
         self.load_model()
         self.compute_reference_style(self.ref_audio_path)
         self.post_init()
+
+    def set_seeds(self, seed = 0):
+        if seed == -1:
+            seed_value = random.randint(0, 2**32 - 1)
+        else:
+            seed_value = seed
+        torch.manual_seed(seed_value)
+        torch.backends.cudnn.benchmark = False
+        torch.backends.cudnn.deterministic = True
+        random.seed(seed_value)
+        np.random.seed(seed_value)
+        print(f"Seed set to {seed_value}")
 
     def post_init(self):
         self.engine_name = "styletts"
@@ -250,10 +265,6 @@ class StyleTTSEngine(BaseEngine):
         nltk.download('punkt', quiet=True)
 
         self.textcleaner = TextCleaner()
-        torch.manual_seed(0)
-        torch.backends.cudnn.benchmark = False
-        torch.backends.cudnn.deterministic = True
-        np.random.seed(0)
         
         # Load model config
         print('Loading model config from %s' % self.model_config_path)
@@ -284,6 +295,7 @@ class StyleTTSEngine(BaseEngine):
         _ = [self.model[key].to(self.device) for key in self.model]
 
         # Load model checkpoint
+        print('Loading model checkpoint from %s' % self.model_checkpoint_path)
         params_whole = torch.load(self.model_checkpoint_path, map_location='cpu')
         params = params_whole['net']
         for key in self.model:
@@ -381,10 +393,15 @@ class StyleTTSEngine(BaseEngine):
             bert_dur = self.model.bert(tokens, attention_mask=(~text_mask).int())
             d_en = self.model.bert_encoder(bert_dur).transpose(-1, -2)
 
+            bert_dur_2 = bert_dur
+            while bert_dur_2.shape[1] < 100:
+                bert_dur_2 = torch.cat((bert_dur_2, bert_dur), dim=1)
+            print(f"New Padding length bert_dur_2: {bert_dur_2.shape[1]}")
+
             noise = torch.randn(1, 256).unsqueeze(1).to(self.device)
             s_pred = self.sampler(
                 noise=noise,
-                embedding=bert_dur,
+                embedding=bert_dur_2,
                 embedding_scale=embedding_scale,
                 features=self.ref_s,
                 num_steps=diffusion_steps

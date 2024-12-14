@@ -58,7 +58,7 @@ Let me know if you need any adjustments or additional languages!
 
 ## Updates
 
-Latest Version: v0.4.20
+Latest Version: v0.4.21
 
 Introducing StyleTTS2 engine:
 
