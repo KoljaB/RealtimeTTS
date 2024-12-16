@@ -1,3 +1,4 @@
+import queue
 from .base_engine import BaseEngine
 import torch.multiprocessing as mp
 from threading import Lock, Thread
@@ -212,8 +213,10 @@ class CoquiEngine(BaseEngine):
         # Start the worker process
         try:
             # Only set the start method if it hasn't been set already
-                # Check the current platform and set the start method
-            if sys.platform.startswith('linux') or sys.platform == 'darwin':  # For Linux or macOS
+            # Check the current platform and set the start method
+            if (
+                sys.platform.startswith("linux") or sys.platform == "darwin"
+            ):  # For Linux or macOS
                 mp.set_start_method("spawn")
             elif mp.get_start_method(allow_none=True) is None:
                 mp.set_start_method("spawn")
@@ -737,8 +740,15 @@ class CoquiEngine(BaseEngine):
                                 # wait only if we are faster than realtime, meaning
                                 # that chunk_production_seconds is smaller than generated_audio_seconds
                                 if load_balancing:
-                                    if chunk_production_seconds < (generated_audio_seconds + load_balancing_buffer_length):
-                                        waiting_time = generated_audio_seconds - chunk_production_seconds - load_balancing_cut_off
+                                    if chunk_production_seconds < (
+                                        generated_audio_seconds
+                                        + load_balancing_buffer_length
+                                    ):
+                                        waiting_time = (
+                                            generated_audio_seconds
+                                            - chunk_production_seconds
+                                            - load_balancing_cut_off
+                                        )
                                         if waiting_time > 0:
                                             print(f"Waiting for {waiting_time} seconds")
                                             time.sleep(waiting_time)
@@ -758,7 +768,6 @@ class CoquiEngine(BaseEngine):
                         if print_realtime_factor:
                             print(f"Realtime Factor: {realtime_factor}")
                             print(f"Raw Inference Factor: {raw_inference_factor}")
-
 
                     # Send silent audio
                     sample_rate = config.audio.sample_rate
@@ -796,7 +805,7 @@ class CoquiEngine(BaseEngine):
             print(f"Error: {e}")
 
             conn.send(("error", str(e)))
-    
+
         sys.stdout = sys.__stdout__
         sys.stderr = sys.__stderr__
 
@@ -908,7 +917,7 @@ class CoquiEngine(BaseEngine):
                 text = text[:-2]
             elif len(text) > 3 and text[-2] in ["!", "?", ","]:
                 text = text[:-2] + " " + text[-2]
-            
+
         except Exception as e:
             logging.warning(
                 f'Error fixing sentence end punctuation: {e}, Text: "{text}"'
@@ -920,7 +929,7 @@ class CoquiEngine(BaseEngine):
 
         return text
 
-    def synthesize(self, text: str) -> bool:
+    def synthesize(self, text: str, audio_queue: queue.Queue) -> bool:
         """
         Synthesizes text to audio stream.
 
@@ -947,7 +956,7 @@ class CoquiEngine(BaseEngine):
                         logging.error(f"Error: {result}")
                     return False
 
-                self.queue.put(result)
+                audio_queue.put(result)
                 status, result = self.parent_synthesize_pipe.recv()
 
             return True
