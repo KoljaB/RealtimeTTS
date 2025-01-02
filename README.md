@@ -58,13 +58,18 @@ Let me know if you need any adjustments or additional languages!
 
 ## Updates
 
-Latest Version: v0.4.21
+Latest Version: v0.4.3
 
-Introducing StyleTTS2 engine:
+New engine: PiperEngine
+
+Piper installation tutorial: https://www.youtube.com/watch?v=GGvdq3giiTQ
+Piper test file: https://github.com/KoljaB/RealtimeTTS/blob/master/tests/piper_test.py
+
+StyleTTS2 engine:
 
 https://github.com/user-attachments/assets/d1634012-ba53-4445-a43a-7042826eedd7
 
-Introducing EdgeTTS engine:
+EdgeTTS engine:
 
 https://github.com/user-attachments/assets/73ec6258-23ba-4bc6-acc7-7351a13c5509
 
