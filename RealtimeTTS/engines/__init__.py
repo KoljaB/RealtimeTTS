@@ -51,3 +51,8 @@ try:
     from .style_engine import StyleTTSEngine, StyleTTSVoice  # noqa: F401
 except ImportError as e:
     StyleTTSEngine, StyleTTSVoice = None
+
+try:
+    from .piper_engine import PiperEngine, PiperVoice  # noqa: F401
+except ImportError as e:
+    PiperEngine, PiperVoice = None
