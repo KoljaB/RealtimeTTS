@@ -60,6 +60,11 @@ class StyleTTSEngine(BaseEngine):
         ):
         """
         Initializes the StyleTTS engine with customizable parameters.
+
+        Notes about alpha and beta:
+        - The higher the value of alpha and beta, the more suitable the style it is to the text but less similar to the reference.
+        - Using higher beta makes the synthesized speech more emotional, at the cost of lower similarity to the reference.
+        - Alpha determines the timbre of the speaker while beta determines the prosody.
         
         Args:
             style_root (str): Path to the root directory of the StyleTTS repository.

@@ -3,6 +3,11 @@ Stream management
 """
 
 from pydub import AudioSegment
+try:
+    import pyaudio._portaudio as pa
+except ImportError:
+    print("Could not import the PyAudio C module 'pyaudio._portaudio'.")
+    raise
 import numpy as np
 import subprocess
 import threading
@@ -27,19 +32,27 @@ class AudioConfiguration:
         rate: int = 16000,
         output_device_index=None,
         muted: bool = False,
+        frames_per_buffer: int = pa.paFramesPerBufferUnspecified,
+        playout_chunk_size: int = -1,
     ):
         """
         Args:
-            format (int): Audio format, defaults to pyaudio.paInt16
-            channels (int): Number of channels, defaults to 1 (mono)
-            rate (int): Sample rate, defaults to 16000
-            output_device_index (int): Output device index, defaults to None
+            format (int): Audio format, typically one of PyAudio's predefined constants, e.g., pyaudio.paInt16 (default).
+            channels (int): Number of audio channels, e.g., 1 for mono or 2 for stereo. Defaults to 1 (mono).
+            rate (int): Sample rate of the audio stream in Hz. Defaults to 16000.
+            output_device_index (int): Index of the audio output device. If None, the default output device is used.
+            muted (bool): If True, audio playback is muted. Defaults to False.
+            frames_per_buffer (int): Number of frames per buffer for PyAudio. Defaults to pa.paFramesPerBufferUnspecified, letting PyAudio choose.
+            playout_chunk_size (int): Size of audio chunks (in bytes) to be played out. Defaults to -1, which determines the chunk size based on frames_per_buffer or a default value.
+
         """
         self.format = format
         self.channels = channels
         self.rate = rate
         self.output_device_index = output_device_index
         self.muted = muted
+        self.frames_per_buffer = frames_per_buffer
+        self.playout_chunk_size = playout_chunk_size
 
 
 class AudioStream:
@@ -215,6 +228,7 @@ class AudioStream:
                     channels=pyChannels,
                     rate=best_rate,
                     output_device_index=pyOutput_device_index,
+                    frames_per_buffer=self.config.frames_per_buffer,
                     output=True,
                 )
             except Exception as e:
@@ -449,8 +463,14 @@ class StreamPlayer:
                 resampled_data = resampy.resample(audio_data, self.audio_stream.config.rate, self.audio_stream.actual_sample_rate)
                 chunk = (resampled_data * 32768.0).astype(np.int16).tobytes()
 
-        sub_chunk_size = 512
-
+        if self.audio_stream.config.playout_chunk_size > 0:
+            sub_chunk_size = self.audio_stream.config.playout_chunk_size
+        else:
+            if self.audio_stream.config.frames_per_buffer == pa.paFramesPerBufferUnspecified:
+                sub_chunk_size = 512
+            else:
+                sub_chunk_size = self.audio_stream.config.frames_per_buffer * sample_width * channels
+        
         for i in range(0, len(chunk), sub_chunk_size):
             sub_chunk = chunk[i : i + sub_chunk_size]
 

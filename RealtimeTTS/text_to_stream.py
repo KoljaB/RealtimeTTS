@@ -2,6 +2,11 @@ from .threadsafe_generators import CharIterator, AccumulatingThreadSafeGenerator
 from .stream_player import StreamPlayer, AudioConfiguration
 from typing import Union, Iterator, List
 from .engines import BaseEngine
+try:
+    import pyaudio._portaudio as pa
+except ImportError:
+    print("Could not import the PyAudio C module 'pyaudio._portaudio'.")
+    raise
 import stream2sentence as s2s
 import numpy as np
 import threading
@@ -27,36 +32,94 @@ class TextToAudioStream:
         tokenizer: str = "nltk",
         language: str = "en",
         muted: bool = False,
+        frames_per_buffer: int = pa.paFramesPerBufferUnspecified,
+        playout_chunk_size: int = -1,
         level=logging.WARNING,
     ):
         """
         Initializes the TextToAudioStream.
 
         Args:
-            engine (BaseEngine): The engine used for text to audio synthesis.
-            log_characters (bool, optional): If True, logs the characters
-              processed for synthesis.
-            on_text_stream_start (callable, optional): Callback function that
-              gets called when the text stream starts.
-            on_text_stream_stop (callable, optional): Callback function that
-              gets called when the text stream stops.
-            on_audio_stream_start (callable, optional): Callback function that
-              gets called when the audio stream starts.
-            on_audio_stream_stop (callable, optional): Callback function that
-              gets called when the audio stream stops.
-            on_character (callable, optional): Callback function that gets
-              called when a single character is processed.
-            output_device_index (int, optional): The index of the output device
-                to use for audio playback.
-            tokenizer (str, optional): Tokenizer to use for sentence splitting
-                (currently "nltk" and "stanza" are supported).
-            language (str, optional): Language to use for sentence splitting.
-            muted (bool, optional): If True, disables audio playback via local
-                speakers (in case you want to synthesize to file or process
-                audio chunks). Default is False.
-                If set to True it will override the play parameters muted
+            engine (Union[BaseEngine, List[BaseEngine]]):
+                The engine or list of engines used for text-to-audio synthesis.
+                `BaseEngine` is the interface or base class defining how
+                synthesis is performed. Multiple engines can be provided for
+                fallbacks.
+                
+            log_characters (bool, optional):
+                Whether to log each character being processed for synthesis.
+                Useful for debugging or monitoring character-level processing.
+                Defaults to False.
+                
+            on_text_stream_start (callable, optional):
+                A callback function triggered when the text stream begins.
+                This can be used to perform setup actions or display status
+                updates.
+
+            on_text_stream_stop (callable, optional):
+                A callback function triggered when the text stream ends.
+                This can be used to clean up resources or indicate that the
+                text-to-speech process has completed.
+
+            on_audio_stream_start (callable, optional):
+                A callback function triggered when the audio playback begins.
+                Useful for tracking the start of the audio output.
+
+            on_audio_stream_stop (callable, optional):
+                A callback function triggered when the audio playback stops.
+                Useful for cleaning up or updating the UI once playback ends.
+
+            on_character (callable, optional):
+                A callback function triggered for every individual character
+                processed during synthesis. This can be useful for real-time
+                updates, such as visualizing which character is being processed
+                or sent for synthesis.
+
+            output_device_index (int, optional):
+                The index of the audio output device to use for playback.
+                If None, the system's default audio output device will be used.
+                This index corresponds to the device indices returned by the
+                PyAudio interface.
+
+            tokenizer (str, optional):
+                Specifies the tokenizer used to split input text into sentences
+                or smaller chunks for synthesis. Supported options are:
+                - "nltk": Uses the Natural Language Toolkit (NLTK) tokenizer.
+                - "stanza": Uses the Stanza library for advanced sentence
+                  splitting.
+                Defaults to "nltk".
+                
+            language (str, optional):
+                Language code (e.g., "en" for English, "de" for German) used for
+                sentence splitting and processing. Ensure the tokenizer
+                supports the specified language. Defaults to "en".
+
+            muted (bool, optional):
+                If True, disables audio playback on local speakers, allowing
+                audio data to be processed or saved to a file without being
+                played. This is useful for silent synthesis scenarios or batch
+                processing. Defaults to False.
+
+            frames_per_buffer (int, optional):
+                Determines how many audio frames PyAudio processes in each
+                buffer. If set to `pa.paFramesPerBufferUnspecified`, PyAudio
+                chooses an appropriate default value. Lower values may reduce
+                latency but increase CPU usage. Higher values may reduce CPU
+                load but increase latency. Defaults to PyAudio’s unspecified
                 setting.
-            level (int, optional): Logging level. Defaults to logging.WARNING.
+
+            playout_chunk_size (int, optional):
+                The size (in bytes) of audio chunks played to the output stream
+                at a time. If set to -1, the chunk size is determined based on
+                `frames_per_buffer` or a default internal value. Smaller chunks
+                allow for lower latency but require more frequent processing,
+                while larger chunks may introduce latency but reduce overhead.
+                Defaults to -1.
+
+            level (int, optional):
+                The logging level to use for internal logging. Accepts standard
+                Python logging levels, such as `logging.DEBUG`, `logging.INFO`,
+                `logging.WARNING`, etc. Defaults to `logging.WARNING`.
         """
         self.log_characters = log_characters
         self.on_text_stream_start = on_text_stream_start
@@ -71,6 +134,8 @@ class TextToAudioStream:
         self.tokenizer = tokenizer
         self.language = language
         self.global_muted = muted
+        self.frames_per_buffer = frames_per_buffer
+        self.playout_chunk_size = playout_chunk_size
         self.player = None
         self.play_lock = threading.Lock()
         self.is_playing_flag = False
@@ -124,6 +189,8 @@ class TextToAudioStream:
             rate,
             self.output_device_index,
             muted=self.global_muted,
+            frames_per_buffer=self.frames_per_buffer,
+            playout_chunk_size=self.playout_chunk_size,
         )
 
         self.player = StreamPlayer(

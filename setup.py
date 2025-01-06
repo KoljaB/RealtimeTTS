@@ -1,4 +1,4 @@
-current_version = "0.4.3"
+current_version = "0.4.4"
 
 import setuptools
 

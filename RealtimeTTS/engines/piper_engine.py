@@ -149,60 +149,6 @@ class PiperEngine(BaseEngine):
             if os.path.isfile(output_wav_path):
                 os.remove(output_wav_path)
 
-    # def synthesize(self, text: str) -> bool:
-    #     if not self.voice:
-    #         print("No voice set. Please provide a PiperVoice configuration.")
-    #         return False
-
-    #     with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as temp_wav_file:
-    #         output_wav_path = temp_wav_file.name
-
-    #     # Build arg list for Piper (without shell piping)
-    #     cmd_list = [
-    #         os.path.normpath(self.piper_path),  # Ensures backslashes on Windows
-    #         "-m", os.path.normpath(self.voice.model_file),
-    #         "-f", os.path.normpath(output_wav_path),
-    #     ]
-    #     if self.voice.config_file:
-    #         cmd_list += ["-c", os.path.normpath(self.voice.config_file)]
-
-    #     try:
-    #         # Provide the text via STDIN
-    #         # Piper reads from STDIN when no text file arg is given
-    #         result = subprocess.run(
-    #             cmd_list,
-    #             input=text.encode("utf-8"),  # Convert text to bytes for STDIN
-    #             stdout=subprocess.PIPE,
-    #             stderr=subprocess.PIPE,
-    #             check=True
-    #         )
-
-    #         # Open the WAV file and push frames to the queue
-    #         with wave.open(output_wav_path, "rb") as wf:
-    #             # Optional: validate sample rate, channels, etc.
-    #             if wf.getnchannels() != 1 or wf.getframerate() != 16000 or wf.getsampwidth() != 2:
-    #                 print(f"Unexpected WAV properties: "
-    #                     f"Channels={wf.getnchannels()}, "
-    #                     f"Rate={wf.getframerate()}, "
-    #                     f"Width={wf.getsampwidth()}")
-    #                 return False
-
-    #             audio_data = wf.readframes(wf.getnframes())
-    #             self.queue.put(audio_data)
-
-    #         return True
-
-    #     except FileNotFoundError:
-    #         print(f"Error: Piper executable not found at {self.piper_path}.")
-    #         return False
-    #     except subprocess.CalledProcessError as e:
-    #         print(f"Error running Piper: {e.stderr.decode('utf-8', errors='replace')}")
-    #         return False
-    #     finally:
-    #         # Clean up temporary file
-    #         if os.path.isfile(output_wav_path):
-    #             os.remove(output_wav_path)
-
     def set_voice(self, voice: PiperVoice):
         """
         Sets the Piper voice to be used for speech synthesis.
