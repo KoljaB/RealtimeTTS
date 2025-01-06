@@ -367,9 +367,8 @@ When you initialize the `TextToAudioStream` class, you have various options to c
 - **Type**: `Union[BaseEngine, List[BaseEngine]]`
 - **Required**: Yes
 - **Description**: The core engine(s) used for text-to-audio synthesis.  
-  - If a single `BaseEngine` instance is provided, it will be used for all synthesis tasks.  
-  - If a list of `BaseEngine` instances is provided, the system may utilize them for load balancing, multi-language synthesis, or fallback mechanisms.  
-  - The `BaseEngine` should define how the synthesis is performed, including input text processing and audio generation.
+  - If a single engine instance is provided, it will be used for all synthesis tasks.  
+  - If a list of engine instances is provided, the system uses them for fallback mechanisms.  
 
 #### `on_text_stream_start` (callable)
 - **Type**: `Callable`
@@ -434,8 +433,8 @@ When you initialize the `TextToAudioStream` class, you have various options to c
 - **Type**: `bool`
 - **Required**: No
 - **Default**: `False`
-- **Description**: Controls whether audio playback is muted.  
-  - If `True`, audio playback is disabled, allowing the synthesis to generate audio data without playing it.  
+- **Description**: Controls whether audio playback is muted.
+  - If `True`, audio playback is disabled and no audio stream will be opened, allowing the synthesis to generate audio data without playing it.  
   - **Use Case**: Useful for scenarios where you want to save audio to a file or process audio chunks without hearing the output.
 
 #### `frames_per_buffer` (int)
