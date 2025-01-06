@@ -26,7 +26,7 @@ https://github.com/KoljaB/RealtimeTTS/assets/7604638/87dcd9a5-3a4e-4f57-be45-837
 - **High-Quality Audio**
   - generates clear and natural-sounding speech
 - **Multiple TTS Engine Support**
-  - supports OpenAI TTS, Elevenlabs, Azure Speech Services, Coqui TTS, gTTS, Edge TTS, Parler TTS and System TTS
+  - supports OpenAI TTS, Elevenlabs, Azure Speech Services, Coqui TTS, StyleTTS2, Piper, gTTS, Edge TTS, Parler TTS and System TTS
 - **Multilingual**
 - **Robust and Reliable**:
   - ensures continuous operation through a fallback mechanism
@@ -60,11 +60,9 @@ Let me know if you need any adjustments or additional languages!
 
 Latest Version: v0.4.3
 
-New engine: PiperEngine
-
-Piper installation tutorial: https://www.youtube.com/watch?v=GGvdq3giiTQ  
-
-Piper test file: https://github.com/KoljaB/RealtimeTTS/blob/master/tests/piper_test.py
+- **New Engine:** PiperEngine
+  - **Installation Tutorial:** [Watch on YouTube](https://www.youtube.com/watch?v=GGvdq3giiTQ)
+  - **Test File Example:** [piper_test.py](https://github.com/KoljaB/RealtimeTTS/blob/master/tests/piper_test.py)
 
 StyleTTS2 engine:
 
@@ -100,6 +98,8 @@ This library uses:
   - **EdgeEngine** 🌐: Edge free TTS service (Microsoft Azure)
   - **ParlerEngine** 🏠: Local neural TTS for high-end GPUs
   - **SystemEngine** 🏠: Built-in system TTS for quick setup
+  - **PiperEngine** 🏠: Very fast TTS system, also runs on Raspberry Pi 
+
 
 🏠 Local processing (no internet required)
 🌐 Requires internet connection
@@ -189,6 +189,17 @@ For the `ElevenlabsEngine`, you need:
     ```
 
   - **Linux and Windows**: Visit [mpv.io](https://mpv.io/) for installation instructions.
+
+### PiperEngine
+
+**PiperEngine** offers high-quality, real-time text-to-speech synthesis using the Piper model.
+
+- **Separate Installation:**
+  - Piper must be installed independently from RealtimeTTS. Follow the [Piper installation tutorial for Windows](https://www.youtube.com/watch?v=GGvdq3giiTQ).
+
+- **Configuration:**
+  - Provide the correct paths to the Piper executable and voice model files when initializing `PiperEngine`.
+  - Ensure that the `PiperVoice` is correctly set up with the model and configuration files.
 
 ### CoquiEngine
 
@@ -353,64 +364,110 @@ stream.stop()
 When you initialize the `TextToAudioStream` class, you have various options to customize its behavior. Here are the available parameters:
 
 #### `engine` (BaseEngine)
-- **Type**: BaseEngine
+- **Type**: `Union[BaseEngine, List[BaseEngine]]`
 - **Required**: Yes
-- **Description**: The underlying engine responsible for text-to-audio synthesis. You must provide an instance of `BaseEngine` or its subclass to enable audio synthesis.
+- **Description**: The core engine(s) used for text-to-audio synthesis.  
+  - If a single `BaseEngine` instance is provided, it will be used for all synthesis tasks.  
+  - If a list of `BaseEngine` instances is provided, the system may utilize them for load balancing, multi-language synthesis, or fallback mechanisms.  
+  - The `BaseEngine` should define how the synthesis is performed, including input text processing and audio generation.
 
 #### `on_text_stream_start` (callable)
-- **Type**: Callable function
+- **Type**: `Callable`
 - **Required**: No
-- **Description**: This optional callback function is triggered when the text stream begins. Use it for any setup or logging you may need.
+- **Description**: A callback function triggered when the text streaming process begins.  
+  - **Use Case**: Displaying a "Processing..." status message or initializing resources.  
+  - **Signature**: `on_text_stream_start() -> None`.
 
 #### `on_text_stream_stop` (callable)
-- **Type**: Callable function
+- **Type**: `Callable`
 - **Required**: No
-- **Description**: This optional callback function is activated when the text stream ends. You can use this for cleanup tasks or logging.
+- **Description**: A callback function triggered when the text streaming process ends.  
+  - **Use Case**: Cleaning up resources or signaling that the text-to-speech pipeline has completed processing.  
+  - **Signature**: `on_text_stream_stop() -> None`.
 
 #### `on_audio_stream_start` (callable)
-- **Type**: Callable function
+- **Type**: `Callable`
 - **Required**: No
-- **Description**: This optional callback function is invoked when the audio stream starts. Useful for UI updates or event logging.
+- **Description**: A callback function triggered when the audio playback starts.  
+  - **Use Case**: Logging playback events or updating UI elements to reflect active audio playback.  
+  - **Signature**: `on_audio_stream_start() -> None`.
 
 #### `on_audio_stream_stop` (callable)
-- **Type**: Callable function
+- **Type**: `Callable`
 - **Required**: No
-- **Description**: This optional callback function is called when the audio stream stops. Ideal for resource cleanup or post-processing tasks.
+- **Description**: A callback function triggered when the audio playback ends.  
+  - **Use Case**: Resetting UI elements or initiating follow-up actions after playback.  
+  - **Signature**: `on_audio_stream_stop() -> None`.
 
 #### `on_character` (callable)
-- **Type**: Callable function
+- **Type**: `Callable`
 - **Required**: No
-- **Description**: This optional callback function is called when a single character is processed.
+- **Description**: A callback function triggered for every character processed during synthesis.  
+  - **Use Case**: Real-time visualization of character-level processing, useful for debugging or monitoring.  
+  - **Signature**: `on_character(character: str) -> None`.
 
 #### `output_device_index` (int)
-- **Type**: Integer
+- **Type**: `int`
 - **Required**: No
-- **Default**: None
-- **Description**: Specifies the output device index to use. None uses the default device.
+- **Default**: `None`
+- **Description**: The index of the audio output device to use for playback.  
+  - **How It Works**: The system will use the device corresponding to this index for audio playback. If `None`, the system's default audio output device is used.  
+  - **Obtaining Device Indices**: Use PyAudio's device query methods to retrieve available indices.
 
 #### `tokenizer` (string)
-- **Type**: String
+- **Type**: `str`
 - **Required**: No
-- **Default**: nltk
-- **Description**: Tokenizer to use for sentence splitting (currently "nltk" and "stanza" are supported).
+- **Default**: `"nltk"`
+- **Description**: Specifies the tokenizer used for splitting text into sentences or fragments.  
+  - **Supported Options**: `"nltk"` (default) and `"stanza"`.  
+  - **Custom Tokenization**: You can provide a custom tokenizer by setting the `tokenize_sentences` parameter instead.
 
 #### `language` (string)
-- **Type**: String
+- **Type**: `str`
 - **Required**: No
-- **Default**: en
-- **Description**: Language to use for sentence splitting.
+- **Default**: `"en"`
+- **Description**: Language code for sentence splitting.  
+  - **Examples**: `"en"` for English, `"de"` for German, `"fr"` for French.  
+  - Ensure that the tokenizer supports the specified language.
 
 #### `muted` (bool)
-- **Type**: Bool
+- **Type**: `bool`
 - **Required**: No
-- **Default**: False
-- **Description**: Global muted parameter. If True, no pyAudio stream will be opened. Disables audio playback via local speakers (in case you want to synthesize to file or process audio chunks) and overrides the play parameters muted setting.
+- **Default**: `False`
+- **Description**: Controls whether audio playback is muted.  
+  - If `True`, audio playback is disabled, allowing the synthesis to generate audio data without playing it.  
+  - **Use Case**: Useful for scenarios where you want to save audio to a file or process audio chunks without hearing the output.
+
+#### `frames_per_buffer` (int)
+- **Type**: `int`
+- **Required**: No
+- **Default**: `pa.paFramesPerBufferUnspecified`
+- **Description**: Defines the number of audio frames processed per buffer by PyAudio.  
+  - **Implications**:  
+    - Lower values reduce latency but increase CPU usage.  
+    - Higher values increase latency but reduce CPU load.  
+  - If set to `pa.paFramesPerBufferUnspecified`, PyAudio selects a default value based on the platform and hardware.
+
+#### `playout_chunk_size` (int)
+- **Type**: `int`
+- **Required**: No
+- **Default**: `-1`
+- **Description**: Specifies the size of audio chunks (in bytes) to play out to the stream.  
+  - **Behavior**:  
+    - If `-1`, the chunk size is determined dynamically based on `frames_per_buffer` or a default internal value.  
+    - Smaller chunk sizes can reduce latency but may increase overhead.  
+    - Larger chunk sizes improve efficiency but may introduce playback delays.  
 
 #### `level` (int)
-- **Type**: Integer
+- **Type**: `int`
 - **Required**: No
 - **Default**: `logging.WARNING`
-- **Description**: Sets the logging level for the internal logger. This can be any integer constant from Python's built-in `logging` module.
+- **Description**: Sets the logging level for the internal logger.  
+  - **Examples**:  
+    - `logging.DEBUG`: Detailed information for debugging.  
+    - `logging.INFO`: General runtime information.  
+    - `logging.WARNING`: Warnings about potential issues.  
+    - `logging.ERROR`: Serious errors requiring attention.
 
 #### Example Usage:
 
