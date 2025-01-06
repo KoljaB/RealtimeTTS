@@ -58,7 +58,7 @@ Let me know if you need any adjustments or additional languages!
 
 ## Updates
 
-Latest Version: v0.4.3
+Latest Version: v0.4.40
 
 - **New Engine:** PiperEngine
   - **Installation Tutorial:** [Watch on YouTube](https://www.youtube.com/watch?v=GGvdq3giiTQ)
