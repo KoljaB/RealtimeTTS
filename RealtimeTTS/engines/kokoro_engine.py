@@ -40,14 +40,15 @@ class KokoroEngine(BaseEngine):
             debug (bool): If True, prints debug info.
         """
         super().__init__()  # Ensure BaseEngine is properly initialized
+        self.debug = debug
         self.kokoro_root = kokoro_root.replace("\\", "/")
 
         # Add the root directory to sys.path
         root_directory = os.path.abspath(os.path.join(os.path.dirname(__file__), self.kokoro_root)) 
-        print(f"Adding {root_directory} to sys.path")
+        if self.debug:
+            print(f"Adding {root_directory} to sys.path")
         sys.path.append(root_directory)
 
-        self.debug = debug
         self.queue = Queue()  # Queue for feeding audio data to the output
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
 
