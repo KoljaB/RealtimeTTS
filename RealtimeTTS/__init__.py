@@ -57,3 +57,8 @@ try:
     from .engines import PiperEngine, PiperVoice  # noqa: F401
 except ImportError as e:
     PiperEngine, PiperVoice = None
+
+try:
+    from .engines import KokoroEngine  # noqa: F401
+except ImportError as e:
+    KokoroEngine = None
