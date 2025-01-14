@@ -55,6 +55,7 @@ class CoquiEngine(BaseEngine):
         model_name="tts_models/multilingual/multi-dataset/xtts_v2",
         specific_model="v2.0.2",
         local_models_path=None,
+        pretrain_local_model_path=None,
         voices_path=None,
         voice: Union[str, List[str]] = "",
         language="en",
@@ -97,6 +98,8 @@ class CoquiEngine(BaseEngine):
               Path to a local models directory.
               If not specified, a directory "models" will be created in the
               script directory.
+            pretrain_local_model_path (str):
+              Path to a local model for checkpoint to load.
             voice (str):
               Name to the file containing the voice to clone.
               Works with a 44100Hz or 22050Hz mono 32bit float WAV file.
@@ -183,6 +186,7 @@ class CoquiEngine(BaseEngine):
 
         self.cloning_reference_wav = voice
         self.speed = speed
+        self.model_path = pretrain_local_model_path
         self.specific_model = specific_model
         if not local_models_path:
             local_models_path = os.environ.get("COQUI_MODEL_PATH")
@@ -197,17 +201,17 @@ class CoquiEngine(BaseEngine):
         self.voices_path = voices_path
 
         # download coqui model
-        self.model_path = None
-        if not self.specific_model:
-            from TTS.utils.manage import ModelManager
+        if not self.model_path:
+            if not self.specific_model:
+                from TTS.utils.manage import ModelManager
 
-            logging.info("Download most recent XTTS Model if available")
-            ModelManager().download_model(model_name)
-        else:
-            logging.info(f'Local XTTS Model: "{specific_model}" specified')
-            self.model_path = self.download_model(
-                specific_model, self.local_models_path
-            )
+                logging.info("Download most recent XTTS Model if available")
+                ModelManager().download_model(model_name)
+            else:
+                logging.info(f'Local XTTS Model: "{specific_model}" specified')
+                self.model_path = self.download_model(
+                    specific_model, self.local_models_path
+                )
 
         # Start the worker process
         try:
