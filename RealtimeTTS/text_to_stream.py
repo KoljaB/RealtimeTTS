@@ -666,7 +666,7 @@ class TextToAudioStream:
         Args:
             chunk (bytes): The audio data chunk to be processed.
         """
-        format, _, _ = self.engine.get_stream_info()
+        format, channels, sample_rate = self.engine.get_stream_info()
 
         if format == pyaudio.paFloat32:
             audio_data = np.frombuffer(chunk, dtype=np.float32)

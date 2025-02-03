@@ -2,25 +2,28 @@
 stream2sentence==0.3.0
 
 # azure-cognitiveservices-speech is for AzureEngine
-azure-cognitiveservices-speech==1.41.1
+azure-cognitiveservices-speech==1.42.0
 
 # coqui_tts is for CoquiEngine
-coqui_tts==0.25.1
+coqui_tts==0.25.3
 
 # elevenlabs is for ElevenlabsEngine
-elevenlabs==1.50.1
+elevenlabs==1.50.6
 
 # gtts is for GTTSEngine
 gtts==2.5.4
 
 # openai is for OpenAIEngine
-openai==1.57.4
+openai==1.61.0
 
 # pyttsx3 is for SystemEngine
 pyttsx3==2.98
 
 # edge-tts is for EdgeEngine
 edge-tts==7.0.0
+
+# kokoro is for KokoroEngine
+kokoro==0.3.5
 
 # pyaudio is for playing chunks over output device
 pyaudio==0.2.14

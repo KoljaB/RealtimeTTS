@@ -18,4 +18,6 @@ if __name__ == "__main__":
     print("Starting to play stream")
     stream.feed(dummy_generator()).play(log_synthesized_text=True)
 
+    print("Playout finished")
+
     engine.shutdown()
