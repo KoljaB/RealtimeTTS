@@ -23,7 +23,7 @@ pyttsx3==2.98
 edge-tts==7.0.0
 
 # kokoro is for KokoroEngine
-kokoro==0.3.5
+kokoro==0.7.3
 
 # pyaudio is for playing chunks over output device
 pyaudio==0.2.14

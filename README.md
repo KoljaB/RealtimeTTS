@@ -58,7 +58,7 @@ Let me know if you need any adjustments or additional languages!
 
 ## Updates
 
-Latest Version: v0.4.42
+Latest Version: v0.4.43
 
 - **New Engine:** KokoroEngine
   - **Installation:** `pip install RealtimeTTS[kokoro]
