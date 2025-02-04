@@ -165,6 +165,8 @@ class TextToAudioStream:
             # Handle the case where engine is a single BaseEngine instance
             self.engines = [engine]
 
+        self.audio_queue = queue.Queue()
+
         self.load_engine(self.engines[self.engine_index])
 
     def load_engine(self, engine: BaseEngine):
@@ -194,7 +196,7 @@ class TextToAudioStream:
         )
 
         self.player = StreamPlayer(
-            self.engine.queue, config, on_playback_start=self._on_audio_stream_start
+            self.audio_queue, config, on_playback_start=self._on_audio_stream_start
         )
 
         logging.info(f"loaded engine {self.engine.engine_name}")
@@ -386,7 +388,6 @@ class TextToAudioStream:
                 self.engine.synthesize(self.char_iter)
 
             finally:
-
                 try:
                     if self.player:
                         self.player.stop()
@@ -462,7 +463,9 @@ class TextToAudioStream:
 
                         synthesis_successful = False
                         if log_synthesized_text:
-                            print(f"\033[96m\033[1m⚡ synthesizing\033[0m \033[37m→ \033[2m'\033[22m{sentence}\033[2m'\033[0m")
+                            print(
+                                f"\033[96m\033[1m⚡ synthesizing\033[0m \033[37m→ \033[2m'\033[22m{sentence}\033[2m'\033[0m"
+                            )
 
                         while not synthesis_successful:
                             try:
@@ -471,7 +474,9 @@ class TextToAudioStream:
 
                                 if before_sentence_synthesized:
                                     before_sentence_synthesized(sentence)
-                                success = self.engine.synthesize(sentence)
+                                success = self.engine.synthesize(
+                                    sentence, audio_queue=self.audio_queue
+                                )
                                 if success:
                                     if on_sentence_synthesized:
                                         on_sentence_synthesized(sentence)
@@ -553,10 +558,11 @@ class TextToAudioStream:
                         self.wf.close()
                         self.wf = None
 
-            if (len(self.char_iter.items) > 0
+            if (
+                len(self.char_iter.items) > 0
                 and self.char_iter.iterated_text == ""
-                and not self.char_iter.immediate_stop.is_set()):
-
+                and not self.char_iter.immediate_stop.is_set()
+            ):
                 # new text was feeded while playing audio but after the last character was processed
                 # we need to start another play() call (!recursively!)
                 self.play(
