@@ -90,16 +90,12 @@ class PiperEngine(BaseEngine):
             print("No voice set. Please provide a PiperVoice configuration.")
             return False
 
-        # Create a unique temporary WAV file.
-        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp_wav_file:
-            output_wav_path = tmp_wav_file.name
-
         # Build the argument list for Piper (no shell piping).
         # If piper_path is on the PATH, you can use just "piper". Otherwise, use the full path.
         cmd_list = [
             self.piper_path,
             "-m", self.voice.model_file,
-            "-f", output_wav_path
+            "--output-raw",
         ]
         
         # If a JSON config file is available, add it.
@@ -115,25 +111,12 @@ class PiperEngine(BaseEngine):
             result = subprocess.run(
                 cmd_list,
                 input=text.encode("utf-8"),  # Piper reads from STDIN
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
+                capture_output=True,
                 check=True,              # Raises CalledProcessError on non-zero exit
                 shell=False              # No shell means no special quoting issues
             )
-
-            # Open the synthesized WAV file and (optionally) validate audio properties.
-            with wave.open(output_wav_path, "rb") as wf:
-                # If you require specific WAV properties, check them:
-                if wf.getnchannels() != 1 or wf.getframerate() != 16000 or wf.getsampwidth() != 2:
-                    print(f"Unexpected WAV properties: "
-                        f"Channels={wf.getnchannels()}, "
-                        f"Rate={wf.getframerate()}, "
-                        f"Width={wf.getsampwidth()}")
-                    return False
-
-                # Read audio data and put it into the queue.
-                audio_data = wf.readframes(wf.getnframes())
-                self.queue.put(audio_data)
+            # Put the captured audio data in the queue
+            self.queue.put(result.stdout)
 
             return True
 
@@ -144,10 +127,6 @@ class PiperEngine(BaseEngine):
             # Piper returned an error code; show the stderr output for troubleshooting.
             print(f"Error running Piper: {e.stderr.decode('utf-8', errors='replace')}")
             return False
-        finally:
-            # Clean up the temporary WAV file after reading it.
-            if os.path.isfile(output_wav_path):
-                os.remove(output_wav_path)
 
     def set_voice(self, voice: PiperVoice):
         """
