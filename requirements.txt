@@ -25,6 +25,17 @@ edge-tts==7.0.0
 # kokoro is for KokoroEngine
 kokoro==0.7.3
 
+# fugashi is to support japanese language for KokoroEngine
+fugashi==1.4.0
+jaconv==0.4.0
+mojimoji==0.0.13
+
+# pypinyin is to support chinese language for KokoroEngine
+pypinyin==1.4.0
+ordered_set==4.1.0
+jieba==0.42.1
+cn2an==0.5.23
+
 # pyaudio is for playing chunks over output device
 pyaudio==0.2.14
 

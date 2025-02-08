@@ -538,7 +538,10 @@ class StreamPlayer:
         Returns:
             float: Duration of buffered audio in seconds.
         """
-        return self.buffer_manager.get_buffered_seconds(self.audio_stream.config.rate)
+        if self.audio_stream.config.rate > 0:
+            return self.buffer_manager.get_buffered_seconds(self.audio_stream.config.rate)
+        else: # mpeg
+            return self.buffer_manager.get_buffered_seconds(16000)
         # total_samples = sum(
         #     len(chunk) // 2 for chunk in list(self.buffer_manager.audio_buffer.queue)
         # )
