@@ -65,6 +65,12 @@ Support for more kokoro languages. Full installation for also japanese and chine
 pip install "RealtimeTTS[kokoro,jp,zh]"
 ```
 
+If you run into problems with japanese (Error "module 'jieba' has no attribute 'lcut'") try:
+```shell
+pip uninstall jieba jieba3k
+pip install jieba
+```
+
 - **New Engine:** KokoroEngine
   - **Installation:** `pip install RealtimeTTS[kokoro]
   - **Test File Example:** [kokoro_test.py](https://github.com/KoljaB/RealtimeTTS/blob/master/tests/kokoro_test.py)
