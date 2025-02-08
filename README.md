@@ -58,7 +58,12 @@ Let me know if you need any adjustments or additional languages!
 
 ## Updates
 
-Latest Version: v0.4.43
+Latest Version: v0.4.46
+
+Support for more kokoro languages. Full installation for also japanese and chinese languages (see updated test file): 
+```shell
+pip install "RealtimeTTS[kokoro,jp,zh]"
+```
 
 - **New Engine:** KokoroEngine
   - **Installation:** `pip install RealtimeTTS[kokoro]
