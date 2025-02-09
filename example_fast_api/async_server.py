@@ -40,12 +40,12 @@ SUPPORTED_ENGINES = [
     "openai",
     "elevenlabs",
     "system",
-    # "coqui",  #multiple queries are not supported on coqui engine right now, comment coqui out for tests where you need server start often
+    "coqui",  # multiple queries are not supported on coqui engine right now, comment coqui out for tests where you need server start often
 ]
 
 # change start engine by moving engine name
 # to the first position in SUPPORTED_ENGINES
-START_ENGINE = SUPPORTED_ENGINES[0]
+START_ENGINE = SUPPORTED_ENGINES[-1]
 
 BROWSER_IDENTIFIERS = [
     "mozilla",
