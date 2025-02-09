@@ -613,6 +613,7 @@ class TextToAudioStream:
 
         if self.is_playing():
             self.char_iter.stop()
+            self.player.resume()
             self.player.stop(immediate=True)
             self.stream_running = False
 
