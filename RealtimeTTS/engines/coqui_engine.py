@@ -97,9 +97,10 @@ class CoquiEngine(BaseEngine):
               Path to a local models directory.
               If not specified, a directory "models" will be created in the
               script directory.
-            voice (str):
-              Name to the file containing the voice to clone.
-              Works with a 44100Hz or 22050Hz mono 32bit float WAV file.
+            voice (Union[str, List[str]]):
+              Name(s) of the file(s) containing the voice to clone.
+              Works with a 44100Hz or 22050Hz mono 32bit float WAV file,
+              or a list of such files.
             language (str):
               Language to use for the coqui model.
             speed (float):
@@ -135,8 +136,8 @@ class CoquiEngine(BaseEngine):
               Function to prepare text for synthesis.
               If not specified, a default sentence parser will be used.
             add_sentence_filter (bool):
-              Adds a own sentence filter in addition
-              to the one coqui tts already provides.
+              Adds a custom sentence filter in addition
+              to the one coqui TTS already provides.
             pretrained (bool):
               Use a pretrained model for the coqui model.
             comma_silence_duration (float):
@@ -212,7 +213,6 @@ class CoquiEngine(BaseEngine):
         # Start the worker process
         try:
             # Only set the start method if it hasn't been set already
-                # Check the current platform and set the start method
             if sys.platform.startswith('linux') or sys.platform == 'darwin':  # For Linux or macOS
                 mp.set_start_method("spawn")
             elif mp.get_start_method(allow_none=True) is None:
@@ -335,8 +335,8 @@ class CoquiEngine(BaseEngine):
             conn (multiprocessing.Connection):
               Connection to the parent process.
             model_name (str): Name of the coqui model to use.
-            cloning_reference_wav (str):
-              Name to the file containing the voice to clone.
+            cloning_reference_wav (Union[str, List[str]]):
+              The file(s) containing the voice to clone.
             language (str): Language to use for the coqui model.
             ready_event (multiprocessing.Event):
               Event to signal when the model is ready.
@@ -356,7 +356,7 @@ class CoquiEngine(BaseEngine):
 
         def get_conditioning_latents(filenames: Union[str, List[str]], tts):
             """
-            Method still needs some rework
+            Computes and/or loads speaker latents for the given filename(s).
             """
             if not isinstance(filenames, list):
                 filenames = [filenames]
@@ -370,7 +370,6 @@ class CoquiEngine(BaseEngine):
             if len(filenames) == 1:
                 logging.debug("Handling of single voice file")
 
-                # verify that filename ends with .wav
                 filename = filenames[0]
                 if filename.endswith(".json"):
                     filename_json = filename
@@ -467,7 +466,6 @@ class CoquiEngine(BaseEngine):
             else:
                 audio_path_list = []
                 for filename in filenames:
-                    # verify that filename ends with .wav
                     if filename.endswith(".wav"):
                         if voices_path:
                             filename_voice_wav = os.path.join(voices_path, filename)
@@ -493,8 +491,7 @@ class CoquiEngine(BaseEngine):
                             f"Default voice file {filename_voice_json} not found."
                         )
 
-                # compute and write latents to json file
-                logging.debug(f"Computing latents for {filename}")
+                logging.debug(f"Computing latents for the provided list: {filenames}")
 
                 gpt_cond_latent, speaker_embedding = tts.get_conditioning_latents(
                     audio_path=audio_path_list, gpt_cond_len=30, max_ref_length=60
@@ -507,6 +504,7 @@ class CoquiEngine(BaseEngine):
                     .half()
                     .tolist(),
                 }
+                # Save latents alongside the first WAV
                 filename_voice_json = audio_path_list[0][:-3] + "json"
                 with open(filename_voice_json, "w") as new_file:
                     json.dump(latents, new_file)
@@ -720,9 +718,7 @@ class CoquiEngine(BaseEngine):
                             chunk_bytes = chunk.tobytes()
 
                             conn.send(("success", chunk_bytes))
-                            chunk_duration = len(chunk_bytes) / (
-                                4 * 24000
-                            )  # 4 bytes per sample, 24000 Hz
+                            chunk_duration = len(chunk_bytes) / (4 * 24000)  # 4 bytes per sample, 24000 Hz
                             full_generated_seconds += chunk_duration
                             if i == 0:
                                 first_chunk_length_seconds = chunk_duration
@@ -734,8 +730,7 @@ class CoquiEngine(BaseEngine):
                                 chunk_production_seconds = time.time() - time_start
                                 generated_audio_seconds = full_generated_seconds
 
-                                # wait only if we are faster than realtime, meaning
-                                # that chunk_production_seconds is smaller than generated_audio_seconds
+                                # wait only if we are faster than realtime
                                 if load_balancing:
                                     if chunk_production_seconds < (generated_audio_seconds + load_balancing_buffer_length):
                                         waiting_time = generated_audio_seconds - chunk_production_seconds - load_balancing_cut_off
@@ -759,16 +754,15 @@ class CoquiEngine(BaseEngine):
                             print(f"Realtime Factor: {realtime_factor}")
                             print(f"Raw Inference Factor: {raw_inference_factor}")
 
-
                     # Send silent audio
                     sample_rate = config.audio.sample_rate
 
                     end_sentence_delimeters = ".!?…。¡¿"
                     mid_sentence_delimeters = ";:,\n()[]{}-“”„”—/|《》"
 
-                    if text[-1] in end_sentence_delimeters:
+                    if text and text[-1] in end_sentence_delimeters:
                         silence_duration = sentence_silence_duration
-                    elif text[-1] in mid_sentence_delimeters:
+                    elif text and text[-1] in mid_sentence_delimeters:
                         silence_duration = comma_silence_duration
                     else:
                         silence_duration = default_silence_duration
@@ -782,7 +776,7 @@ class CoquiEngine(BaseEngine):
                     end_time = time.time()
 
         except KeyboardInterrupt:
-            logging.info("Keyboard interrupt received. " "Exiting worker process.")
+            logging.info("Keyboard interrupt received. Exiting worker process.")
             conn.send(("shutdown", "shutdown"))
 
         except Exception as e:
@@ -796,7 +790,7 @@ class CoquiEngine(BaseEngine):
             print(f"Error: {e}")
 
             conn.send(("error", str(e)))
-    
+
         sys.stdout = sys.__stdout__
         sys.stderr = sys.__stderr__
 
@@ -807,9 +801,13 @@ class CoquiEngine(BaseEngine):
         message = {"command": command, "data": data}
         self.parent_synthesize_pipe.send(message)
 
-    def set_cloning_reference(self, cloning_reference_wav: str):
+    def set_cloning_reference(self, cloning_reference_wav: Union[str, List[str]]):
         """
         Send an 'update_reference' command and wait for a response.
+
+        Args:
+            cloning_reference_wav (Union[str, List[str]]):
+                Name(s) of the file(s) containing the voice to clone.
         """
         if not isinstance(cloning_reference_wav, list):
             cloning_reference_wav = [cloning_reference_wav]
@@ -861,17 +859,15 @@ class CoquiEngine(BaseEngine):
             tuple: A tuple containing the audio format, number of channels,
               and the sample rate.
                   - Format (int): The format of the audio stream.
-                    pyaudio.paInt16 represents 16-bit integers.
-                  - Channels (int): The number of audio channels.
-                    1 represents mono audio.
-                  - Sample Rate (int): The sample rate of the audio in Hz.
-                    16000 represents 16kHz sample rate.
+                    pyaudio.paFloat32 represents 32-bit float samples.
+                  - Channels (int): The number of audio channels (1 = mono).
+                  - Sample Rate (int): The sample rate of the audio in Hz (24000).
         """
         return pyaudio.paFloat32, 1, 24000
 
     def _prepare_text_for_synthesis(self, text: str):
         """
-        Splits a text into sentences.
+        Splits and cleans a text for speech synthesis.
 
         Args:
             text (str): Text to prepare for synthesis.
@@ -885,19 +881,14 @@ class CoquiEngine(BaseEngine):
         if self.prepare_text_callback:
             return self.prepare_text_callback(text)
 
-        # A fast fix for last character, may produce weird sounds if it is with text
         text = text.strip()
         text = text.replace("</s>", "")
-        # text = re.sub("```.*```", "", text, flags=re.DOTALL)
-        # text = re.sub("`.*`", "", text, flags=re.DOTALL)
         text = re.sub("\\(.*?\\)", "", text, flags=re.DOTALL)
         text = text.replace("```", "")
         text = text.replace("...", " ")
         text = text.replace("»", "")
         text = text.replace("«", "")
         text = re.sub(" +", " ", text)
-        # text= re.sub("([^\x00-\x7F]|\w)(\.|\。|\?)",r"\1 \2\2",text)
-        # text= re.sub("([^\x00-\x7F]|\w)(\.|\。|\?)",r"\1 \2",text)
 
         try:
             if len(text) > 2 and text[-1] in ["."]:
@@ -908,7 +899,6 @@ class CoquiEngine(BaseEngine):
                 text = text[:-2]
             elif len(text) > 3 and text[-2] in ["!", "?", ","]:
                 text = text[:-2] + " " + text[-2]
-            
         except Exception as e:
             logging.warning(
                 f'Error fixing sentence end punctuation: {e}, Text: "{text}"'
@@ -1008,21 +998,21 @@ class CoquiEngine(BaseEngine):
         voices_appended = []
 
         # Add custom voices
-        files = os.listdir(self.voices_path)
-        for file in files:
-            # remove ending .wav or .json from filename
-            if file.endswith(".wav"):
-                file = file[:-4]
-            elif file.endswith(".json"):
-                file = file[:-5]
-            else:
-                continue
+        if self.voices_path and os.path.isdir(self.voices_path):
+            files = os.listdir(self.voices_path)
+            for file in files:
+                if file.endswith(".wav"):
+                    file = file[:-4]
+                elif file.endswith(".json"):
+                    file = file[:-5]
+                else:
+                    continue
 
-            if file in voices_appended:
-                continue
+                if file in voices_appended:
+                    continue
 
-            voices_appended.append(file)
-            voice_objects.append(CoquiVoice(file))
+                voices_appended.append(file)
+                voice_objects.append(CoquiVoice(file))
 
         # Add predefined coqui system voices
         for voice in self.voices_list:
@@ -1030,19 +1020,34 @@ class CoquiEngine(BaseEngine):
 
         return voice_objects
 
-    def set_voice(self, voice: str):
+    def set_voice(self, voice: Union[str, List[str], CoquiVoice]):
         """
-        Sets the voice to be used for speech synthesis.
+        Sets the voice(s) to be used for speech synthesis.
+
+        Args:
+            voice (Union[str, List[str], CoquiVoice]):
+                Name of the voice, a list of voice file paths,
+                or a CoquiVoice instance.
         """
+        # If it's a CoquiVoice instance, just use its name
         if isinstance(voice, CoquiVoice):
-            self.set_cloning_reference(voice.name)
-        else:
-            installed_voices = self.get_voices()
-            for installed_voice in installed_voices:
-                if voice in installed_voice.name:
-                    self.set_cloning_reference(installed_voice.name)
-                    return
-            self.set_cloning_reference(voice)
+            return self.set_cloning_reference(voice.name)
+
+        # If it's a list of strings, we assume these are file paths
+        if isinstance(voice, list):
+            if not voice:
+                logging.warning("Received an empty list for set_voice.")
+                return
+            return self.set_cloning_reference(voice)
+
+        # Otherwise, it's a string
+        installed_voices = self.get_voices()
+        for installed_voice in installed_voices:
+            if voice == installed_voice.name:
+                return self.set_cloning_reference(installed_voice.name)
+
+        # If not found among installed_voices, treat as a new file or path
+        self.set_cloning_reference(voice)
 
     def set_voice_parameters(self, **voice_parameters):
         """
@@ -1051,7 +1056,7 @@ class CoquiEngine(BaseEngine):
         Args:
             **voice_parameters: The voice parameters to be used for speech synthesis.
 
-        This method should be overridden by the derived class to set the desired voice parameters.
+        This method can be overridden by the derived class to set the desired voice parameters.
         """
         pass
 
@@ -1072,7 +1077,6 @@ class CoquiEngine(BaseEngine):
             if "shutdown" in status:
                 logging.info("Worker process acknowledged shutdown")
         except EOFError:
-            # Pipe was closed, meaning the process is already down
             logging.warning(
                 "Worker process pipe was closed before shutdown acknowledgement"
             )
