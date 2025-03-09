@@ -54,8 +54,8 @@ else:
 import random
 for lang, (voice, text) in languages.items():
     engine.set_voice(voice)
-    # Generate speed between 0.7 and 1.8 (1.0 ± [−0.3, +0.8])
-    speed = max(0.1, 1.0 + random.uniform(-0.3, 0.8))
+    # Generate speed between 0.6 and 1.8 (1.0 ± [−0.4, +0.8])
+    speed = max(0.1, 1.0 + random.uniform(-0.4, 0.8))
      
     engine.set_voice(voice)
     engine.set_speed(speed)
