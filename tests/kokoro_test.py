@@ -43,6 +43,14 @@ for lang, (voice, text) in prewarm_texts.items():
     TextToAudioStream(engine).feed([text]).play(muted=True)
 
 
+# Clear the screen in a platform-independent way
+import os
+import sys
+if sys.platform.startswith("win"):
+    os.system("cls")
+else:
+    os.system("clear")
+
 import random
 for lang, (voice, text) in languages.items():
     engine.set_voice(voice)
