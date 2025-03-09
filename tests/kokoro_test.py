@@ -43,9 +43,16 @@ for lang, (voice, text) in prewarm_texts.items():
     TextToAudioStream(engine).feed([text]).play(muted=True)
 
 
+import random
 for lang, (voice, text) in languages.items():
-    print(f"Testing {voice} ({lang})")
     engine.set_voice(voice)
+    # Generate speed between 0.7 and 1.8 (1.0 ± [−0.3, +0.8])
+    speed = max(0.1, 1.0 + random.uniform(-0.3, 0.8))
+     
+    engine.set_voice(voice)
+    engine.set_speed(speed)
+
+    print(f"Testing {voice} ({lang}) using speed: {speed:.2f}")
     TextToAudioStream(engine).feed([text]).play(log_synthesized_text=True)
 
 engine.shutdown()

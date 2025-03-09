@@ -420,7 +420,7 @@ When you initialize the `TextToAudioStream` class, you have various options to c
   - **Use Case**: Real-time visualization of character-level processing, useful for debugging or monitoring.  
   - **Signature**: `on_character(character: str) -> None`.
 
-#### `output_device_index` (int)
+#### `output_device_index` (int) ❗ NOT SUPPORTED for ElevenlabsEngine and EdgeEngine (MPV playout)
 - **Type**: `int`
 - **Required**: No
 - **Default**: `None`

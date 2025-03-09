@@ -30,9 +30,15 @@ class KokoroEngine(BaseEngine):
         pipelines (dict): Caches KPipeline instances keyed by language code.
         current_voice_name (str): Currently selected voice identifier.
         current_lang (str): Language code derived from the current voice.
+        speed (float): Speed factor for speech synthesis.
     """
 
-    def __init__(self, default_lang_code: str = "a", default_voice: str = "af_heart", debug: bool = False):
+    def __init__(
+            self,
+            default_lang_code: str = "a",
+            default_voice: str = "af_heart",
+            default_speed: float = 1.0,
+            debug: bool = False):
         """
         Initializes the KokoroEngine with default settings.
 
@@ -42,6 +48,7 @@ class KokoroEngine(BaseEngine):
         Args:
             default_lang_code (str): Fallback language code if the voice doesn't specify one.
             default_voice (str): Default voice to use (e.g., "af_heart").
+            default_speed (float): Default speed factor for speech synthesis.
             debug (bool): If True, prints detailed debug output.
         """
         super().__init__()
@@ -49,6 +56,9 @@ class KokoroEngine(BaseEngine):
         self.engine_name = "kokoro"
         self.queue = Queue()  # Queue for streaming audio data.
         self.pipelines = {}   # Cache pipelines based on language code.
+
+        # Default speed parameter for synthesis.
+        self.speed = default_speed
 
         self.current_voice_name = default_voice
         # Attempt to derive the language code from the voice name.
@@ -59,7 +69,8 @@ class KokoroEngine(BaseEngine):
         self.pipelines[self.current_lang] = KPipeline(lang_code=self.current_lang)
 
         if self.debug:
-            print(f"[KokoroEngine] Initialized with voice: {self.current_voice_name} (lang: {self.current_lang})")
+            print(f"[KokoroEngine] Initialized with voice: {self.current_voice_name} (lang: {self.current_lang}), speed: {self.speed}")
+
 
     def _get_lang_code_from_voice(self, voice_name: str) -> str:
         """
@@ -144,11 +155,11 @@ class KokoroEngine(BaseEngine):
         start_time = time.time()
         try:
             if self.debug:
-                print(f"[KokoroEngine] Synthesizing with language code: {self.current_lang}")
+                print(f"[KokoroEngine] Synthesizing with language code: {self.current_lang} and speed: {self.speed}")
             # Get or create the pipeline corresponding to the current language.
             pipeline = self._get_pipeline(self.current_lang)
-            # Generate audio in chunks from the pipeline.
-            generator = pipeline(text, voice=self.current_voice_name, speed=1.0)
+            # Generate audio in chunks from the pipeline using the speed parameter.
+            generator = pipeline(text, voice=self.current_voice_name, speed=self.speed)
 
             for index, (graphemes, phonemes, audio_float32) in enumerate(generator):
                 # If audio is provided as a Torch Tensor, convert it to a NumPy array.
@@ -186,6 +197,19 @@ class KokoroEngine(BaseEngine):
             self.current_lang = lang
         if self.debug:
             print(f"[KokoroEngine] Voice set to: {voice_name} (lang: {self.current_lang})")
+
+
+    def set_speed(self, speed: float):
+        """
+        Sets the speed for speech synthesis.
+
+        Args:
+            speed (float): The speed factor (e.g., 1.0 for normal speed,
+                           values >1.0 for faster, and values <1.0 for slower).
+        """
+        self.speed = speed
+        if self.debug:
+            print(f"[KokoroEngine] Speed set to: {self.speed}")
 
     def get_voices(self) -> List[str]:
         """

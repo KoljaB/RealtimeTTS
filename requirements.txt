@@ -8,13 +8,13 @@ azure-cognitiveservices-speech==1.42.0
 coqui_tts==0.25.3
 
 # elevenlabs is for ElevenlabsEngine
-elevenlabs==1.51.0
+elevenlabs==1.53.0
 
 # gtts is for GTTSEngine
 gtts==2.5.4
 
 # openai is for OpenAIEngine
-openai==1.63.0
+openai==1.65.5
 
 # pyttsx3 is for SystemEngine
 pyttsx3==2.98
@@ -23,7 +23,7 @@ pyttsx3==2.98
 edge-tts==7.0.0
 
 # kokoro is for KokoroEngine
-kokoro==0.7.16
+kokoro==0.8.4
 
 # fugashi is to support japanese language for KokoroEngine
 fugashi==1.4.0
