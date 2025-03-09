@@ -58,7 +58,7 @@ Let me know if you need any adjustments or additional languages!
 
 ## Updates
 
-Latest Version: v0.4.49
+Latest Version: v0.4.50
 
 Support for more kokoro languages. Full installation for also japanese and chinese languages (see updated test file): 
 ```shell
