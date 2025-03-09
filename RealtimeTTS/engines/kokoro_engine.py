@@ -1,36 +1,35 @@
 """
 Requires:
-- pip install kokoro>=0.3.4 soundfile
+- pip install kokoro>=0.3.4 soundfile torch
 - For non-English languages, install espeak-ng:
   !apt-get -qq -y install espeak-ng
 """
 
 from .base_engine import BaseEngine
 from queue import Queue
-from typing import List
+from typing import List, Union
 import numpy as np
 import pyaudio
 import time
+
+# Make sure torch is installed
+import torch
+import re
 
 # Import the text-to-speech pipeline from the Kokoro package.
 from kokoro import KPipeline
 
 class KokoroEngine(BaseEngine):
     """
-    A text-to-speech (TTS) engine utilizing the Kokoro pipeline.
+    A text-to-speech (TTS) engine utilizing the Kokoro pipeline, now with support
+    for blending multiple voices by parsing "voice formulas."
 
-    This engine supports multiple languages by caching separate pipeline instances
-    for each language code. The engine selects the appropriate pipeline based on
-    the voice's prefix, allowing it to manage voice and language settings dynamically.
+    Example usage of a voice formula:
+        engine.set_voice("0.3*af_sarah + 0.7*am_adam")
 
-    Attributes:
-        debug (bool): Flag to enable or disable debug messages.
-        engine_name (str): Identifier for the engine (set to "kokoro").
-        queue (Queue): Stores audio chunks for playback.
-        pipelines (dict): Caches KPipeline instances keyed by language code.
-        current_voice_name (str): Currently selected voice identifier.
-        current_lang (str): Language code derived from the current voice.
-        speed (float): Speed factor for speech synthesis.
+    That string will be parsed to load 'af_sarah' and 'am_adam', then combined
+    with a weighted average. The final voicepack is cached under the same formula
+    key, so you can reuse it without re-computation.
     """
 
     def __init__(
@@ -41,9 +40,6 @@ class KokoroEngine(BaseEngine):
             debug: bool = False):
         """
         Initializes the KokoroEngine with default settings.
-
-        This sets up the audio queue, voice and language selection, and creates
-        the initial pipeline for the default language.
 
         Args:
             default_lang_code (str): Fallback language code if the voice doesn't specify one.
@@ -56,8 +52,6 @@ class KokoroEngine(BaseEngine):
         self.engine_name = "kokoro"
         self.queue = Queue()  # Queue for streaming audio data.
         self.pipelines = {}   # Cache pipelines based on language code.
-
-        # Default speed parameter for synthesis.
         self.speed = default_speed
 
         self.current_voice_name = default_voice
@@ -68,24 +62,37 @@ class KokoroEngine(BaseEngine):
         # Create and cache the pipeline for the current language.
         self.pipelines[self.current_lang] = KPipeline(lang_code=self.current_lang)
 
+        # Cache for formula-based blended voices: { formula_str: torch.FloatTensor }
+        self.blended_voices = {}
+
         if self.debug:
             print(f"[KokoroEngine] Initialized with voice: {self.current_voice_name} (lang: {self.current_lang}), speed: {self.speed}")
-
 
     def _get_lang_code_from_voice(self, voice_name: str) -> str:
         """
         Determines the language code from the provided voice name.
-
-        This method checks for specific prefixes in the voice name and maps them
-        to a single-character language code.
+        If a voice formula is supplied, we just pick the first voice's code.
 
         Args:
-            voice_name (str): The voice identifier (e.g., "af_heart").
+            voice_name (str): The voice identifier (e.g., "af_heart" or "0.3*af_sarah + 0.7*am_adam").
 
         Returns:
-            str: The language code corresponding to the voice prefix, or None if unknown.
+            str: The language code or None if unknown.
         """
-        # Map voice name prefixes to language codes.
+        # If there's a weight spec, parse out the first chunk for detecting language:
+        if "*" in voice_name:
+            # e.g. "0.3*af_sarah + 0.7*am_adam"
+            parts = re.split(r"\+|\s+", voice_name)
+            # find something that looks like "0.3*af_sarah"
+            for part in parts:
+                if "*" in part:
+                    # get voice token: e.g. "af_sarah"
+                    voice_token = part.split("*")[-1].strip()
+                    # fallback to normal logic
+                    return self._get_lang_code_from_voice(voice_token)
+            return None
+
+        # Standard single-voice approach
         if voice_name.startswith(("af_", "am_")):
             return "a"  # American English
         elif voice_name.startswith(("bf_", "bm_")):
@@ -105,13 +112,15 @@ class KokoroEngine(BaseEngine):
         elif voice_name.startswith(("pf_", "pm_")):
             return "p"  # Brazilian Portuguese
         else:
+            # Fallback to first-letter guess
+            first_char = voice_name[0].lower() if voice_name else ''
+            if first_char in "abjzefhip":
+                return first_char
             return None
 
     def _get_pipeline(self, lang_code: str):
         """
         Retrieves the KPipeline for the specified language code.
-
-        If the pipeline does not exist in the cache, it is created and stored.
 
         Args:
             lang_code (str): The language code for which to get the pipeline.
@@ -125,26 +134,74 @@ class KokoroEngine(BaseEngine):
             self.pipelines[lang_code] = KPipeline(lang_code=lang_code)
         return self.pipelines[lang_code]
 
+    def _parse_mixed_voice_formula(self, formula: str, pipeline: KPipeline) -> torch.FloatTensor:
+        """
+        Parse a formula like "0.3*af_sarah + 0.7*am_adam" to create a weighted blend of voice Tensors.
+
+        Args:
+            formula (str): Weighted formula string.
+            pipeline (KPipeline): The pipeline for the relevant language.
+
+        Returns:
+            torch.FloatTensor: The blended voice Tensor.
+        """
+        # If we already have a cached blend, return it
+        if formula in self.blended_voices:
+            if self.debug:
+                print(f"[KokoroEngine] Using cached blended voice for formula: {formula}")
+            return self.blended_voices[formula]
+
+        # Otherwise, parse and create a new blend
+        # Example formula: "0.3*af_sarah + 0.7*am_adam"
+        # Split on "+"
+        segments = [seg.strip() for seg in formula.split("+")]
+        total_weight = 0.0
+        sum_tensor = None
+
+        for seg in segments:
+            seg = seg.strip()
+            if "*" not in seg:
+                raise ValueError(f"Malformed voice formula segment (missing '*'): '{seg}'")
+
+            # e.g. "0.3*af_sarah"
+            weight_str, voice_name = seg.split("*", 1)
+            weight = float(weight_str.strip())
+            voice_name = voice_name.strip()
+            total_weight += weight
+
+            # Load single voice or cached voice
+            voice_tensor = pipeline.load_single_voice(voice_name)
+
+            # Weighted sum
+            fraction = torch.tensor(weight)  # if you want float conversion
+            if sum_tensor is None:
+                sum_tensor = fraction * voice_tensor
+            else:
+                sum_tensor += fraction * voice_tensor
+
+        if total_weight == 0:
+            raise ValueError(f"Total voice weight is zero in formula: {formula}")
+
+        # Normalize by total_weight
+        sum_tensor /= total_weight
+
+        # Cache the final
+        self.blended_voices[formula] = sum_tensor
+        return sum_tensor
+
     def get_stream_info(self):
         """
         Provides the PyAudio stream configuration for the synthesized audio.
 
         Returns:
-            tuple: A tuple (format, channels, rate) where:
-                - format: Audio format (e.g., pyaudio.paInt16),
-                - channels: Number of audio channels (1 for mono),
-                - rate: Sample rate in Hz (24000 for Kokoro).
+            tuple: (pyaudio.paInt16, 1, 24000)
         """
         # Kokoro uses 24 kHz sampling rate, mono channel, with 16-bit samples.
         return (pyaudio.paInt16, 1, 24000)
 
     def synthesize(self, text: str) -> bool:
         """
-        Converts the input text into speech audio.
-
-        The method uses the appropriate pipeline for the current language to generate
-        audio data in chunks. Each chunk is processed to convert from float32 to int16
-        format and then added to the audio queue.
+        Converts the input text into speech audio, in chunks, placing the data into self.queue.
 
         Args:
             text (str): The text string to synthesize.
@@ -156,16 +213,23 @@ class KokoroEngine(BaseEngine):
         try:
             if self.debug:
                 print(f"[KokoroEngine] Synthesizing with language code: {self.current_lang} and speed: {self.speed}")
-            # Get or create the pipeline corresponding to the current language.
+
+            # Pull the pipeline for the current language
             pipeline = self._get_pipeline(self.current_lang)
-            # Generate audio in chunks from the pipeline using the speed parameter.
-            generator = pipeline(text, voice=self.current_voice_name, speed=self.speed)
+
+            # If current_voice_name is a formula, parse it. Otherwise, use it as is.
+            voice_arg: Union[str, torch.FloatTensor] = self.current_voice_name
+            if "*" in self.current_voice_name:  # basic check for formula
+                voice_arg = self._parse_mixed_voice_formula(self.current_voice_name, pipeline)
+
+            # Generate audio in chunks from the pipeline
+            generator = pipeline(text, voice=voice_arg, speed=self.speed)
 
             for index, (graphemes, phonemes, audio_float32) in enumerate(generator):
-                # If audio is provided as a Torch Tensor, convert it to a NumPy array.
                 if hasattr(audio_float32, "detach"):
                     audio_float32 = audio_float32.detach().cpu().numpy()
-                # Convert float32 audio (range -1.0 to 1.0) to int16 format.
+
+                # Convert float32 audio (-1.0 to 1.0) to int16
                 audio_int16 = (audio_float32 * 32767).astype(np.int16).tobytes()
                 self.queue.put(audio_int16)
 
@@ -181,31 +245,27 @@ class KokoroEngine(BaseEngine):
 
     def set_voice(self, voice_name: str):
         """
-        Updates the current voice for synthesis and adjusts the language if needed.
-
-        The new voice may imply a different language based on its prefix.
-        The method updates the current voice and, if a valid language code is found,
-        updates the language accordingly.
+        Updates the current voice or voice formula. If it's a single voice (e.g. "af_heart"),
+        we detect language as usual. If it contains '*' or '+', we treat it as a blend formula.
 
         Args:
-            voice_name (str): The new voice identifier (e.g., "af_heart").
+            voice_name (str): The new voice identifier (e.g., "af_heart" or "0.3*af_sarah + 0.7*am_adam").
         """
         self.current_voice_name = voice_name
-        # Determine if the new voice suggests a different language.
+        # Attempt to detect language from the first relevant voice chunk
         lang = self._get_lang_code_from_voice(voice_name)
         if lang:
             self.current_lang = lang
+
         if self.debug:
             print(f"[KokoroEngine] Voice set to: {voice_name} (lang: {self.current_lang})")
-
 
     def set_speed(self, speed: float):
         """
         Sets the speed for speech synthesis.
 
         Args:
-            speed (float): The speed factor (e.g., 1.0 for normal speed,
-                           values >1.0 for faster, and values <1.0 for slower).
+            speed (float): The speed factor (e.g., 1.0 for normal speed).
         """
         self.speed = speed
         if self.debug:
@@ -213,10 +273,7 @@ class KokoroEngine(BaseEngine):
 
     def get_voices(self) -> List[str]:
         """
-        Retrieves a list of all supported voice identifiers, categorized by language and gender.
-
-        The voices are grouped by language, and within each language, they are
-        distinguished as female and male voices.
+        Retrieves a list of all supported voice identifiers.
 
         Returns:
             List[str]: A list containing all available voice names.
@@ -280,9 +337,6 @@ class KokoroEngine(BaseEngine):
     def shutdown(self):
         """
         Shuts down the KokoroEngine and performs cleanup if necessary.
-
-        Currently, the KPipeline does not require special cleanup procedures.
-        This method is provided for compatibility and future extensibility.
         """
         if self.debug:
             print("[KokoroEngine] Shutdown called.")
