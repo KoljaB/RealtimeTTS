@@ -1,4 +1,4 @@
-from .base_engine import BaseEngine  # noqa: F401
+from .base_engine import BaseEngine, TimingInfo  # noqa: F401
 
 # Optional dependencies
 try:

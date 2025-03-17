@@ -8,6 +8,7 @@ Then install torch with CUDA support:
     (adjust 121 to your CUDA version, this is for CUDA 12.1, for CUDA 11.8 use 118)
 
 """
+import string
 from RealtimeTTS import TextToAudioStream, KokoroEngine
 
 languages = {
@@ -51,16 +52,31 @@ if sys.platform.startswith("win"):
 else:
     os.system("clear")
 
+last_word = None
+
+def process_word(word):
+    global last_word
+    if last_word and word.word not in set(string.punctuation):
+        print(" ", end="", flush=True)
+
+    print(f"{word.word}", end="", flush=True)
+    last_word = word.word
+
 import random
 for lang, (voice, text) in languages.items():
     engine.set_voice(voice)
     # Generate speed between 0.6 and 1.8 (1.0 ± [−0.4, +0.8])
     speed = max(0.1, 1.0 + random.uniform(-0.4, 0.8))
-     
+
     engine.set_voice(voice)
     engine.set_speed(speed)
 
+    if last_word:
+        print()
+
     print(f"Testing {voice} ({lang}) using speed: {speed:.2f}")
-    TextToAudioStream(engine).feed([text]).play(log_synthesized_text=True)
+
+    last_word = None
+    TextToAudioStream(engine, on_word=process_word).feed([text]).play(log_synthesized_text=True)
 
 engine.shutdown()

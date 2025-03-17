@@ -5,10 +5,11 @@ Requires:
   !apt-get -qq -y install espeak-ng
 """
 
-from .base_engine import BaseEngine
+from .base_engine import BaseEngine, TimingInfo
 from queue import Queue
 from typing import List, Union
 import numpy as np
+import traceback
 import pyaudio
 import time
 
@@ -60,7 +61,10 @@ class KokoroEngine(BaseEngine):
         self.current_lang = lang_from_voice if lang_from_voice else default_lang_code
 
         # Create and cache the pipeline for the current language.
-        self.pipelines[self.current_lang] = KPipeline(lang_code=self.current_lang)
+        self.pipelines[self.current_lang] = KPipeline(
+            repo_id = 'hexgrad/Kokoro-82M',
+            lang_code=self.current_lang
+        )
 
         # Cache for formula-based blended voices: { formula_str: torch.FloatTensor }
         self.blended_voices = {}
@@ -131,7 +135,10 @@ class KokoroEngine(BaseEngine):
         if lang_code not in self.pipelines:
             if self.debug:
                 print(f"[KokoroEngine] Creating new pipeline for language code: {lang_code}")
-            self.pipelines[lang_code] = KPipeline(lang_code=lang_code)
+            self.pipelines[lang_code] = KPipeline(
+                repo_id = 'hexgrad/Kokoro-82M',
+                lang_code=lang_code
+            )
         return self.pipelines[lang_code]
 
     def _parse_mixed_voice_formula(self, formula: str, pipeline: KPipeline) -> torch.FloatTensor:
@@ -217,29 +224,82 @@ class KokoroEngine(BaseEngine):
             # Pull the pipeline for the current language
             pipeline = self._get_pipeline(self.current_lang)
 
+        except Exception as e:
+            traceback.print_exc()
+            print(f"[KokoroEngine] Error creating kokoro KPipeline: {e}")
+            return False
+
+        try:
             # If current_voice_name is a formula, parse it. Otherwise, use it as is.
             voice_arg: Union[str, torch.FloatTensor] = self.current_voice_name
             if "*" in self.current_voice_name:  # basic check for formula
                 voice_arg = self._parse_mixed_voice_formula(self.current_voice_name, pipeline)
 
+        except Exception as e:
+            traceback.print_exc()
+            print(f"[KokoroEngine] Error creating / mixing kokoro voice: {e}")
+            return False
+
+        try:
             # Generate audio in chunks from the pipeline
             generator = pipeline(text, voice=voice_arg, speed=self.speed)
 
-            for index, (graphemes, phonemes, audio_float32) in enumerate(generator):
-                if hasattr(audio_float32, "detach"):
-                    audio_float32 = audio_float32.detach().cpu().numpy()
+        except Exception as e:
+            traceback.print_exc()
+            print(f"[KokoroEngine] Error creating generator from kokoro pipeline for text: {e}")
+            return False
 
-                # Convert float32 audio (-1.0 to 1.0) to int16
-                audio_int16 = (audio_float32 * 32767).astype(np.int16).tobytes()
-                self.queue.put(audio_int16)
+        try:
+            if generator and generator is not None:
+                for index, result in enumerate(generator):
+                    graphemes = result.graphemes # str
+                    phonemes = result.phonemes # str
+                    audio_float32 = result.audio.cpu().numpy()
+                    tokens = result.tokens # List[en.MToken]
 
-            if self.debug:
-                duration = time.time() - start_time
-                print(f"[KokoroEngine] Synthesis completed in {duration:.3f}s.")
+                    if self.debug:
+                        if graphemes:
+                            print(f"Graphemes available for chunk {index}: {graphemes}")
+                        else:
+                            print(f"No graphemes available for chunk {index}")
+                        if phonemes:
+                            print(f"Phonemes available for chunk {index}: {phonemes}")
+                        else:
+                            print(f"No phonemes available for chunk {index}")
 
-            return True
+                    if tokens:
+                        if self.debug:
+                            print(f"Timing tokens available for chunk {index}:")
+                        for t in tokens:
+                            timingInfo = TimingInfo(
+                                t.start_ts + self.audio_duration,
+                                t.end_ts + self.audio_duration,
+                                t.text
+                            )
+                            self.timings.put(timingInfo)
+                            if self.debug:
+                                print(f"Token: {t.text} ({t.start_ts:.2f}s - {t.end_ts:.2f}s)")
+                    else:
+                        if self.debug:
+                            print(f"No timing tokens available for chunk {index}")
+
+                    audio_int16 = (audio_float32 * 32767).astype(np.int16).tobytes()
+                    audio_length_in_seconds = len(audio_float32) / 24000
+                    self.audio_duration += audio_length_in_seconds
+                    self.queue.put(audio_int16)
+
+
+                if self.debug:
+                    duration = time.time() - start_time
+                    print(f"[KokoroEngine] Synthesis completed in {duration:.3f}s.")
+
+                return True
+
+            else:
+                print(f"[KokoroEngine] No generator created for text: {text}")
 
         except Exception as e:
+            traceback.print_exc()
             print(f"[KokoroEngine] Error generating audio: {e}")
             return False
 
@@ -342,3 +402,13 @@ class KokoroEngine(BaseEngine):
             print("[KokoroEngine] Shutdown called.")
         # No additional cleanup required for KPipeline.
         pass
+
+    def set_voice_parameters(self, **voice_parameters):
+        """
+        Sets the voice parameters to be used for speech synthesis.
+
+        Args:
+            **voice_parameters: The voice parameters to be used for speech synthesis.
+        """
+        if "speed" in voice_parameters:
+            self.set_speed(voice_parameters["speed"])

@@ -1,7 +1,8 @@
 import azure.cognitiveservices.speech as tts
 from azure.cognitiveservices.speech import SpeechSynthesisOutputFormat
-from .base_engine import BaseEngine
+from .base_engine import BaseEngine, TimingInfo
 from typing import Union
+import traceback 
 import requests
 import pyaudio
 import logging
@@ -10,14 +11,15 @@ import logging
 class PushAudioOutputStreamSampleCallback(tts.audio.PushAudioOutputStreamCallback):
     """
     This class provides a callback mechanism to handle audio output streams for Azure's Text-to-Speech (TTS) service.
-    It allows you to capture synthesized audio data in real-time and push it to a buffer.
+    It allows you to capture synthesized audio data in real time and push it to a buffer.
 
     Attributes:
         buffer: A buffer or queue where the audio stream data will be stored.
+        sample_rate: The sample rate of the audio stream.
     """
-
-    def __init__(self, buffer):
+    def __init__(self, buffer, sample_rate):
         self.buffer = buffer
+        self.sample_rate = sample_rate
 
     def write(self, audio_buffer: memoryview) -> int:
         self.buffer.put(audio_buffer.tobytes())
@@ -68,20 +70,25 @@ class AzureEngine(BaseEngine):
         rate: float = 0.0,
         pitch: float = 0.0,
         audio_format: str = "riff-16khz-16bit-mono-pcm",
+        debug: bool = False
     ):
         """
-        Initializes an azure voice realtime text to speech engine object.
+        Initializes an Azure voice realtime text-to-speech engine object.
 
         Args:
-            speech_key (str): Azure subscription key. (TTS API key)
-            service_region (str): Azure service region. (Cloud Region ID)
+            speech_key (str): Azure subscription key (TTS API key).
+            service_region (str): Azure service region (Cloud Region ID).
             voice (str, optional): Voice name. Defaults to "en-US-AshleyNeural".
-            rate (float, optional): Speech speed as a percentage. Defaults to "0.0". Indicating the relative change.
-            pitch (float, optional): Speech pitch as a percentage. Defaults to "0.0". Indicating the relative change.
-            audio_format (str, optional): Audio format for output. Defaults to "riff-16khz-16bit-mono-pcm". Must be one of these supported formats: "riff-16khz-16bit-mono-pcm", "riff-24khz-16bit-mono-pcm", "riff-48khz-16bit-mono-pcm".
+            rate (float, optional): Speech speed as a percentage. Defaults to 0.0.
+            pitch (float, optional): Speech pitch as a percentage. Defaults to 0.0.
+            audio_format (str, optional): Audio format for output. Defaults to "riff-16khz-16bit-mono-pcm".
+                Must be one of: "riff-16khz-16bit-mono-pcm", "riff-24khz-16bit-mono-pcm", "riff-48khz-16bit-mono-pcm".
         Raises:
             ValueError: If the provided audio_format is not supported.
         """
+        super().__init__()
+        self.debug = debug
+
         if audio_format not in self.SUPPORTED_AUDIO_FORMATS:
             raise ValueError(
                 f"Invalid audio_format '{audio_format}'. Supported formats are: {list(self.SUPPORTED_AUDIO_FORMATS.keys())}"
@@ -151,7 +158,7 @@ class AzureEngine(BaseEngine):
 
     def get_stream_info(self):
         """
-        Returns the PyAudio stream configuration information suitable for Azure Engine.
+        Returns the PyAudio stream configuration information for the Azure engine.
 
         Returns:
             tuple: A tuple containing the audio format, number of channels, and the sample rate.
@@ -161,25 +168,62 @@ class AzureEngine(BaseEngine):
         """
         return pyaudio.paInt16, 1, self.sample_rate
 
+    def _handle_word_boundary(self, evt):
+        try:
+            import time
+            current_time = time.time()
+
+            # Convert the duration from timedelta to seconds, then calculate ticks.
+            duration_seconds = evt.duration.total_seconds()
+            duration_ticks = int(duration_seconds / 1e-7)
+            if self.debug:
+                print(f"Word boundary event NOW at {current_time}")
+                print(f"  audio_offset: {evt.audio_offset} ticks ({evt.audio_offset * 1e-7:.6f} seconds)")
+                print(f"  boundary_type: {evt.boundary_type}")
+                print(f"  duration: {duration_ticks} ticks ({duration_seconds:.6f} seconds)")
+                print(f"  result_id: {evt.result_id}")
+                print(f"  text: '{evt.text}'")
+                print(f"  text_offset: {evt.text_offset}")
+                print(f"  word_length: {evt.word_length}")
+
+            word = evt.text
+            start_time = round(evt.audio_offset * 1e-7, 3)
+            end_time = round(start_time + duration_seconds, 3)
+
+            timingInfo = TimingInfo(
+                start_time + self.audio_duration,
+                end_time + self.audio_duration,
+                word
+            )
+            self.timings.put(timingInfo)
+
+        except Exception as e:
+            traceback.print_exc()
+            print(f"[AzureEngine] Error in _handle_word_boundary: {e}")
+            return False
+
     def synthesize(self, text: str) -> bool:
         """
-        Synthesizes text to audio stream.
+        Synthesizes text to an audio stream, capturing word-level timings.
+        Each timing now includes the actual word, its start time, and an estimated end time.
 
         Args:
             text (str): Text to synthesize.
         """
-
-        # Set up the Azure TTS configuration
+        # Set up the Azure TTS configuration.
         speech_config = tts.SpeechConfig(
             subscription=self.speech_key, region=self.service_region
         )
         speech_config.set_speech_synthesis_output_format(self.AUDIO_FORMAT_MAP[self.audio_format])
-        stream_callback = PushAudioOutputStreamSampleCallback(self.queue)
+        stream_callback = PushAudioOutputStreamSampleCallback(self.queue, self.sample_rate)
         push_stream = tts.audio.PushAudioOutputStream(stream_callback)
         stream_config = tts.audio.AudioOutputConfig(stream=push_stream)
         speech_synthesizer = tts.SpeechSynthesizer(
             speech_config=speech_config, audio_config=stream_config
         )
+
+        # Initialize word timings list and register the word-boundary callback.
+        speech_synthesizer.synthesis_word_boundary.connect(self._handle_word_boundary)
 
         emotion_start_tag = f'<mstts:express-as style="{self.emotion}" styledegree="{self.emotion_degree}" role="{self.emotion_role}">'
         emotion_end_tag = "</mstts:express-as>"
@@ -201,25 +245,25 @@ class AzureEngine(BaseEngine):
 
         logging.debug(f"SSML:\n{ssml_string}")
 
-        # Convert the SSML to audio stream
+        # Convert the SSML to an audio stream.
         result = speech_synthesizer.speak_ssml_async(ssml_string).get()
 
         if result.reason == tts.ResultReason.SynthesizingAudioCompleted:
             logging.debug("Speech synthesized")
+            self.audio_duration += result.audio_duration.total_seconds()
             return True
         elif result.reason == tts.ResultReason.Canceled:
             cancellation_details = result.cancellation_details
-            print(
-                f"Speech synthesis canceled, check speech_key and service_region: {result.reason}"
-            )
+            print(f"Speech synthesis canceled, check speech_key and service_region: {result.reason}")
             print("Cancellation details: {}".format(cancellation_details.reason))
-            print("SSLM:")
+            print("SSML:")
             print(ssml_string)
             if cancellation_details.reason == tts.CancellationReason.Error:
                 print("Error details: {}".format(cancellation_details.error_details))
         else:
             print(f"Speech synthesis failed: {result.reason}")
             print(f"Result: {result}")
+        return False
 
     def set_emotion(
         self,
@@ -228,14 +272,13 @@ class AzureEngine(BaseEngine):
         emotion_degree: float = 1.0,
     ):
         """
-        Sets the emotion to be used for speech synthesis.
+        Sets the emotion for speech synthesis.
 
         Args:
-            emotion (str): The emotion to be used for speech synthesis.
+            emotion (str): The emotion to use.
             emotion_degree (float, optional): The degree of the emotion. Defaults to 1.0.
-            emotion_role (str, optional): The role of the emotion. Defaults to "YoungAdultFemale".
+            emotion_role (str, optional): The role associated with the emotion. Defaults to "YoungAdultFemale".
         """
-        # https://learn.microsoft.com/en-us/azure/ai-services/speech-service/speech-synthesis-markup-voice
         self.emotion = emotion
         self.emotion_degree = emotion_degree
         self.emotion_role = emotion_role
@@ -245,16 +288,16 @@ class AzureEngine(BaseEngine):
         Retrieves the available emotions for the Azure Speech engine.
 
         Returns:
-            list[str]: A list containing the available emotions for the Azure Speech engine.
+            list[str]: A list of available emotions.
         """
         return self.emotions
 
     def set_speech_key(self, speech_key: str):
         """
-        Sets the azure subscription key.
+        Sets the Azure subscription key.
 
         Args:
-            speech_key (str): Azure subscription key. (TTS API key)
+            speech_key (str): Azure subscription key (TTS API key).
         """
         self.speech_key = speech_key
 
@@ -321,7 +364,7 @@ class AzureEngine(BaseEngine):
         Sets the voice to be used for speech synthesis.
 
         Args:
-            voice (Union[str, AzureVoice]): The voice to be used for speech synthesis.
+            voice (Union[str, AzureVoice]): The voice to use.
         """
         if isinstance(voice, AzureVoice):
             self.voice_name = voice.full_name
@@ -335,10 +378,10 @@ class AzureEngine(BaseEngine):
 
     def set_voice_parameters(self, **voice_parameters):
         """
-        Sets the voice parameters to be used for speech synthesis.
+        Sets additional voice parameters for speech synthesis.
 
         Args:
-            **voice_parameters: The voice parameters to be used for speech synthesis.
+            **voice_parameters: Parameters such as rate and pitch.
         """
         if "rate" in voice_parameters:
             self.rate = voice_parameters["rate"]

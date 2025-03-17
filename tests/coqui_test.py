@@ -16,7 +16,7 @@ if __name__ == "__main__":
     stream = TextToAudioStream(engine)
 
     print("Starting to play stream")
-    stream.feed(dummy_generator()).play(log_synthesized_text=True)
+    stream.feed(dummy_generator()).play(log_synthesized_text=True, output_wavfile = "output.wav")
 
     print("Playout finished")
 

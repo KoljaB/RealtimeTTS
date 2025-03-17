@@ -28,6 +28,7 @@ class TextToAudioStream:
         on_audio_stream_start=None,
         on_audio_stream_stop=None,
         on_character=None,
+        on_word=None,
         output_device_index=None,
         tokenizer: str = "nltk",
         language: str = "en",
@@ -74,6 +75,13 @@ class TextToAudioStream:
                 processed during synthesis. This can be useful for real-time
                 updates, such as visualizing which character is being processed
                 or sent for synthesis.
+
+            on_word (callable, optional):
+                A callback function triggered when a word is spoken. This can be
+                useful for tracking word-level progress or highlighting spoken
+                words in a text display.
+                Currently only works for AzureEngine and KokoroEngine, since
+                the other engines don't provide word-level timings.
 
             output_device_index (int, optional):
                 The index of the audio output device to use for playback.
@@ -127,6 +135,7 @@ class TextToAudioStream:
         self.on_audio_stream_start = on_audio_stream_start
         self.on_audio_stream_stop = on_audio_stream_stop
         self.output_device_index = output_device_index
+        self.on_word_spoken = on_word
         self.output_wavfile = None
         self.chunk_callback = None
         self.wf = None
@@ -194,7 +203,11 @@ class TextToAudioStream:
         )
 
         self.player = StreamPlayer(
-            self.engine.queue, config, on_playback_start=self._on_audio_stream_start
+            self.engine.queue,
+            self.engine.timings,
+            config,
+            on_playback_start=self._on_audio_stream_start,
+            on_word_spoken=self._on_word_spoken,
         )
 
         logging.info(f"loaded engine {self.engine.engine_name}")
@@ -332,6 +345,7 @@ class TextToAudioStream:
             muted = True
 
         if is_external_call:
+            self.engine.reset_audio_duration()
             if not self.play_lock.acquire(blocking=False):
                 logging.warning("play() called while already playing audio, skipping")
                 return
@@ -657,6 +671,13 @@ class TextToAudioStream:
 
         if self.on_audio_stream_start:
             self.on_audio_stream_start()
+
+    def _on_word_spoken(self, word):
+        """
+        Handles the spoken word event.
+        """
+        if self.on_word_spoken:
+            self.on_word_spoken(word)
 
     def _on_audio_chunk(self, chunk):
         """
