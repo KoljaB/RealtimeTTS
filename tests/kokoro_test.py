@@ -55,6 +55,7 @@ else:
 last_word = None
 
 def process_word(word):
+    # word timings only work for english voices (american and british)
     global last_word
     if last_word and word.word not in set(string.punctuation):
         print(" ", end="", flush=True)
