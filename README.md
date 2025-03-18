@@ -420,6 +420,17 @@ When you initialize the `TextToAudioStream` class, you have various options to c
   - **Use Case**: Real-time visualization of character-level processing, useful for debugging or monitoring.  
   - **Signature**: `on_character(character: str) -> None`.
 
+#### `on_word` (callable, optional)
+- **Type**: `Callable`
+- **Required**: No
+- **Default**: `None`
+- **Description**: A callback function triggered when a word starts playing. The callback receives an object (an instance of `TimingInfo`) that includes:
+  - **word**: the text of the word,
+  - **start_time**: the time offset (in seconds) when the word starts,
+  - **end_time**: the time offset (in seconds) when the word ends.
+- **Use Case**: Useful for tracking word-level progress or highlighting spoken words in a display.
+- **Notes**: Currently supported only by AzureEngine and KokoroEngine (for English voices, both American and British). Other engines don't provide word-level timings.
+
 #### `output_device_index` (int) ❗ NOT SUPPORTED for ElevenlabsEngine and EdgeEngine (MPV playout)
 - **Type**: `int`
 - **Required**: No
