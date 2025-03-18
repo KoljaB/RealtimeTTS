@@ -1,4 +1,4 @@
-current_version = "0.4.41"
+current_version = "0.4.51"
 
 import setuptools
 
@@ -72,7 +72,8 @@ extras_require = {
     + [requirements["openai"]]
     + [requirements["gtts"]]
     + [requirements["coqui_tts"]]
-    + [requirements["edge-tts"]],
+    + [requirements["edge-tts"]]
+    + [requirements["kokoro"]],    
     "system": base_requirements + [requirements["pyttsx3"]],
     "azure": base_requirements + [requirements["azure-cognitiveservices-speech"]],
     "elevenlabs": base_requirements + [requirements["elevenlabs"]],
@@ -80,7 +81,9 @@ extras_require = {
     "gtts": base_requirements + [requirements["gtts"]],
     "coqui": base_requirements + [requirements["coqui_tts"]],
     "edge": base_requirements + [requirements["edge-tts"]],
-    "jp": base_requirements + ["mecab-python3==1.0.6", "unidic-lite==1.0.8", "cutlet"],
+    "kokoro": base_requirements + [requirements["kokoro"]],
+    "jp": base_requirements + ["mecab-python3==1.0.6", "unidic-lite==1.0.8", "cutlet", "fugashi==1.4.0", "jaconv==0.4.0", "mojimoji==0.0.13"],
+    "zh": base_requirements + ["pypinyin==0.53.0", "ordered_set==4.1.0", "jieba==0.42.1", "cn2an==0.5.23"],
     "ko": base_requirements + ["hangul_romanize"],
 }
 

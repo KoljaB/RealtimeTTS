@@ -1,47 +1,83 @@
-if __name__ == "__main__":
-    from RealtimeTTS import TextToAudioStream, KokoroEngine
+#!/usr/bin/env python
+"""
+First install:
+    pip install "RealtimeTTS[all,jp,zh]"
 
-    def dummy_generator():
-        yield "This is the first voice model speaking. "
-        yield "The elegance of the style and its flow is simply captivating. "
-        yield "We’ll soon switch to another voice model. "
+Then install torch with CUDA support:
+    pip install torch==2.5.1+cu121 torchaudio==2.5.1 --index-url https://download.pytorch.org/whl/cu121
+    (adjust 121 to your CUDA version, this is for CUDA 12.1, for CUDA 11.8 use 118)
 
-    def dummy_generator_2():
-        yield "And here we are! "
-        yield "You’re now listening to the second voice model, with a different style and tone. "
-        yield "It’s fascinating how Kokoro can adapt seamlessly. "
+"""
+import string
+from RealtimeTTS import TextToAudioStream, KokoroEngine
 
-    # Adjust these paths to your local setup
-    kokoro_root = "D:/Dev/Kokoro/Kokoro-82M"
+languages = {
+    "a": ("af_heart", "Hello, this is an American voice test."),
+    "b": ("bf_emma", "Good day, mate! This is a British voice test."),
+    "j": ("jf_alpha", "こんにちは、これは日本語のテストです。"),
+    "z": ("zf_xiaobei", "你好，这是一段中文测试。"),
+    "e": ("ef_dora", "¡Hola! Esta es una prueba de voz en español."),
+    "f": ("ff_siwis", "Bonjour, ceci est un test de voix en français."),
+    "h": ("hf_alpha", "नमस्ते, यह हिंदी में एक वॉयस टेस्ट है।"),
+    "i": ("if_sara", "Ciao, questo è un test vocale in italiano."),
+    "p": ("pf_dora", "Olá, este é um teste de voz em português brasileiro.")
+}
 
-    # Initialize the engine with the first voice
-    engine = KokoroEngine(
-        kokoro_root=kokoro_root,
-    )
+prewarm_texts = {
+    "a": ("af_heart", "Warm up"),
+    "b": ("bf_emma", "Warm up"),
+    "j": ("jf_alpha", "準備中"),
+    "z": ("zf_xiaobei", "预热"),
+    "e": ("ef_dora", "Preparando"),
+    "f": ("ff_siwis", "Préchauffage"),
+    "h": ("hf_alpha", "तैयारी"),
+    "i": ("if_sara", "Riscaldamento"),
+    "p": ("pf_dora", "Aquecendo")
+}
 
-    # Create a TextToAudioStream with the engine
-    stream = TextToAudioStream(engine)
+#engine = KokoroEngine(default_voice=languages["a"][0], debug=True)
+engine = KokoroEngine(default_voice=languages["a"][0])
 
-    # Play with the first model
-    print("Playing with the first model...")
-    stream.feed(dummy_generator())
-    stream.play(log_synthesized_text=True)
+for lang, (voice, text) in prewarm_texts.items():
+    print(f"Prewarming {voice} ({lang})")
+    engine.set_voice(voice)
+    TextToAudioStream(engine).feed([text]).play(muted=True)
 
-    engine.set_voice("af_sky")
-    # Pick one of: 
-    # "af_nicole", 
-    # "af",
-    # "af_bella",
-    # "af_sarah",
-    # "am_adam",
-    # "am_michael",
-    # "bf_emma",
-    # "bf_isabella",
-    # "bm_george",
-    # "bm_lewis",
-    # "af_sky"    
-    stream.feed(dummy_generator_2())
-    stream.play(log_synthesized_text=True)
-    
-    # Shutdown the engine
-    engine.shutdown()
+
+# Clear the screen in a platform-independent way
+import os
+import sys
+if sys.platform.startswith("win"):
+    os.system("cls")
+else:
+    os.system("clear")
+
+last_word = None
+
+def process_word(word):
+    # word timings only work for english voices (american and british)
+    global last_word
+    if last_word and word.word not in set(string.punctuation):
+        print(" ", end="", flush=True)
+
+    print(f"{word.word}", end="", flush=True)
+    last_word = word.word
+
+import random
+for lang, (voice, text) in languages.items():
+    engine.set_voice(voice)
+    # Generate speed between 0.6 and 1.8 (1.0 ± [−0.4, +0.8])
+    speed = max(0.1, 1.0 + random.uniform(-0.4, 0.8))
+
+    engine.set_voice(voice)
+    engine.set_speed(speed)
+
+    if last_word:
+        print()
+
+    print(f"Testing {voice} ({lang}) using speed: {speed:.2f}")
+
+    last_word = None
+    TextToAudioStream(engine, on_word=process_word).feed([text]).play(log_synthesized_text=True)
+
+engine.shutdown()

@@ -292,13 +292,19 @@ class AudioBufferManager:
     Manages an audio buffer, allowing addition and retrieval of audio data.
     """
 
-    def __init__(self, audio_buffer: queue.Queue, config: AudioConfiguration):
+    def __init__(
+            self,
+            audio_buffer: queue.Queue,
+            timings: queue.Queue,
+            config: AudioConfiguration
+        ):
         """
         Args:
             audio_buffer (queue.Queue): Queue to be used as the audio buffer.
         """
         self.config = config
         self.audio_buffer = audio_buffer
+        self.timings = timings
         self.total_samples = 0
 
     def add_to_buffer(self, audio_data):
@@ -318,6 +324,11 @@ class AudioBufferManager:
                 self.audio_buffer.get_nowait()
             except queue.Empty:
                 continue
+        while not self.timings.empty():
+            try:
+                self.timings.get_nowait()
+            except queue.Empty:
+                continue
         self.total_samples = 0
 
     def get_from_buffer(self, timeout: float = 0.05):
@@ -333,6 +344,7 @@ class AudioBufferManager:
         """
         try:
             chunk = self.audio_buffer.get(timeout=timeout)
+
             # Map PyAudio format to bytes per sample
             format_bytes = {
                 pyaudio.paCustomFormat: 4,
@@ -384,10 +396,12 @@ class StreamPlayer:
     def __init__(
         self,
         audio_buffer: queue.Queue,
+        timings: queue.Queue,
         config: AudioConfiguration,
         on_playback_start=None,
         on_playback_stop=None,
         on_audio_chunk=None,
+        on_word_spoken=None,
         muted=False,
     ):
         """
@@ -399,7 +413,9 @@ class StreamPlayer:
             on_playback_stop (Callable, optional): Callback function to be
               called at the stop of playback. Defaults to None.
         """
-        self.buffer_manager = AudioBufferManager(audio_buffer, config)
+        self.buffer_manager = AudioBufferManager(audio_buffer, timings, config)
+        self.timings = timings
+        self.timings_list = []
         self.audio_stream = AudioStream(config)
         self.playback_active = False
         self.immediate_stop = threading.Event()
@@ -408,8 +424,10 @@ class StreamPlayer:
         self.on_playback_start = on_playback_start
         self.on_playback_stop = on_playback_stop
         self.on_audio_chunk = on_audio_chunk
+        self.on_word_spoken = on_word_spoken
         self.first_chunk_played = False
         self.muted = muted
+        self.seconds_played = 0
 
     def _play_chunk(self, chunk):
         """
@@ -501,6 +519,20 @@ class StreamPlayer:
 
 
                     self.audio_stream.stream.write(sub_chunk)
+                    self.seconds_played += len(sub_chunk) / (self.audio_stream.config.rate * sample_width * channels)
+                    while (True):
+                        try:
+                            timing = self.timings.get_nowait()
+                            self.timings_list.append(timing)
+                        except queue.Empty:
+                            break
+
+                    for timing in self.timings_list:
+                        if timing.start_time <= self.seconds_played <= timing.end_time:
+                            if self.on_word_spoken:
+                                self.on_word_spoken(timing)
+                            self.timings_list.remove(timing)
+                            break
                 except Exception as e:
                     print(f"RealtimeTTS error sending audio data: {e}")
 
@@ -538,11 +570,10 @@ class StreamPlayer:
         Returns:
             float: Duration of buffered audio in seconds.
         """
-        return self.buffer_manager.get_buffered_seconds(self.audio_stream.config.rate)
-        # total_samples = sum(
-        #     len(chunk) // 2 for chunk in list(self.buffer_manager.audio_buffer.queue)
-        # )
-        # return total_samples / self.audio_stream.config.rate
+        if self.audio_stream.config.rate > 0:
+            return self.buffer_manager.get_buffered_seconds(self.audio_stream.config.rate)
+        else: # mpeg
+            return self.buffer_manager.get_buffered_seconds(16000)
 
     def start(self):
         """Starts audio playback."""

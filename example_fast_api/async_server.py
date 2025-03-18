@@ -18,6 +18,7 @@ from RealtimeTTS import (
     SystemEngine,
     CoquiEngine,
     OpenAIEngine,
+    KokoroEngine
 )
 
 from fastapi.responses import StreamingResponse, HTMLResponse, FileResponse
@@ -40,7 +41,8 @@ SUPPORTED_ENGINES = [
     "openai",
     "elevenlabs",
     "system",
-    # "coqui",  #multiple queries are not supported on coqui engine right now, comment coqui out for tests where you need server start often
+    # "coqui",  #multiple queries are not supported on coqui engine right now, comment coqui out for tests where you need server start often,
+    "kokoro"
 ]
 
 # change start engine by moving engine name
@@ -372,6 +374,10 @@ if __name__ == "__main__":
         if "coqui" == engine_name:
             print("Initializing coqui engine")
             engines["coqui"] = CoquiEngine()
+
+        if "kokoro" == engine_name:
+            print("Initializing kokoro engine")
+            engines["kokoro"] = KokoroEngine()
 
         if "openai" == engine_name:
             print("Initializing openai engine")

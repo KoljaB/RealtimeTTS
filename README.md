@@ -58,10 +58,21 @@ Let me know if you need any adjustments or additional languages!
 
 ## Updates
 
-Latest Version: v0.4.41
+Latest Version: v0.4.51
+
+Support for more kokoro languages. Full installation for also japanese and chinese languages (see updated test file): 
+```shell
+pip install "RealtimeTTS[kokoro,jp,zh]"
+```
+
+If you run into problems with japanese (Error "module 'jieba' has no attribute 'lcut'") try:
+```shell
+pip uninstall jieba jieba3k
+pip install jieba
+```
 
 - **New Engine:** KokoroEngine
-  - **Installation Tutorial:** [Usage on Huggingface](https://huggingface.co/hexgrad/Kokoro-82M#usage)
+  - **Installation:** `pip install RealtimeTTS[kokoro]
   - **Test File Example:** [kokoro_test.py](https://github.com/KoljaB/RealtimeTTS/blob/master/tests/kokoro_test.py)
 
 - **New Engine:** PiperEngine
@@ -409,7 +420,7 @@ When you initialize the `TextToAudioStream` class, you have various options to c
   - **Use Case**: Real-time visualization of character-level processing, useful for debugging or monitoring.  
   - **Signature**: `on_character(character: str) -> None`.
 
-#### `output_device_index` (int)
+#### `output_device_index` (int) ❗ NOT SUPPORTED for ElevenlabsEngine and EdgeEngine (MPV playout)
 - **Type**: `int`
 - **Required**: No
 - **Default**: `None`

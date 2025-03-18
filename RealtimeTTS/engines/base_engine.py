@@ -3,6 +3,14 @@ from typing import Union
 import shutil
 import queue
 
+class TimingInfo:
+    def __init__(self, start_time, end_time, word):
+        self.start_time = start_time
+        self.end_time = end_time
+        self.word = word
+
+    def __str__(self):
+        return f"Word: {self.word}, Start Time: {self.start_time}, End Time: {self.end_time}"
 
 # Define a meta class that will automatically call the BaseEngine's __init__ method
 # and also the post_init method if it exists.
@@ -30,14 +38,25 @@ class BaseEngine(ABC, metaclass=BaseInitMeta):
         # Indicates if the engine can handle generators.
         self.can_consume_generators = False
 
-        # Queue to manage tasks or data for the engine.
+        # Queue to manage audio chunks for the engine.
         self.queue = queue.Queue()
+
+        # Queue to manage word level timings for the engine.
+        self.timings = queue.Queue()
 
         # Callback to be called when an audio chunk is available.
         self.on_audio_chunk = None
 
         # Callback to be called when the engine is starting to synthesize audio.
         self.on_playback_start = None
+
+        self.reset_audio_duration()
+
+    def reset_audio_duration(self):
+        """
+        Resets the audio duration to 0.
+        """
+        self.audio_duration = 0
 
     def get_stream_info(self):
         """
