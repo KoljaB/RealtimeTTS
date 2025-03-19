@@ -271,14 +271,30 @@ class KokoroEngine(BaseEngine):
                         if self.debug:
                             print(f"Timing tokens available for chunk {index}:")
                         for t in tokens:
-                            timingInfo = TimingInfo(
-                                t.start_ts + self.audio_duration,
-                                t.end_ts + self.audio_duration,
-                                t.text
-                            )
-                            self.timings.put(timingInfo)
+                            if t and t.start_ts is not None and t.end_ts is not None and t.text is not None:
+                                timingInfo = TimingInfo(
+                                    t.start_ts + self.audio_duration,
+                                    t.end_ts + self.audio_duration,
+                                    t.text
+                                )
+                                self.timings.put(timingInfo)
+                                if self.debug:
+                                    print(f"Token: {t.text} ({t.start_ts:.2f}s - {t.end_ts:.2f}s)")
+                                continue
+
                             if self.debug:
-                                print(f"Token: {t.text} ({t.start_ts:.2f}s - {t.end_ts:.2f}s)")
+                                if not t:
+                                    print(f"Token is None for chunk {index}")
+                                else:
+                                    print(f"Token: {t}")
+                                if not t.start_ts:
+                                    print(f"Token start_ts is None for chunk {index}")
+                                if not t.end_ts:
+                                    print(f"Token end_ts is None for chunk {index}")
+                                if not t.text:
+                                    print(f"Token text is None for chunk {index}")
+                                if not self.audio_duration:
+                                    print(f"Audio duration is None for chunk {index}")
                     else:
                         if self.debug:
                             print(f"No timing tokens available for chunk {index}")

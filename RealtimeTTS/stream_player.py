@@ -517,7 +517,6 @@ class StreamPlayer:
                             break
                         time.sleep(0.001)  # Small sleep to let the stream process audio
 
-
                     self.audio_stream.stream.write(sub_chunk)
                     self.seconds_played += len(sub_chunk) / (self.audio_stream.config.rate * sample_width * channels)
                     while (True):
@@ -528,7 +527,7 @@ class StreamPlayer:
                             break
 
                     for timing in self.timings_list:
-                        if timing.start_time <= self.seconds_played <= timing.end_time:
+                        if timing.start_time <= self.seconds_played:
                             if self.on_word_spoken:
                                 self.on_word_spoken(timing)
                             self.timings_list.remove(timing)
