@@ -58,7 +58,15 @@ Let me know if you need any adjustments or additional languages!
 
 ## Updates
 
-Latest Version: v0.4.52
+Latest Version: v0.4.54
+
+- **New Engine:** OrpheusEngine
+  - **Installation:** `pip install RealtimeTTS[kokoro]
+  - **Test File Example:** [orpheus_test.py](https://github.com/KoljaB/RealtimeTTS/blob/master/tests/kokoro_test.py)
+
+- **New Engine:** KokoroEngine
+  - **Installation:** `pip install RealtimeTTS[kokoro]
+  - **Test File Example:** [kokoro_test.py](https://github.com/KoljaB/RealtimeTTS/blob/master/tests/kokoro_test.py)
 
 Support for more kokoro languages. Full installation for also japanese and chinese languages (see updated test file): 
 ```shell
@@ -71,9 +79,6 @@ pip uninstall jieba jieba3k
 pip install jieba
 ```
 
-- **New Engine:** KokoroEngine
-  - **Installation:** `pip install RealtimeTTS[kokoro]
-  - **Test File Example:** [kokoro_test.py](https://github.com/KoljaB/RealtimeTTS/blob/master/tests/kokoro_test.py)
 
 - **New Engine:** PiperEngine
   - **Installation Tutorial:** [Watch on YouTube](https://www.youtube.com/watch?v=GGvdq3giiTQ)
