@@ -1,57 +1,80 @@
 """
-    pip install realtimetts[orpheus]
+    INSTALLATION:
+        pip install realtimetts[orpheus]
 
-    Two ways to run the modeL:
 
-    1. On LMStudio:
-      - Start LMStudio
-      - Load orpheus-3b-0.1-ft-Q8_0-GGUF in Q8_0 quantization
-      - Make sure server is running
-    
-    2. Any other LLM provider:
-      - make sure the the server supports completions api
-      - load orpheus-3b-0.1-ft-Q8_0-GGUF model in Q8_0 quantization and run the server
-      - provide api_url to the server to OrpheusEngine constructor
+    HOW TO RUN:
+        Two ways to run the modeL:
 
+        1. On LMStudio:
+        - Start LMStudio
+        - Load orpheus-3b-0.1-ft-Q8_0-GGUF in Q8_0 quantization
+        - Make sure server is running
+        
+        2. Any other LLM provider:
+        - make sure the the server supports completions api
+        - load orpheus-3b-0.1-ft-Q8_0-GGUF model in Q8_0 quantization and run the server
+        - provide api_url to the server to OrpheusEngine constructor    
+
+    WHAT CAN IT DO:
+
+        You can add the following emotive tags:
+            <laugh>, <chuckle>, <sigh>, <cough>, <sniffle>, <groan>, <yawn>, <gasp>
+
+        Voices available are:
+            "tara", "leah", "jess", "leo", "dan", "mia", "zac", "zoe"
 """
-if __name__ == "__main__":
-    print("Starting orpheus test...")
-    from RealtimeTTS import TextToAudioStream, OrpheusEngine, OrpheusVoice
 
-    # You can additionally add the following emotive tags:
-    # <laugh>, <chuckle>, <sigh>, <cough>, <sniffle>, <groan>, <yawn>, <gasp>
 
-    def dummy_generator():
-        yield "This is <gasp> orpheus t t s speaking."
+from RealtimeTTS import TextToAudioStream, OrpheusEngine, OrpheusVoice
 
-    def dummy_generator2():
-        yield "I just hope that <laugh> you're all in as good a mood as I am!"
+# Structured data containing voices and their corresponding texts
+TEST_CASES = [
+    {
+        "voice": "zoe",  # Female
+        "text": "Don't you just hate it when <laugh> your cat wakes you up like this? Meow. <laugh> Meow. Meow. <chuckle> Meow."
+    },
+    {
+        "voice": "tara",  # Female
+        "text": "Asked my assistant to stop talking. Now it's just <laugh> whispering: \"null, null, null...\""
+    },
+    {
+        "voice": "mia",  # Female
+        "text": "Told my assistant I need dating pickup lines. It said <laugh> \"Are you a router? Because I'm connecting.\""
+    },
+    {
+        "voice": "jess",  # Male
+        "text": "I told my assistant a horror story. It <laugh> got so scared it <chuckle> switched to Comic Sans."
+    }
+]
 
-    print("Creating engine...")
+def create_generator(text):
+    """Create a text generator for a single text string"""
+    def generator():
+        yield text
+    return generator()
+
+def main():
+    print("Initializing TTS system...")
     engine = OrpheusEngine()
     stream = TextToAudioStream(engine)
 
-    print("Setting voice...")
-    voice = OrpheusVoice("zac")
-    engine.set_voice(voice)
-
-    # warmup
-    print("Warming up engine...")
-    stream.feed("warming up engine")
+    # Warmup the engine with a short phrase
+    print("Performing system warmup...")
+    stream.feed(create_generator("System initialization complete"))
     stream.play(muted=True)
 
-    # wait for key press
-    input("Ready - press enter to start tts generation...")
-    print("Playing tts generation...")
-    stream.feed(dummy_generator())
-    stream.play()
+    # Process all test cases automatically
+    for case in TEST_CASES:
+        print(f"\nProcessing voice: {case['voice'].upper()}")
+        voice = OrpheusVoice(case["voice"])
+        engine.set_voice(voice)
+        
+        print("Generating audio...")
+        stream.feed(create_generator(case["text"]))
+        stream.play(log_synthesized_text=True)
 
-    print("Setting voice...")
-    voice = OrpheusVoice("zoe")
-    engine.set_voice(voice)
+    print("\nAll generations completed!")
 
-    # wait for key press
-    input("Ready - press enter for another generation...")
-    print("Playing another generation...")
-    stream.feed(dummy_generator2())
-    stream.play()
+if __name__ == "__main__":
+    main()
