@@ -55,3 +55,8 @@ try:
     from .kokoro_engine import KokoroEngine  # noqa: F401
 except ImportError as e:
     KokoroEngine = None
+
+try:
+    from .orpheus_engine import OrpheusEngine, OrpheusVoice  # noqa: F401
+except ImportError as e:
+    OrpheusEngine, OrpheusVoice = None
