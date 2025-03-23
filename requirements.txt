@@ -25,6 +25,9 @@ edge-tts==7.0.0
 # kokoro is for KokoroEngine
 kokoro==0.8.4
 
+# snac is for OrpheusEngine
+snac==1.2.1
+
 # fugashi is to support japanese language for KokoroEngine
 fugashi==1.4.0
 jaconv==0.4.0
