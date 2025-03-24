@@ -351,6 +351,7 @@ class TextToAudioStream:
                 return
 
         self.is_playing_flag = True
+        self.error_flag = False
 
         # Log the start of the stream
         logging.info("stream start")
@@ -526,6 +527,7 @@ class TextToAudioStream:
                         sentence_queue.task_done()
 
                 worker_thread = threading.Thread(target=synthesize_worker)
+                worker_thread.daemon = True
                 worker_thread.start()
 
                 # Iterate through the synthesized chunks and feed them to the engine for audio synthesis
@@ -543,6 +545,7 @@ class TextToAudioStream:
                 worker_thread.join()
 
             except Exception as e:
+                self.error_flag = True
                 logging.warning(
                     f"error in play() with engine {self.engine.engine_name}: {e}"
                 )
@@ -567,7 +570,8 @@ class TextToAudioStream:
                         self.wf.close()
                         self.wf = None
 
-            if (len(self.char_iter.items) > 0
+            if (not self.error_flag
+                and len(self.char_iter.items) > 0
                 and self.char_iter.iterated_text == ""
                 and not self.char_iter.immediate_stop.is_set()):
 

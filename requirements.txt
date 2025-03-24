@@ -14,7 +14,7 @@ elevenlabs==1.54.0
 gtts==2.5.4
 
 # openai is for OpenAIEngine
-openai==1.66.3
+openai==1.68.2
 
 # pyttsx3 is for SystemEngine
 pyttsx3==2.98
