@@ -1,4 +1,4 @@
-current_version = "0.4.55"
+current_version = "0.5.0"
 
 import setuptools
 
@@ -83,7 +83,7 @@ extras_require = {
     "edge": base_requirements + [requirements["edge-tts"]],
     "kokoro": base_requirements + [requirements["kokoro"]],
     "orpheus": base_requirements + [requirements["snac"]],
-    "jp": base_requirements + ["mecab-python3==1.0.6", "unidic-lite==1.0.8", "cutlet", "fugashi==1.4.0", "jaconv==0.4.0", "mojimoji==0.0.13"],
+    "jp": base_requirements + ["mecab-python3==1.0.6", "unidic-lite==1.0.8", "cutlet", "fugashi==1.4.0", "jaconv==0.4.0", "mojimoji==0.0.13", "pyopenjtalk==0.4.0"],
     "zh": base_requirements + ["pypinyin==0.53.0", "ordered_set==4.1.0", "jieba==0.42.1", "cn2an==0.5.23"],
     "ko": base_requirements + ["hangul_romanize"],
 }

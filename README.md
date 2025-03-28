@@ -58,7 +58,7 @@ Let me know if you need any adjustments or additional languages!
 
 ## Updates
 
-Latest Version: v0.4.55
+Latest Version: v0.5.0
 
 - **New Engine:** OrpheusEngine
   - **Installation:** `pip install RealtimeTTS[kokoro]

@@ -2,19 +2,19 @@
 stream2sentence==0.3.0
 
 # azure-cognitiveservices-speech is for AzureEngine
-azure-cognitiveservices-speech==1.42.0
+azure-cognitiveservices-speech==1.43.0
 
 # coqui_tts is for CoquiEngine
 coqui_tts==0.26.0
 
 # elevenlabs is for ElevenlabsEngine
-elevenlabs==1.54.0
+elevenlabs==1.55.0
 
 # gtts is for GTTSEngine
 gtts==2.5.4
 
 # openai is for OpenAIEngine
-openai==1.68.2
+openai==1.69.0
 
 # pyttsx3 is for SystemEngine
 pyttsx3==2.98
@@ -23,7 +23,7 @@ pyttsx3==2.98
 edge-tts==7.0.0
 
 # kokoro is for KokoroEngine
-kokoro==0.8.4
+kokoro==0.9.2
 
 # snac is for OrpheusEngine
 snac==1.2.1
@@ -32,6 +32,7 @@ snac==1.2.1
 fugashi==1.4.0
 jaconv==0.4.0
 mojimoji==0.0.13
+pyopenjtalk==0.4.0
 
 # pypinyin is to support chinese language for KokoroEngine
 pypinyin==1.4.0
