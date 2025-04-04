@@ -61,7 +61,7 @@ Let me know if you need any adjustments or additional languages!
 Latest Version: v0.5.0
 
 - **New Engine:** OrpheusEngine
-  - **Installation:** `pip install RealtimeTTS[kokoro]
+  - **Installation:** `pip install RealtimeTTS[orpheus]
   - **Test File Example:** [orpheus_test.py](https://github.com/KoljaB/RealtimeTTS/blob/master/tests/kokoro_test.py)
 
 - **New Engine:** KokoroEngine
