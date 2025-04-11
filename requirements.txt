@@ -1,5 +1,5 @@
 # stream2sentence is the core of RealtimeTTS - it quickly converts streamed text into sentences for real-time synthesis
-stream2sentence==0.3.0
+stream2sentence==0.3.1
 
 # azure-cognitiveservices-speech is for AzureEngine
 azure-cognitiveservices-speech==1.43.0
@@ -35,7 +35,7 @@ mojimoji==0.0.13
 pyopenjtalk==0.4.1
 
 # pypinyin is to support chinese language for KokoroEngine
-pypinyin==0.54.0
+pypinyin==0.54.0st
 ordered_set==4.1.0
 jieba==0.42.1
 cn2an==0.5.23
