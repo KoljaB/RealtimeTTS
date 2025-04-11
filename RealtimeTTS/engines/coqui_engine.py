@@ -37,7 +37,7 @@ class QueueWriter(io.TextIOBase):
         Args:
             msg (str): The message to write.
         """
-        if msg.strip():  # Avoid sending empty strings and newline characters.
+        if msg.strip():
             self.queue.put(msg)
 
 
@@ -220,6 +220,8 @@ class CoquiEngine(BaseEngine):
         except RuntimeError as e:
             print("Start method has already been set. Details:", e)
 
+    def post_init(self):
+        self.engine_name = "coqui"
         self.create_worker_process()
 
     def create_worker_process(self):
@@ -254,6 +256,7 @@ class CoquiEngine(BaseEngine):
             args=(
                 self.output_queue,
                 child_synthesize_pipe,
+                self.stop_synthesis_event,
                 self.model_name,
                 self.cloning_reference_wav,
                 self.language,
@@ -291,13 +294,11 @@ class CoquiEngine(BaseEngine):
         self.main_synthesize_ready_event.wait()
         logging.info("Coqui synthesis model ready")
 
-    def post_init(self):
-        self.engine_name = "coqui"
-
     @staticmethod
     def _synthesize_worker(
         output_queue,
         conn,
+        stop_event,
         model_name,
         cloning_reference_wav: Union[str, List[str]],
         language,
@@ -651,6 +652,14 @@ class CoquiEngine(BaseEngine):
                     speed = data["speed"]
                     conn.send(("success", "Speed updated successfully"))
 
+                elif command == "set_language":
+                    language = data["language"]
+                    conn.send(("success", "Language updated successfully"))
+
+                elif command == "set_stream_chunk_size":
+                    stream_chunk_size = data["stream_chunk_size"]
+                    conn.send(("success", "stream_chunk_size updated successfully"))
+
                 elif command == "set_model":
                     checkpoint = data["checkpoint"]
                     logging.info(f"Updating model checkpoint to {checkpoint}")
@@ -663,6 +672,8 @@ class CoquiEngine(BaseEngine):
                     break  # This exits the loop, effectively stopping the worker process.
 
                 elif command == "synthesize":
+                    stop_event.clear()
+                    synthesis_interrupted = False
                     text = data["text"]
                     language = data["language"]
 
@@ -694,6 +705,11 @@ class CoquiEngine(BaseEngine):
                         chunklist = []
 
                         for i, chunk in enumerate(chunks):
+                            if stop_event.is_set():
+                                logging.info("Stop event detected during chunk generation. Interrupting synthesis.")
+                                synthesis_interrupted = True
+                                break # Exit the for loop
+
                             chunk = postprocess_wave(chunk)
                             chunk_bytes = chunk.tobytes()
                             chunklist.append(chunk_bytes)
@@ -707,13 +723,24 @@ class CoquiEngine(BaseEngine):
                                 )
 
                         for i, chunk in enumerate(chunks):
+                            if stop_event.is_set():
+                                logging.info("Stop event detected during chunk generation. Interrupting synthesis.")
+                                synthesis_interrupted = True
+                                break # Exit the for loop
+
                             chunk = postprocess_wave(chunk)
                             chunklist.append(chunk.tobytes())
 
-                        for chunk in chunklist:
-                            conn.send(("success", chunk))
+                        if not stop_event.is_set():
+                            for chunk in chunklist:
+                                conn.send(("success", chunk))
                     else:
                         for i, chunk in enumerate(chunks):
+                            if stop_event.is_set():
+                                logging.info("Stop event detected during chunk generation. Interrupting synthesis.")
+                                synthesis_interrupted = True
+                                break # Exit the for loop
+
                             chunk = postprocess_wave(chunk)
                             chunk_bytes = chunk.tobytes()
 
@@ -755,21 +782,24 @@ class CoquiEngine(BaseEngine):
                             print(f"Raw Inference Factor: {raw_inference_factor}")
 
                     # Send silent audio
-                    sample_rate = config.audio.sample_rate
+                    if not synthesis_interrupted:
+                        sample_rate = config.audio.sample_rate
 
-                    end_sentence_delimeters = ".!?…。¡¿"
-                    mid_sentence_delimeters = ";:,\n()[]{}-“”„”—/|《》"
+                        end_sentence_delimeters = ".!?…。¡¿"
+                        mid_sentence_delimeters = ";:,\n()[]{}-“”„”—/|《》"
 
-                    if text and text[-1] in end_sentence_delimeters:
-                        silence_duration = sentence_silence_duration
-                    elif text and text[-1] in mid_sentence_delimeters:
-                        silence_duration = comma_silence_duration
-                    else:
-                        silence_duration = default_silence_duration
+                        text_stripped = text.strip()
+                        if text_stripped and text_stripped[-1] in end_sentence_delimeters:
+                            silence_duration = sentence_silence_duration
+                        elif text_stripped and text_stripped[-1] in mid_sentence_delimeters:
+                            silence_duration = comma_silence_duration
+                        else:
+                            silence_duration = default_silence_duration
 
-                    silent_samples = int(sample_rate * silence_duration)
-                    silent_chunk = np.zeros(silent_samples, dtype=np.float32)
-                    conn.send(("success", silent_chunk.tobytes()))
+                        silent_samples = int(sample_rate * silence_duration)
+                        silent_chunk = np.zeros(silent_samples, dtype=np.float32)
+
+                        conn.send(("success", silent_chunk.tobytes()))
 
                     conn.send(("finished", ""))
 
@@ -918,7 +948,10 @@ class CoquiEngine(BaseEngine):
             text (str): Text to synthesize.
         """
 
+        super().synthesize(text)
+
         with self._synthesize_lock:
+
             if self.add_sentence_filter:
                 text = self._prepare_text_for_synthesis(text)
 
@@ -931,6 +964,9 @@ class CoquiEngine(BaseEngine):
             status, result = self.parent_synthesize_pipe.recv()
 
             while "finished" not in status:
+                if self.stop_synthesis_event.is_set():
+                    return False
+
                 if "shutdown" in status or "error" in status:
                     if "error" in status:
                         logging.error(f"Error synthesizing text: {text}")
@@ -1091,6 +1127,39 @@ class CoquiEngine(BaseEngine):
         # Wait for the process to terminate
         self.synthesize_process.join()
         logging.info("Worker process has been terminated")
+
+
+    def set_language(self, language: str):
+        """
+        Sets the language to be used for speech synthesis.
+
+        Args:
+            language (str): New language code to use (e.g., "en", "es", etc.)
+        """
+        self.language = language
+        self.send_command("set_language", {"language": language})
+        status, result = self.parent_synthesize_pipe.recv()
+        if status == "success":
+            logging.info("Language updated successfully")
+        else:
+            logging.error("Error updating language")
+        return status, result
+
+    def set_stream_chunk_size(self, stream_chunk_size: int):
+        """
+        Sets the stream chunk size for the speech synthesis.
+
+        Args:
+            stream_chunk_size (int): The number of samples to process at a time.
+        """
+        self.send_command("set_stream_chunk_size", {"stream_chunk_size": stream_chunk_size})
+        status, result = self.parent_synthesize_pipe.recv()
+        if status == "success":
+            self.stream_chunk_size = stream_chunk_size
+            logging.info("Stream chunk size updated successfully")
+        else:
+            logging.error("Error updating stream chunk size")
+        return status, result
 
     def retrieve_coqui_voices(self):
         """

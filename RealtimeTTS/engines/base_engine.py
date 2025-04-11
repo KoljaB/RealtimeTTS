@@ -1,5 +1,13 @@
+"""
+This module defines a base framework for speech synthesis engines. It includes:
+- A TimingInfo class to capture timing details (start, end, and word) of audio segments.
+- A BaseEngine abstract class (using a custom metaclass) that sets up default properties and common audio processing methods (such as applying fade-ins/outs and trimming silence) along with abstract methods for voice management and synthesis.
+"""
+
+import torch.multiprocessing as mp
 from abc import ABCMeta, ABC
 from typing import Union
+import numpy as np
 import shutil
 import queue
 
@@ -50,6 +58,8 @@ class BaseEngine(ABC, metaclass=BaseInitMeta):
         # Callback to be called when the engine is starting to synthesize audio.
         self.on_playback_start = None
 
+        self.stop_synthesis_event = mp.Event()
+
         self.reset_audio_duration()
 
     def reset_audio_duration(self):
@@ -57,6 +67,144 @@ class BaseEngine(ABC, metaclass=BaseInitMeta):
         Resets the audio duration to 0.
         """
         self.audio_duration = 0
+
+    def apply_fade_in(self, audio: np.ndarray, sample_rate: int = -1, fade_duration_ms: int = 15) -> np.ndarray:
+        """
+        Applies a linear fade-in over fade_duration_ms at the start of the audio.
+        """
+        sample_rate = self.verify_sample_rate(sample_rate)
+        audio = audio.copy()
+
+        fade_samples = int(sample_rate * fade_duration_ms / 1000)
+        if fade_samples == 0 or len(audio) < fade_samples:
+            fade_samples = len(audio)
+        fade_in = np.linspace(0.0, 1.0, fade_samples)
+        audio[:fade_samples] *= fade_in
+        return audio
+
+    def apply_fade_out(self, audio: np.ndarray, sample_rate: int = -1, fade_duration_ms: int = 15) -> np.ndarray:
+        """
+        Applies a linear fade-out over fade_duration_ms at the end of the audio.
+        """
+        sample_rate = self.verify_sample_rate(sample_rate)
+        audio = audio.copy()
+
+        fade_samples = int(sample_rate * fade_duration_ms / 1000)
+        if fade_samples == 0 or len(audio) < fade_samples:
+            fade_samples = len(audio)
+        fade_out = np.linspace(1.0, 0.0, fade_samples)
+        audio[-fade_samples:] *= fade_out
+        return audio
+
+    def trim_silence_start(
+        self,
+        audio_data: np.ndarray,
+        sample_rate: int = 24000,
+        silence_threshold: float = 0.01,
+        extra_ms: int = 25,
+        fade_in_ms: int = 15
+    ) -> np.ndarray:
+        """
+        Removes leading silence from audio_data, applies extra trimming, and fades-in if trimming occurred.
+
+        Args:
+            audio_data (np.ndarray): The audio data to process.
+            sample_rate (int): The sample rate of the audio data.
+            silence_threshold (float): The threshold for silence detection.
+            extra_ms (int): Additional milliseconds to trim from the start.
+            fade_in_ms (int): Milliseconds for fade-in effect.
+        """
+        sample_rate = self.verify_sample_rate(sample_rate)
+        trimmed = False
+        audio_data = audio_data.copy()
+        non_silent = np.where(np.abs(audio_data) > silence_threshold)[0]
+        if len(non_silent) > 0:
+            start_index = non_silent[0]
+            if start_index > 0:
+                trimmed = True
+            audio_data = audio_data[start_index:]
+
+        extra_samples = int(extra_ms * sample_rate / 1000)
+        if extra_samples > 0 and len(audio_data) > extra_samples:
+            audio_data = audio_data[extra_samples:]
+            trimmed = True
+
+        if trimmed:
+            audio_data = self.apply_fade_in(audio_data, sample_rate, fade_in_ms)
+        return audio_data
+
+    def trim_silence_end(
+        self,
+        audio_data: np.ndarray,
+        sample_rate: int = -1,
+        silence_threshold: float = 0.01,
+        extra_ms: int = 50,
+        fade_out_ms: int = 15
+    ) -> np.ndarray:
+        """
+        Removes trailing silence from audio_data, applies extra trimming, and fades-out if trimming occurred.
+
+        Args:
+            audio_data (np.ndarray): The audio data to be trimmed.
+            sample_rate (int): The sample rate of the audio data. Default is -1.
+            silence_threshold (float): The threshold below which audio is considered silent. Default is 0.01.
+            extra_ms (int): Extra milliseconds to trim from the end of the audio. Default is 50.
+            fade_out_ms (int): Milliseconds for fade-out effect at the end of the audio. Default is 15.
+        """
+        sample_rate = self.verify_sample_rate(sample_rate)
+        trimmed = False
+        audio_data = audio_data.copy()
+        non_silent = np.where(np.abs(audio_data) > silence_threshold)[0]
+        if len(non_silent) > 0:
+            end_index = non_silent[-1] + 1
+            if end_index < len(audio_data):
+                trimmed = True
+            audio_data = audio_data[:end_index]
+
+        extra_samples = int(extra_ms * sample_rate / 1000)
+        if extra_samples > 0 and len(audio_data) > extra_samples:
+            audio_data = audio_data[:-extra_samples]
+            trimmed = True
+
+        if trimmed:
+            audio_data = self.apply_fade_out(audio_data, sample_rate, fade_out_ms)
+        return audio_data
+
+    def verify_sample_rate(self, sample_rate: int) -> int:
+        """
+        Verifies and returns the sample rate.
+        If the sample rate is -1, it will be obtained from the engine's configuration.
+        """
+        if sample_rate == -1:
+            _, _, sample_rate = self.get_stream_info()
+            if sample_rate == -1:
+                raise ValueError("Sample rate must be provided or obtained from get_stream_info.")
+        return sample_rate
+
+    def _trim_silence(
+        self,
+        audio_data: np.ndarray,
+        sample_rate: int = -1,
+        silence_threshold: float = 0.005,
+        extra_start_ms: int = 15,
+        extra_end_ms: int = 15,
+        fade_in_ms: int = 10,
+        fade_out_ms: int = 10
+    ) -> np.ndarray:
+        """
+        Removes silence from both the start and end of audio_data.
+        If trimming occurs on either end, the corresponding fade is applied.
+        """
+        sample_rate = self.verify_sample_rate(sample_rate)
+
+        audio_data = self.trim_silence_start(
+            audio_data, sample_rate, silence_threshold, extra_start_ms, fade_in_ms
+        )
+        audio_data = self.trim_silence_end(
+            audio_data, sample_rate, silence_threshold, extra_end_ms, fade_out_ms
+        )
+        return audio_data
+
 
     def get_stream_info(self):
         """
@@ -79,9 +227,7 @@ class BaseEngine(ABC, metaclass=BaseInitMeta):
         Args:
             text (str): Text to synthesize.
         """
-        raise NotImplementedError(
-            "The synthesize method must be implemented by the derived class."
-        )
+        self.stop_synthesis_event.clear()
 
     def get_voices(self):
         """
@@ -145,3 +291,9 @@ class BaseEngine(ABC, metaclass=BaseInitMeta):
         if lib is None:
             return False
         return True
+
+    def stop(self):
+        """
+        Stops the engine.
+        """
+        self.stop_synthesis_event.set()

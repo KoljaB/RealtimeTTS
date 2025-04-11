@@ -38,6 +38,12 @@ class KokoroEngine(BaseEngine):
             default_lang_code: str = "a",
             default_voice: str = "af_heart",
             default_speed: float = 1.0,
+            trim_silence: bool = True,
+            silence_threshold: float = 0.005,
+            extra_start_ms: int = 15,
+            extra_end_ms: int = 15,
+            fade_in_ms: int = 10,
+            fade_out_ms: int = 10,
             debug: bool = False):
         """
         Initializes the KokoroEngine with default settings.
@@ -54,6 +60,12 @@ class KokoroEngine(BaseEngine):
         self.queue = Queue()  # Queue for streaming audio data.
         self.pipelines = {}   # Cache pipelines based on language code.
         self.speed = default_speed
+        self.trim_silence = trim_silence
+        self.silence_threshold = silence_threshold
+        self.extra_start_ms = extra_start_ms
+        self.extra_end_ms = extra_end_ms
+        self.fade_in_ms = fade_in_ms
+        self.fade_out_ms = fade_out_ms
 
         self.current_voice_name = default_voice
         # Attempt to derive the language code from the voice name.
@@ -299,11 +311,19 @@ class KokoroEngine(BaseEngine):
                         if self.debug:
                             print(f"No timing tokens available for chunk {index}")
 
+                    if self.trim_silence:
+                        audio_float32 = self._trim_silence(
+                            audio_float32,
+                            silence_threshold = self.silence_threshold,
+                            extra_start_ms = self.extra_start_ms,
+                            extra_end_ms = self.extra_end_ms,
+                            fade_in_ms = self.fade_in_ms,
+                            fade_out_ms = self.fade_out_ms,
+                        )
                     audio_int16 = (audio_float32 * 32767).astype(np.int16).tobytes()
                     audio_length_in_seconds = len(audio_float32) / 24000
                     self.audio_duration += audio_length_in_seconds
                     self.queue.put(audio_int16)
-
 
                 if self.debug:
                     duration = time.time() - start_time

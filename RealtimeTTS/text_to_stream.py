@@ -1,3 +1,17 @@
+"""
+TextToAudioStream Module
+------------------------
+Converts text into real-time audio using one or more TTS engines. Key features include:
+
+- Synthesis: Transforms text or text streams into audio.
+- Multi-Engine: Supports engine switching if one fails.
+- Async Playback: Handles play, pause, resume, and stop with separate threads.
+- Callbacks: Offers hooks for stream events, per-character, and per-word processing.
+- Buffer Management: Generates audio chunks based on buffered duration.
+- Output Options: Plays audio live or writes to a WAV file.
+"""
+
+
 from .threadsafe_generators import CharIterator, AccumulatingThreadSafeGenerator
 from .stream_player import StreamPlayer, AudioConfiguration
 from typing import Union, Iterator, List
@@ -16,7 +30,6 @@ import pyaudio
 import queue
 import time
 import wave
-
 
 class TextToAudioStream:
     def __init__(
@@ -487,6 +500,7 @@ class TextToAudioStream:
                                 if before_sentence_synthesized:
                                     before_sentence_synthesized(sentence)
                                 success = self.engine.synthesize(sentence)
+
                                 if success:
                                     if on_sentence_synthesized:
                                         on_sentence_synthesized(sentence)
@@ -625,6 +639,8 @@ class TextToAudioStream:
         """
         Stops the playback of the synthesized audio stream immediately.
         """
+        if self.engine:
+            self.engine.stop()
 
         for abort_event in self.abort_events:
             abort_event.set()

@@ -5,6 +5,7 @@ examples/
 batch/
 test_env/
 tests_private/
+tests_hindi/
 docs/
 docs_private/
 env_realtimetts/

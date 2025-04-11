@@ -1,4 +1,5 @@
 if __name__ == "__main__":
+    import time 
     from RealtimeTTS import TextToAudioStream, StyleTTSEngine, StyleTTSVoice
 
     def dummy_generator_1():
@@ -16,6 +17,24 @@ if __name__ == "__main__":
         yield "We’re testing the third voice model now. "
         yield "The transition between styles is smooth and effortless. "
 
+    def create_synthesis_callbacks(start_time):
+        # Use a local variable to store the synthesis start time
+        sentence_synth_start = None
+
+        def before_sentence_callback(_):
+            nonlocal sentence_synth_start
+            sentence_synth_start = time.time()
+            elapsed = sentence_synth_start - start_time
+            print("<SYNTHESIS_START>", f"{elapsed:.2f}s")
+
+        def on_sentence_callback(_):
+            if sentence_synth_start is not None:
+                delta = time.time() - sentence_synth_start
+                print("<SYNTHESIS_DONE>", f"Delta: {delta:.2f}s")
+            else:
+                print("<SYNTHESIS_DONE>", "No start time recorded.")
+        return before_sentence_callback, on_sentence_callback
+
     # Adjust these paths to your local setup
     styletts_root = "D:/Dev/StyleTTS_Realtime/StyleTTS2"
 
@@ -27,9 +46,9 @@ if __name__ == "__main__":
     )
 
     voice_2 = StyleTTSVoice(
-        model_config_path="D:/Data/Models/style/LongLasi/LongLasi_config.yml",
-        model_checkpoint_path="D:/Data/Models/style/LongLasi/epoch_2nd_00047.pth",
-        ref_audio_path="D:/Data/Models/style/LongLasi/file___1_file___1_segment_116.wav"
+        model_config_path="D:/Data/Models/style/LongLasi/Lasinya_config.yml",
+        model_checkpoint_path="D:/Data/Models/style/LongLasi/Lasinya_00085.pth",
+        ref_audio_path="D:/Data/Models/style/LongLasi/reference.wav"
     )
 
     voice_3 = StyleTTSVoice(
@@ -50,12 +69,19 @@ if __name__ == "__main__":
     )
 
     # Create a TextToAudioStream with the engine
-    stream = TextToAudioStream(engine)
+    start_time = 0
+    def on_audio_stream_start_callback():
+        global start_time
+        delta = time.time() - start_time
+        print("<TTFT>", f"Time: {delta:.2f}s")
+    stream = TextToAudioStream(engine, on_audio_stream_start=on_audio_stream_start_callback)
 
     # Play with the first model
     print("Playing with the first model...")
     stream.feed(dummy_generator_1())
-    stream.play(log_synthesized_text=True)
+    start_time = time.time()
+    before_sentence_callback, on_sentence_callback = create_synthesis_callbacks(start_time)
+    stream.play(log_synthesized_text=True, before_sentence_synthesized=before_sentence_callback, on_sentence_synthesized=on_sentence_callback)
 
     # Switch to the second voice at runtime
     print("\nSwitching to the second model...")
@@ -64,7 +90,10 @@ if __name__ == "__main__":
     # Play with the second model
     print("Playing with the second model...")
     stream.feed(dummy_generator_2())
-    stream.play(log_synthesized_text=True)
+    engine.diffusion_steps = 3
+    start_time = time.time()
+    before_sentence_callback, on_sentence_callback = create_synthesis_callbacks(start_time)
+    stream.play(log_synthesized_text=True, before_sentence_synthesized=before_sentence_callback, on_sentence_synthesized=on_sentence_callback)
 
     # Switch to the third voice
     print("\nSwitching to the third model...")
@@ -73,7 +102,10 @@ if __name__ == "__main__":
     # Play again with the first model
     print("Playing with the first model again...")
     stream.feed(dummy_generator_3())
-    stream.play(log_synthesized_text=True)
+    engine.diffusion_steps = 50
+    start_time = time.time()
+    before_sentence_callback, on_sentence_callback = create_synthesis_callbacks(start_time)
+    stream.play(log_synthesized_text=True, before_sentence_synthesized=before_sentence_callback, on_sentence_synthesized=on_sentence_callback)
 
     # Shutdown the engine
     engine.shutdown()

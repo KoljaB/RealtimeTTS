@@ -1,7 +1,20 @@
 """
-Stream management
-"""
+Stream Management Module
 
+This module provides classes to handle audio streaming using PyAudio. It covers:
+  - Audio configuration (AudioConfiguration)
+  - Stream control (AudioStream)
+  - Data buffering (AudioBufferManager)
+  - Playback with pause, resume, and stop (StreamPlayer)
+
+Key Components:
+  1. AudioConfiguration: Sets up audio parameters (format, channels, sample rate, device).
+  2. AudioStream: Manages opening, starting, stopping, and closing streams, and adapts to device capabilities.
+  3. AudioBufferManager: Buffers audio data in a queue and tracks sample counts.
+  4. StreamPlayer: Orchestrates playback, handles events, and supports callbacks.
+
+Designed for flexible, real-time audio playback and streaming, with error handling for unsupported configurations.
+"""
 from pydub import AudioSegment
 try:
     import pyaudio._portaudio as pa
@@ -370,10 +383,11 @@ class AudioBufferManager:
             bytes_per_frame = format_bytes[audio_format] * channels
 
             # Update total samples counter
-            self.total_samples -= len(chunk) // bytes_per_frame
-            return chunk
+            if chunk:
+                self.total_samples -= len(chunk) // bytes_per_frame
+            return True, chunk
         except queue.Empty:
-            return None
+            return False, None
 
     def get_buffered_seconds(self, rate: int) -> float:
         """
@@ -407,11 +421,17 @@ class StreamPlayer:
         """
         Args:
             audio_buffer (queue.Queue): Queue to be used as the audio buffer.
+            timings (queue.Queue): Queue for word timing information.
             config (AudioConfiguration): Object containing audio settings.
             on_playback_start (Callable, optional): Callback function to be
               called at the start of playback. Defaults to None.
             on_playback_stop (Callable, optional): Callback function to be
               called at the stop of playback. Defaults to None.
+            on_audio_chunk (Callable, optional): Callback function called with
+              each audio chunk *after* effects and resampling, just before
+              being written to the output device/file. Defaults to None.
+            on_word_spoken (Callable, optional): Callback for word timing events.
+            muted (bool): Initial muted state.
         """
         self.buffer_manager = AudioBufferManager(audio_buffer, timings, config)
         self.timings = timings
@@ -429,38 +449,35 @@ class StreamPlayer:
         self.muted = muted
         self.seconds_played = 0
 
-    def _play_chunk(self, chunk):
+    def _play_mpeg_chunk(self, chunk):
         """
-        Plays a chunk of audio data.
+        Plays a chunk of audio data using mpv.
 
         Args:
             chunk: Chunk of audio data to be played.
         """
+        try:
+            # Pause playback if the event is set
+            if not self.first_chunk_played and self.on_playback_start:
+                self.on_playback_start()
+                self.first_chunk_played = True
 
-        # handle mpeg
-        if self.audio_stream.config.format == pyaudio.paCustomFormat and self.audio_stream.config.channels == -1 and self.audio_stream.config.rate == -1:
-            try:
-                # Pause playback if the event is set
-                if not self.first_chunk_played and self.on_playback_start:
-                    self.on_playback_start()
-                    self.first_chunk_played = True
+            if not self.muted:
+                if self.audio_stream.mpv_process and self.audio_stream.mpv_process.stdin:
+                    self.audio_stream.mpv_process.stdin.write(chunk)
+                    self.audio_stream.mpv_process.stdin.flush()
 
-                if not self.muted:
-                    if self.audio_stream.mpv_process and self.audio_stream.mpv_process.stdin:
-                        self.audio_stream.mpv_process.stdin.write(chunk)
-                        self.audio_stream.mpv_process.stdin.flush()
+            if self.on_audio_chunk:
+                self.on_audio_chunk(chunk)
 
-                if self.on_audio_chunk:
-                    self.on_audio_chunk(chunk)
+            import time
+            while self.pause_event.is_set():
+                time.sleep(0.01)
 
-                import time
-                while self.pause_event.is_set():
-                    time.sleep(0.01)
+        except Exception as e:
+            print(f"Error sending audio data to mpv: {e}")
 
-            except Exception as e:
-                print(f"Error sending audio data to mpv: {e}")
-            return
-
+    def _play_wav_chunk(self, chunk):
         if self.audio_stream.config.format == pyaudio.paCustomFormat:
             segment = AudioSegment.from_file(io.BytesIO(chunk), format="mp3")
             chunk = segment.raw_data
@@ -488,7 +505,7 @@ class StreamPlayer:
                 sub_chunk_size = 512
             else:
                 sub_chunk_size = self.audio_stream.config.frames_per_buffer * sample_width * channels
-        
+
         for i in range(0, len(chunk), sub_chunk_size):
             sub_chunk = chunk[i : i + sub_chunk_size]
 
@@ -545,13 +562,33 @@ class StreamPlayer:
             if self.immediate_stop.is_set():
                 break
 
+    def _play_chunk(self, chunk):
+        """
+        Plays a chunk of audio data.
+
+        Args:
+            chunk: Chunk of audio data to be played.
+        """
+        # --- Handle Raw MPEG Stream (MPV) ---
+        is_mpeg_stream = (
+            self.audio_stream.config.format == pyaudio.paCustomFormat and
+            self.audio_stream.config.channels == -1 and
+            self.audio_stream.config.rate == -1
+        )
+
+        if is_mpeg_stream:
+            self._play_mpeg_chunk(chunk)
+            return # Finished processing MPEG chunk
+
+        self._play_wav_chunk(chunk)
+
     def _process_buffer(self):
         """
         Processes and plays audio data from the buffer
         until it's empty or playback is stopped.
         """
         while self.playback_active or not self.buffer_manager.audio_buffer.empty():
-            chunk = self.buffer_manager.get_from_buffer()
+            success, chunk = self.buffer_manager.get_from_buffer()
             if chunk:
                 self._play_chunk(chunk)
 
@@ -602,7 +639,7 @@ class StreamPlayer:
         if immediate:
             self.immediate_stop.set()
             while self.playback_active:
-                time.sleep(0.1)
+                time.sleep(0.001)
             return
 
         self.playback_active = False
@@ -610,7 +647,7 @@ class StreamPlayer:
         if self.playback_thread and self.playback_thread.is_alive():
             self.playback_thread.join()
 
-        time.sleep(0.1)
+        time.sleep(0.001)
 
         self.audio_stream.close_stream()
         self.immediate_stop.clear()
