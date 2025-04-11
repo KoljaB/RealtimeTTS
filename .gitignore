@@ -10,6 +10,7 @@ docs/
 docs_private/
 env_realtimetts/
 example_rvc/assets/
+package_backups/
 server/
 RealtimeTTS.code-workspace
 
