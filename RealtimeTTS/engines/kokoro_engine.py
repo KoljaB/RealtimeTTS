@@ -20,6 +20,17 @@ import re
 # Import the text-to-speech pipeline from the Kokoro package.
 from kokoro import KPipeline
 
+
+
+class KokoroAIVoice:
+    def __init__(self, name):
+        self.name = name
+
+    def __repr__(self):
+        return f"{self.name}"
+
+
+
 class KokoroEngine(BaseEngine):
     """
     A text-to-speech (TTS) engine utilizing the Kokoro pipeline, now with support
@@ -367,14 +378,14 @@ class KokoroEngine(BaseEngine):
         if self.debug:
             print(f"[KokoroEngine] Speed set to: {self.speed}")
 
-    def get_voices(self) -> List[str]:
+        def get_voices(self) -> List[str]:
         """
         Retrieves a list of all supported voice identifiers.
 
         Returns:
             List[str]: A list containing all available voice names.
         """
-        return [
+        Kokoro_AI_Voices= [
             # American English (lang_code='a')
             # Female voices (11)
             "af_heart", "af_alloy", "af_aoede", "af_bella", "af_jessica",
@@ -429,6 +440,7 @@ class KokoroEngine(BaseEngine):
             # Male voices (2)
             "pm_alex", "pm_santa",
         ]
+        return [KokoroAIVoice(v) for v in Kokoro_AI_Voices]
 
     def shutdown(self):
         """
