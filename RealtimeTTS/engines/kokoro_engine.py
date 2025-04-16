@@ -378,7 +378,7 @@ class KokoroEngine(BaseEngine):
         if self.debug:
             print(f"[KokoroEngine] Speed set to: {self.speed}")
 
-        def get_voices(self) -> List[str]:
+    def get_voices(self) -> List[str]:
         """
         Retrieves a list of all supported voice identifiers.
 
