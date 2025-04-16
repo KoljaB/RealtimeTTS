@@ -13,7 +13,7 @@ __all__ = [
     "EdgeEngine", "EdgeVoice",
     "StyleTTSEngine", "StyleTTSVoice",
     "PiperEngine", "PiperVoice",
-    "KokoroEngine",
+    "KokoroEngine","KokoroAIVoice",
     "OrpheusEngine", "OrpheusVoice",
 ]
 
@@ -79,8 +79,9 @@ def _load_piper_engine():
     return PiperEngine
 
 def _load_kokoro_engine():
-    from .kokoro_engine import KokoroEngine
+    from .kokoro_engine import KokoroEngine,KokoroAIVoice
     globals()["KokoroEngine"] = KokoroEngine
+    globals()["KokoroAIVoice"] = KokoroAIVoice
     return KokoroEngine
 
 def _load_orpheus_engine():
