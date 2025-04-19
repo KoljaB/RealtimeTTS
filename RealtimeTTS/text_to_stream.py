@@ -257,6 +257,9 @@ class TextToAudioStream:
         language: str = "",
         context_size: int = 12,
         context_size_look_overhead: int = 12,
+        comma_silence_duration=0.0,
+        sentence_silence_duration=0.0,
+        default_silence_duration=0.0,
         muted: bool = False,
         sentence_fragment_delimiters: str = ".?!;:,\n…。",
         force_first_fragment_after_words=30,
@@ -285,6 +288,9 @@ class TextToAudioStream:
                 language,
                 context_size,
                 context_size_look_overhead,
+                comma_silence_duration,
+                sentence_silence_duration,
+                default_silence_duration,
                 muted,
                 sentence_fragment_delimiters,
                 force_first_fragment_after_words,
@@ -315,6 +321,9 @@ class TextToAudioStream:
         language: str = "en",
         context_size: int = 12,
         context_size_look_overhead: int = 12,
+        comma_silence_duration=0.0,
+        sentence_silence_duration=0.0,
+        default_silence_duration=0.0,
         muted: bool = False,
         sentence_fragment_delimiters: str = ".?!;:,\n…。",
         force_first_fragment_after_words=30,
@@ -345,6 +354,10 @@ class TextToAudioStream:
         - tokenize_sentences (Callable): A function that tokenizes sentences from the input text. You can write your own lightweight tokenizer here if you are unhappy with nltk and stanza. Defaults to None. Takes text as string and should return splitted sentences as list of strings.
         - language: Language to use for sentence splitting.
         - context_size: The number of characters used to establish context for sentence boundary detection. A larger context improves the accuracy of detecting sentence boundaries. Default is 12 characters.
+        - context_size_look_overhead: The number of characters to look ahead when determining sentence boundaries. This helps in identifying the end of a sentence more accurately. Default is 12 characters.
+        - comma_silence_duration: The duration of silence to insert after a comma in seconds. Default is 0.0 seconds.
+        - sentence_silence_duration: The duration of silence to insert after a sentence in seconds. Default is 0.0 seconds.
+        - default_silence_duration: The default duration of silence to insert after a sentence in seconds. Default is 0.0 seconds.
         - muted: If True, disables audio playback via local speakers (in case you want to synthesize to file or process audio chunks). Default is False.
         - sentence_fragment_delimiters (str): A string of characters that are
             considered sentence delimiters. Default is ".?!;:,\n…)]}。-".
@@ -449,7 +462,6 @@ class TextToAudioStream:
         else:
             try:
                 # Start the audio player to handle playback
-
                 if self.player:
                     self.player.start()
                     self.player.on_audio_chunk = self._on_audio_chunk
@@ -481,12 +493,16 @@ class TextToAudioStream:
                 )
 
                 sentence_queue = queue.Queue()
+                sentence_count = 0
 
                 def synthesize_worker():
+                    nonlocal sentence_count
                     while not abort_event.is_set():
                         sentence = sentence_queue.get()
                         if sentence is None:  # Sentinel value to stop the worker
                             break
+
+                        sentence_count += 1
 
                         synthesis_successful = False
                         if log_synthesized_text:
@@ -500,6 +516,29 @@ class TextToAudioStream:
                                 if before_sentence_synthesized:
                                     before_sentence_synthesized(sentence)
                                 success = self.engine.synthesize(sentence)
+
+                                # insert potential silence
+                                stream_format, _, sample_rate = self.engine.get_stream_info()
+
+                                end_sentence_delimeters = ".!?…。¡¿"
+                                mid_sentence_delimeters = ";:,\n()[]{}-“”„”—/|《》"
+
+                                text_stripped = sentence.strip()
+                                if text_stripped and text_stripped[-1] in end_sentence_delimeters:
+                                    silence_duration = sentence_silence_duration
+                                elif text_stripped and text_stripped[-1] in mid_sentence_delimeters:
+                                    silence_duration = comma_silence_duration
+                                else:
+                                    silence_duration = default_silence_duration
+
+                                if silence_duration > 0:
+                                    silent_samples = int(sample_rate * silence_duration)
+                                    if stream_format==pyaudio.paInt16:
+                                        silent_chunk = np.zeros(silent_samples, dtype=np.int16)
+                                    else:
+                                        silent_chunk = np.zeros(silent_samples, dtype=np.float32)
+                                    self.engine.queue.put(silent_chunk.tobytes())
+
 
                                 if success:
                                     if on_sentence_synthesized:
@@ -585,9 +624,14 @@ class TextToAudioStream:
                         self.wf = None
 
             if (not self.error_flag
-                and len(self.char_iter.items) > 0
+                and len(self.char_iter.items) > 1
                 and self.char_iter.iterated_text == ""
-                and not self.char_iter.immediate_stop.is_set()):
+                and not self.char_iter.immediate_stop.is_set()
+                and not abort_event.is_set()
+                and not (sentence_count == 0 and not is_external_call)
+            ):
+
+                logging.info(f"{len(self.char_iter.items)} unprocessed characters left, recursively calling play()")
 
                 # new text was feeded while playing audio but after the last character was processed
                 # we need to start another play() call (!recursively!)

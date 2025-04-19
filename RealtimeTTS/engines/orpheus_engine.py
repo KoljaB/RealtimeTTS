@@ -1,9 +1,10 @@
 import json
 import time
 import logging
+import pyaudio
 import requests
 import traceback
-import pyaudio
+import numpy as np
 from queue import Queue
 from typing import Optional, Union
 from .base_engine import BaseEngine
@@ -11,6 +12,7 @@ from .base_engine import BaseEngine
 # Default configuration values
 DEFAULT_API_URL = "http://127.0.0.1:1234/v1/completions"
 DEFAULT_HEADERS = {"Content-Type": "application/json"}
+DEFAULT_MODEL = "orpheus-3b-0.1-ft"
 DEFAULT_VOICE = "tara"
 AVAILABLE_VOICES = ["tara", "leah", "jess", "leo", "dan", "mia", "zac", "zoe"]
 SAMPLE_RATE = 24000  # Specific sample rate for Orpheus
@@ -50,6 +52,7 @@ class OrpheusEngine(BaseEngine):
     def __init__(
         self,
         api_url: str = DEFAULT_API_URL,
+        model: str = DEFAULT_MODEL,
         headers: dict = DEFAULT_HEADERS,
         voice: Optional[OrpheusVoice] = None,
         temperature: float = 0.6,
@@ -63,6 +66,7 @@ class OrpheusEngine(BaseEngine):
 
         Args:
             api_url (str): Endpoint URL for the LM Studio API.
+            model (str): Model name to use for synthesis.
             headers (dict): HTTP headers for API requests.
             voice (Optional[OrpheusVoice]): OrpheusVoice configuration. Defaults to DEFAULT_VOICE.
             temperature (float): Sampling temperature (0-1) for text generation.
@@ -73,6 +77,7 @@ class OrpheusEngine(BaseEngine):
         """
         super().__init__()
         self.api_url = api_url
+        self.model = model
         self.headers = headers
         self.voice = voice or OrpheusVoice(DEFAULT_VOICE)
         self.temperature = temperature
@@ -106,15 +111,48 @@ class OrpheusEngine(BaseEngine):
         Returns:
             bool: True if synthesis was successful, False otherwise.
         """
+        super().synthesize(text)
+
         try:
             # Process tokens and put generated audio chunks into the queue
             for audio_chunk in self._token_decoder(self._generate_tokens(text)):
+                # bail out immediately if someone called .stop()
+                if self.stop_synthesis_event.is_set():
+                    logging.info("OrpheusEngine: synthesis stopped by user")
+                    return False
+                print(f"Audio chunk size: {len(audio_chunk)}")
                 self.queue.put(audio_chunk)
             return True
         except Exception as e:
             traceback.print_exc()
             logging.error(f"Synthesis error: {e}")
             return False
+
+    def synthesize(self, text: str) -> bool:
+        """
+        Convert text to speech and stream audio data via Orpheus.
+        Drops initial and trailing near-silent chunks.
+        """
+        super().synthesize(text)
+
+        try:
+            for audio_chunk in self._token_decoder(self._generate_tokens(text)):
+                # bail out if user called .stop()
+                if self.stop_synthesis_event.is_set():
+                    logging.info("OrpheusEngine: synthesis stopped by user")
+                    return False
+
+                # forward this chunk
+                self.queue.put(audio_chunk)
+
+            # done: any silent_buffer left is trailing silence → drop it
+            return True
+
+        except Exception as e:
+            traceback.print_exc()
+            logging.error(f"Synthesis error: {e}")
+            return False
+
 
     def _generate_tokens(self, prompt: str):
         """
@@ -130,7 +168,7 @@ class OrpheusEngine(BaseEngine):
         formatted_prompt = self._format_prompt(prompt)
         
         payload = {
-            "model": "orpheus-3b-0.1-ft",
+            "model": self.model,
             "prompt": formatted_prompt,
             "max_tokens": self.max_tokens,
             "temperature": self.temperature,
@@ -152,6 +190,10 @@ class OrpheusEngine(BaseEngine):
             token_counter = 0
             start_time = time.time()  # Start timing token generation
             for line in response.iter_lines():
+                # stop on demand
+                if self.stop_synthesis_event.is_set():
+                    logging.debug("OrpheusEngine: token generation aborted")
+                    break
                 if line:
                     line = line.decode('utf-8')
                     if line.startswith('data: '):
@@ -207,6 +249,10 @@ class OrpheusEngine(BaseEngine):
 
         logging.debug("Starting token decoding from token generator.")
         for token_text in token_gen:
+            # bail out if stop was requested
+            if self.stop_synthesis_event.is_set():
+                logging.debug("OrpheusEngine: token decoding aborted")
+                break
             token = self.turn_token_into_id(token_text, count)
             if token is not None and token > 0:
                 buffer.append(token)

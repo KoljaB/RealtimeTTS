@@ -12,6 +12,7 @@ env_realtimetts/
 example_rvc/assets/
 package_backups/
 server/
+check_versions.py
 RealtimeTTS.code-workspace
 
 # Byte-compiled / optimized / DLL files

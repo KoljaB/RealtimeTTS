@@ -1,6 +1,7 @@
 from .base_engine import BaseEngine
 import torch.multiprocessing as mp
 from threading import Lock, Thread
+from .safepipe import SafePipe
 from typing import Union, List
 from pathlib import Path
 from tqdm import tqdm
@@ -50,6 +51,7 @@ class CoquiVoice:
 
 
 class CoquiEngine(BaseEngine):
+
     def __init__(
         self,
         model_name="tts_models/multilingual/multi-dataset/xtts_v2",
@@ -75,9 +77,6 @@ class CoquiEngine(BaseEngine):
         prepare_text_for_synthesis_callback=None,
         add_sentence_filter=False,
         pretrained=False,
-        comma_silence_duration=0.3,
-        sentence_silence_duration=0.6,
-        default_silence_duration=0.3,
         print_realtime_factor=False,
         load_balancing=False,
         load_balancing_buffer_length=0,
@@ -140,12 +139,6 @@ class CoquiEngine(BaseEngine):
               to the one coqui TTS already provides.
             pretrained (bool):
               Use a pretrained model for the coqui model.
-            comma_silence_duration (float):
-              Duration of the silence after a comma.
-            sentence_silence_duration (float):
-              Duration of the silence after a sentence.
-            default_silence_duration (float):
-                Default duration of the silence.
             print_realtime_factor (bool):
                 Print the realtime factor for the coqui model.
             load_balancing (bool):
@@ -174,9 +167,6 @@ class CoquiEngine(BaseEngine):
         self.use_deepspeed = use_deepspeed
         self.device = device
         self.add_sentence_filter = add_sentence_filter
-        self.comma_silence_duration = comma_silence_duration
-        self.sentence_silence_duration = sentence_silence_duration
-        self.default_silence_duration = default_silence_duration
         self.print_realtime_factor = print_realtime_factor
         self.load_balancing = load_balancing
         self.load_balancing_buffer_length = load_balancing_buffer_length
@@ -247,7 +237,8 @@ class CoquiEngine(BaseEngine):
         self.output_worker_thread.start()
 
         self.main_synthesize_ready_event = mp.Event()
-        self.parent_synthesize_pipe, child_synthesize_pipe = mp.Pipe()
+        self.parent_synthesize_pipe, child_synthesize_pipe = SafePipe()
+
         self.voices_list = []
         self.retrieve_coqui_voices()
 
@@ -279,9 +270,6 @@ class CoquiEngine(BaseEngine):
                 self.voices_path,
                 self.voices_list,
                 self.pretrained,
-                self.comma_silence_duration,
-                self.sentence_silence_duration,
-                self.default_silence_duration,
                 self.print_realtime_factor,
                 self.load_balancing,
                 self.load_balancing_buffer_length,
@@ -321,9 +309,6 @@ class CoquiEngine(BaseEngine):
         voices_path,
         predefined_voices,
         pretrained,
-        comma_silence_duration,
-        sentence_silence_duration,
-        default_silence_duration,
         print_realtime_factor,
         load_balancing,
         load_balancing_buffer_length,
@@ -621,7 +606,7 @@ class CoquiEngine(BaseEngine):
 
         try:
             while True:
-                timeout = 0.1
+                timeout = 0.01
                 if conn.poll(timeout):  # Use poll with a tiny timeout to avoid blocking
                     try:
                         message = conn.recv()
@@ -673,7 +658,6 @@ class CoquiEngine(BaseEngine):
 
                 elif command == "synthesize":
                     stop_event.clear()
-                    synthesis_interrupted = False
                     text = data["text"]
                     language = data["language"]
 
@@ -707,7 +691,6 @@ class CoquiEngine(BaseEngine):
                         for i, chunk in enumerate(chunks):
                             if stop_event.is_set():
                                 logging.info("Stop event detected during chunk generation. Interrupting synthesis.")
-                                synthesis_interrupted = True
                                 break # Exit the for loop
 
                             chunk = postprocess_wave(chunk)
@@ -725,7 +708,6 @@ class CoquiEngine(BaseEngine):
                         for i, chunk in enumerate(chunks):
                             if stop_event.is_set():
                                 logging.info("Stop event detected during chunk generation. Interrupting synthesis.")
-                                synthesis_interrupted = True
                                 break # Exit the for loop
 
                             chunk = postprocess_wave(chunk)
@@ -738,7 +720,6 @@ class CoquiEngine(BaseEngine):
                         for i, chunk in enumerate(chunks):
                             if stop_event.is_set():
                                 logging.info("Stop event detected during chunk generation. Interrupting synthesis.")
-                                synthesis_interrupted = True
                                 break # Exit the for loop
 
                             chunk = postprocess_wave(chunk)
@@ -781,29 +762,7 @@ class CoquiEngine(BaseEngine):
                             print(f"Realtime Factor: {realtime_factor}")
                             print(f"Raw Inference Factor: {raw_inference_factor}")
 
-                    # Send silent audio
-                    if not synthesis_interrupted:
-                        sample_rate = config.audio.sample_rate
-
-                        end_sentence_delimeters = ".!?…。¡¿"
-                        mid_sentence_delimeters = ";:,\n()[]{}-“”„”—/|《》"
-
-                        text_stripped = text.strip()
-                        if text_stripped and text_stripped[-1] in end_sentence_delimeters:
-                            silence_duration = sentence_silence_duration
-                        elif text_stripped and text_stripped[-1] in mid_sentence_delimeters:
-                            silence_duration = comma_silence_duration
-                        else:
-                            silence_duration = default_silence_duration
-
-                        silent_samples = int(sample_rate * silence_duration)
-                        silent_chunk = np.zeros(silent_samples, dtype=np.float32)
-
-                        conn.send(("success", silent_chunk.tobytes()))
-
                     conn.send(("finished", ""))
-
-                    end_time = time.time()
 
         except KeyboardInterrupt:
             logging.info("Keyboard interrupt received. Exiting worker process.")
@@ -973,7 +932,13 @@ class CoquiEngine(BaseEngine):
                         logging.error(f"Error: {result}")
                     return False
 
-                self.queue.put(result)
+                if isinstance(result, bytes):
+                    # it's good, do your thing
+                    self.queue.put(result)
+                elif isinstance(result, str):
+                    # uh-oh, probably something went wrong in pipe
+                    logging.error(f"Error in pipe, chunk bytes expected but string was sent: {result}")
+
                 status, result = self.parent_synthesize_pipe.recv()
 
             return True

@@ -124,8 +124,8 @@ class KokoroEngine(BaseEngine):
 
         # Create and cache the pipeline for the current language.
         self.pipelines[self.current_lang] = KPipeline(
-            repo_id='hexgrad/Kokoro-82M',
-            lang_code=self.current_lang
+            repo_id = 'hexgrad/Kokoro-82M',
+            lang_code = self.current_lang
         )
 
         # Cache for formula-based blended voices: { formula_str: torch.FloatTensor }
@@ -437,7 +437,7 @@ class KokoroEngine(BaseEngine):
         Returns:
             List[str]: A list containing all available voice names.
         """
-        Kokoro_AI_Voices = [
+        KokoroVoices = [
             # American English (lang_code='a')
             # Female voices (11)
             "af_heart", "af_alloy", "af_aoede", "af_bella", "af_jessica",
@@ -492,7 +492,7 @@ class KokoroEngine(BaseEngine):
             # Male voices (2)
             "pm_alex", "pm_santa",
         ]
-        return [KokoroVoice(v, get_lang_code_from_voice(v)) for v in Kokoro_AI_Voices]
+        return [KokoroVoice(v, get_lang_code_from_voice(v)) for v in KokoroVoices]
 
     def shutdown(self):
         """

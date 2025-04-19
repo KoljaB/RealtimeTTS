@@ -1,6 +1,7 @@
 from .base_engine import BaseEngine
 from edge_tts import Communicate, list_voices
 import asyncio
+from typing import Union
 import queue
 import threading
 import subprocess
@@ -155,7 +156,7 @@ class EdgeEngine(BaseEngine):
 
         return voice_objects
 
-    def set_voice(self, voice: str):
+    def set_voice(self, voice: Union[str, EdgeVoice]):
         """
         Sets the voice to be used for speech synthesis.
         """
@@ -165,10 +166,6 @@ class EdgeEngine(BaseEngine):
             installed_voices = self.get_voices()
             for installed_voice in installed_voices:
                 if voice == installed_voice.name:
-                    self.current_voice = installed_voice
-                    return
-            for installed_voice in installed_voices:
-                if voice in installed_voice.name:
                     self.current_voice = installed_voice
                     return
             for installed_voice in installed_voices:
