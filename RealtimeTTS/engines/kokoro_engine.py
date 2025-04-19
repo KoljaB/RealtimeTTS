@@ -21,14 +21,13 @@ import re
 from kokoro import KPipeline
 
 
-
-class KokoroAIVoice:
-    def __init__(self, name):
+class KokoroVoice:
+    def __init__(self, name, language_code):
         self.name = name
+        self.language_code = language_code
 
     def __repr__(self):
-        return f"{self.name}"
-
+        return f"Setting voice to: {self.name} with language code: {self.language_code}"
 
 
 class KokoroEngine(BaseEngine):
@@ -69,7 +68,7 @@ class KokoroEngine(BaseEngine):
         self.debug = debug
         self.engine_name = "kokoro"
         self.queue = Queue()  # Queue for streaming audio data.
-        self.pipelines = {}   # Cache pipelines based on language code.
+        self.pipelines = {}  # Cache pipelines based on language code.
         self.speed = default_speed
         self.trim_silence = trim_silence
         self.silence_threshold = silence_threshold
@@ -85,7 +84,7 @@ class KokoroEngine(BaseEngine):
 
         # Create and cache the pipeline for the current language.
         self.pipelines[self.current_lang] = KPipeline(
-            repo_id = 'hexgrad/Kokoro-82M',
+            repo_id='hexgrad/Kokoro-82M',
             lang_code=self.current_lang
         )
 
@@ -93,7 +92,8 @@ class KokoroEngine(BaseEngine):
         self.blended_voices = {}
 
         if self.debug:
-            print(f"[KokoroEngine] Initialized with voice: {self.current_voice_name} (lang: {self.current_lang}), speed: {self.speed}")
+            print(
+                f"[KokoroEngine] Initialized with voice: {self.current_voice_name} (lang: {self.current_lang}), speed: {self.speed}")
 
     def _get_lang_code_from_voice(self, voice_name: str) -> str:
         """
@@ -159,7 +159,7 @@ class KokoroEngine(BaseEngine):
             if self.debug:
                 print(f"[KokoroEngine] Creating new pipeline for language code: {lang_code}")
             self.pipelines[lang_code] = KPipeline(
-                repo_id = 'hexgrad/Kokoro-82M',
+                repo_id='hexgrad/Kokoro-82M',
                 lang_code=lang_code
             )
         return self.pipelines[lang_code]
@@ -275,10 +275,10 @@ class KokoroEngine(BaseEngine):
         try:
             if generator and generator is not None:
                 for index, result in enumerate(generator):
-                    graphemes = result.graphemes # str
-                    phonemes = result.phonemes # str
+                    graphemes = result.graphemes  # str
+                    phonemes = result.phonemes  # str
                     audio_float32 = result.audio.cpu().numpy()
-                    tokens = result.tokens # List[en.MToken]
+                    tokens = result.tokens  # List[en.MToken]
 
                     if self.debug:
                         if graphemes:
@@ -325,11 +325,11 @@ class KokoroEngine(BaseEngine):
                     if self.trim_silence:
                         audio_float32 = self._trim_silence(
                             audio_float32,
-                            silence_threshold = self.silence_threshold,
-                            extra_start_ms = self.extra_start_ms,
-                            extra_end_ms = self.extra_end_ms,
-                            fade_in_ms = self.fade_in_ms,
-                            fade_out_ms = self.fade_out_ms,
+                            silence_threshold=self.silence_threshold,
+                            extra_start_ms=self.extra_start_ms,
+                            extra_end_ms=self.extra_end_ms,
+                            fade_in_ms=self.fade_in_ms,
+                            fade_out_ms=self.fade_out_ms,
                         )
                     audio_int16 = (audio_float32 * 32767).astype(np.int16).tobytes()
                     audio_length_in_seconds = len(audio_float32) / 24000
@@ -378,14 +378,14 @@ class KokoroEngine(BaseEngine):
         if self.debug:
             print(f"[KokoroEngine] Speed set to: {self.speed}")
 
-    def get_voices(self) -> List[str]:
+    def get_voices(self) -> list[KokoroVoice]:
         """
         Retrieves a list of all supported voice identifiers.
 
         Returns:
             List[str]: A list containing all available voice names.
         """
-        Kokoro_AI_Voices= [
+        Kokoro_AI_Voices = [
             # American English (lang_code='a')
             # Female voices (11)
             "af_heart", "af_alloy", "af_aoede", "af_bella", "af_jessica",
@@ -440,7 +440,7 @@ class KokoroEngine(BaseEngine):
             # Male voices (2)
             "pm_alex", "pm_santa",
         ]
-        return [KokoroAIVoice(v) for v in Kokoro_AI_Voices]
+        return [KokoroVoice(v, self._get_lang_code_from_voice(v)) for v in Kokoro_AI_Voices]
 
     def shutdown(self):
         """
