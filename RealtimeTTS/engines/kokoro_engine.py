@@ -21,10 +21,54 @@ import re
 from kokoro import KPipeline
 
 
+def get_lang_code_from_voice(voice_name: str) -> str:
+    """
+    Determine language code from a voice identifier.
+    If the voice_name is a formula, derive from the first component.
+    """
+    # Handle formula strings like "0.3*af_sarah + 0.7*am_adam"
+    if "*" in voice_name:
+        parts = re.split(r"\+|\s+", voice_name)
+        for part in parts:
+            if "*" in part:
+                voice_token = part.split("*")[-1].strip()
+                return get_lang_code_from_voice(voice_token)
+        return "a"  # fallback
+
+    # Standard mapping based on prefix
+    prefix = voice_name[:2].lower()
+    if prefix in ("af", "am"):
+        return "a"  # American English
+    if prefix in ("bf", "bm"):
+        return "b"  # British English
+    if prefix in ("jf", "jm"):
+        return "j"  # Japanese
+    if prefix in ("zf", "zm"):
+        return "z"  # Mandarin Chinese
+    if prefix in ("ef", "em"):
+        return "e"  # Spanish
+    if voice_name.startswith("ff_"):
+        return "f"  # French
+    if prefix in ("hf", "hm"):
+        return "h"  # Hindi
+    if prefix in ("if", "im"):
+        return "i"  # Italian
+    if prefix in ("pf", "pm"):
+        return "p"  # Brazilian Portuguese
+
+    # Fallback to first letter
+    first_char = voice_name[0].lower() if voice_name else ''
+    return first_char if first_char in "abjzefhip" else "a"
+
+
 class KokoroVoice:
-    def __init__(self, name, language_code):
+    def __init__(
+            self,
+            name: str,
+            language_code: str = None
+        ):
         self.name = name
-        self.language_code = language_code
+        self.language_code = language_code if language_code is not None else get_lang_code_from_voice(name)
 
     def __repr__(self):
         return f"Setting voice to: {self.name} with language code: {self.language_code}"
@@ -78,11 +122,6 @@ class KokoroEngine(BaseEngine):
 
         self.set_voice(voice)
 
-        # self.current_voice = default_voice
-        # # Attempt to derive the language code from the voice name.
-        # lang_from_voice = self._get_lang_code_from_voice(default_voice)
-        # self.current_lang = lang_from_voice if lang_from_voice else default_lang_code
-
         # Create and cache the pipeline for the current language.
         self.pipelines[self.current_lang] = KPipeline(
             repo_id='hexgrad/Kokoro-82M',
@@ -118,7 +157,7 @@ class KokoroEngine(BaseEngine):
                     voice_token = part.split("*")[-1].strip()
                     # fallback to normal logic
                     return self._get_lang_code_from_voice(voice_token)
-            return None
+            return "a"  # Fallback to American English if undetectable
 
         # Standard single-voice approach
         if voice_name.startswith(("af_", "am_")):
@@ -144,7 +183,7 @@ class KokoroEngine(BaseEngine):
             first_char = voice_name[0].lower() if voice_name else ''
             if first_char in "abjzefhip":
                 return first_char
-            return None
+            return "a"  # Fallback to American English if undetectable
 
     def _get_pipeline(self, lang_code: str):
         """
@@ -375,11 +414,7 @@ class KokoroEngine(BaseEngine):
             self.current_voice = voice  # Fallback to raw string
 
         # Attempt to detect language from the first relevant voice chunk
-        lang = self._get_lang_code_from_voice(self.current_voice)
-        if lang:
-            self.current_lang = lang
-        else:
-            self.current_lang = "a"  # Fallback to American English if undetectable
+        self.current_lang = get_lang_code_from_voice(self.current_voice)
 
         if self.debug:
             print(f"[KokoroEngine] Voice set to: {self.current_voice} (lang: {self.current_lang})")
@@ -457,7 +492,7 @@ class KokoroEngine(BaseEngine):
             # Male voices (2)
             "pm_alex", "pm_santa",
         ]
-        return [KokoroVoice(v, self._get_lang_code_from_voice(v)) for v in Kokoro_AI_Voices]
+        return [KokoroVoice(v, get_lang_code_from_voice(v)) for v in Kokoro_AI_Voices]
 
     def shutdown(self):
         """
@@ -465,8 +500,6 @@ class KokoroEngine(BaseEngine):
         """
         if self.debug:
             print("[KokoroEngine] Shutdown called.")
-        # No additional cleanup required for KPipeline.
-        pass
 
     def set_voice_parameters(self, **voice_parameters):
         """
