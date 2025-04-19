@@ -125,6 +125,7 @@ _lazy_imports = {
     "PiperEngine": _load_piper_engine,
     "PiperVoice": _load_piper_engine,
     "KokoroEngine": _load_kokoro_engine,
+    "KokoroVoice": _load_kokoro_engine,
     "OrpheusEngine": _load_orpheus_engine,
     "OrpheusVoice": _load_orpheus_engine,
 }

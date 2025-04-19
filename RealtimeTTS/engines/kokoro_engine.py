@@ -45,8 +45,7 @@ class KokoroEngine(BaseEngine):
 
     def __init__(
             self,
-            default_lang_code: str = "a",
-            default_voice: str = "af_heart",
+            voice: Union[str, KokoroVoice] = "af_heart",
             default_speed: float = 1.0,
             trim_silence: bool = True,
             silence_threshold: float = 0.005,
@@ -77,10 +76,12 @@ class KokoroEngine(BaseEngine):
         self.fade_in_ms = fade_in_ms
         self.fade_out_ms = fade_out_ms
 
-        self.current_voice_name = default_voice
-        # Attempt to derive the language code from the voice name.
-        lang_from_voice = self._get_lang_code_from_voice(default_voice)
-        self.current_lang = lang_from_voice if lang_from_voice else default_lang_code
+        self.set_voice(voice)
+
+        # self.current_voice = default_voice
+        # # Attempt to derive the language code from the voice name.
+        # lang_from_voice = self._get_lang_code_from_voice(default_voice)
+        # self.current_lang = lang_from_voice if lang_from_voice else default_lang_code
 
         # Create and cache the pipeline for the current language.
         self.pipelines[self.current_lang] = KPipeline(
@@ -93,7 +94,7 @@ class KokoroEngine(BaseEngine):
 
         if self.debug:
             print(
-                f"[KokoroEngine] Initialized with voice: {self.current_voice_name} (lang: {self.current_lang}), speed: {self.speed}")
+                f"[KokoroEngine] Initialized with voice: {self.current_voice} (lang: {self.current_lang}), speed: {self.speed}")
 
     def _get_lang_code_from_voice(self, voice_name: str) -> str:
         """
@@ -254,9 +255,9 @@ class KokoroEngine(BaseEngine):
 
         try:
             # If current_voice_name is a formula, parse it. Otherwise, use it as is.
-            voice_arg: Union[str, torch.FloatTensor] = self.current_voice_name
-            if "*" in self.current_voice_name:  # basic check for formula
-                voice_arg = self._parse_mixed_voice_formula(self.current_voice_name, pipeline)
+            voice_arg: Union[str, torch.FloatTensor] = self.current_voice
+            if "*" in self.current_voice:  # basic check for formula
+                voice_arg = self._parse_mixed_voice_formula(self.current_voice, pipeline)
 
         except Exception as e:
             traceback.print_exc()
@@ -350,22 +351,38 @@ class KokoroEngine(BaseEngine):
             print(f"[KokoroEngine] Error generating audio: {e}")
             return False
 
-    def set_voice(self, voice_name: str):
+    def set_voice(self, voice: Union[str, KokoroVoice]):
         """
         Updates the current voice or voice formula. If it's a single voice (e.g. "af_heart"),
         we detect language as usual. If it contains '*' or '+', we treat it as a blend formula.
 
         Args:
-            voice_name (str): The new voice identifier (e.g., "af_heart" or "0.3*af_sarah + 0.7*am_adam").
+            voice (Union[str, KokoroVoice]): The voice identifier or formula string.
         """
-        self.current_voice_name = voice_name
+        self.current_voice = None
+        if isinstance(voice, KokoroVoice):
+            self.current_voice = voice.name
+        else:
+            installed_voices = self.get_voices()
+            for installed_voice in installed_voices:
+                if voice == installed_voice.name:
+                    self.current_voice = installed_voice
+                    break
+            if self.current_voice is None:
+                for installed_voice in installed_voices:
+                    if voice.lower() in installed_voice.name.lower():
+                        self.current_voice = installed_voice
+            self.current_voice = voice  # Fallback to raw string
+
         # Attempt to detect language from the first relevant voice chunk
-        lang = self._get_lang_code_from_voice(voice_name)
+        lang = self._get_lang_code_from_voice(self.current_voice)
         if lang:
             self.current_lang = lang
+        else:
+            self.current_lang = "a"  # Fallback to American English if undetectable
 
         if self.debug:
-            print(f"[KokoroEngine] Voice set to: {voice_name} (lang: {self.current_lang})")
+            print(f"[KokoroEngine] Voice set to: {self.current_voice} (lang: {self.current_lang})")
 
     def set_speed(self, speed: float):
         """

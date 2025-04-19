@@ -38,7 +38,7 @@ prewarm_texts = {
     "p": ("pf_dora", "Aquecendo")
 }
 
-engine = KokoroEngine(default_voice=languages["a"][0])
+engine = KokoroEngine()
 
 # Prewarm voices
 stream = TextToAudioStream(engine)
@@ -93,7 +93,6 @@ stream = TextToAudioStream(
     on_audio_stream_start=on_audio_stream_start_callback,
 )
 for lang, (voice, text) in languages.items():
-    engine.set_voice(voice)
     # Generate a random speed between 0.6 and 1.8 (1.0 ± [−0.4, +0.8])
     speed = max(0.1, 1.0 + random.uniform(-0.4, 0.8))
     # For testing, setting a fixed speed
