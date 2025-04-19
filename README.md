@@ -58,7 +58,7 @@ Let me know if you need any adjustments or additional languages!
 
 ## Updates
 
-Latest Version: v0.5.2
+Latest Version: v0.5.3
 
 - **New Engine:** OrpheusEngine
   - **Installation:** `pip install RealtimeTTS[orpheus]
@@ -477,6 +477,24 @@ When you initialize the `TextToAudioStream` class, you have various options to c
     - Lower values reduce latency but increase CPU usage.  
     - Higher values increase latency but reduce CPU load.  
   - If set to `pa.paFramesPerBufferUnspecified`, PyAudio selects a default value based on the platform and hardware.
+
+##### `comma_silence_duration` (float)  
+- **Type**: `float`  
+- **Required**: No  
+- **Default**: `0.0`  
+- **Description**: Duration of silence (in seconds) inserted after a comma.  
+
+##### `sentence_silence_duration` (float)  
+- **Type**: `float`  
+- **Required**: No  
+- **Default**: `0.0`  
+- **Description**: Duration of silence (in seconds) inserted after the end of a sentence.  
+
+##### `default_silence_duration` (float)  
+- **Type**: `float`  
+- **Required**: No  
+- **Default**: `0.0`  
+- **Description**: Default silence duration (in seconds) between fragments when no punctuation rule applies.  
 
 #### `playout_chunk_size` (int)
 - **Type**: `int`
