@@ -15,9 +15,10 @@ __all__ = [
     "EdgeEngine", "EdgeVoice",
     "StyleTTSEngine", "StyleTTSVoice",
     "PiperEngine", "PiperVoice",
-    "KokoroEngine",
-    "OrpheusEngine", "OrpheusVoice",
+    "KokoroEngine", "KokoroVoice"
+                    "OrpheusEngine", "OrpheusVoice",
 ]
+
 
 # Lazy loader functions for each engine group.
 def _load_system_engine():
@@ -32,6 +33,7 @@ def _load_system_engine():
     globals()["SystemVoice"] = SystemVoice
     return SystemEngine
 
+
 def _load_azure_engine():
     try:
         from .engines.azure_engine import AzureEngine, AzureVoice
@@ -43,6 +45,7 @@ def _load_azure_engine():
     globals()["AzureEngine"] = AzureEngine
     globals()["AzureVoice"] = AzureVoice
     return AzureEngine
+
 
 def _load_elevenlabs_engine():
     try:
@@ -56,6 +59,7 @@ def _load_elevenlabs_engine():
     globals()["ElevenlabsVoice"] = ElevenlabsVoice
     return ElevenlabsEngine
 
+
 def _load_coqui_engine():
     try:
         from .engines.coqui_engine import CoquiEngine, CoquiVoice
@@ -67,6 +71,7 @@ def _load_coqui_engine():
     globals()["CoquiEngine"] = CoquiEngine
     globals()["CoquiVoice"] = CoquiVoice
     return CoquiEngine
+
 
 def _load_openai_engine():
     try:
@@ -80,6 +85,7 @@ def _load_openai_engine():
     globals()["OpenAIVoice"] = OpenAIVoice
     return OpenAIEngine
 
+
 def _load_gtts_engine():
     try:
         from .engines.gtts_engine import GTTSEngine, GTTSVoice
@@ -91,6 +97,7 @@ def _load_gtts_engine():
     globals()["GTTSEngine"] = GTTSEngine
     globals()["GTTSVoice"] = GTTSVoice
     return GTTSEngine
+
 
 def _load_parler_engine():
     try:
@@ -104,6 +111,7 @@ def _load_parler_engine():
     globals()["ParlerVoice"] = ParlerVoice
     return ParlerEngine
 
+
 def _load_edge_engine():
     try:
         from .engines.edge_engine import EdgeEngine, EdgeVoice
@@ -115,6 +123,7 @@ def _load_edge_engine():
     globals()["EdgeEngine"] = EdgeEngine
     globals()["EdgeVoice"] = EdgeVoice
     return EdgeEngine
+
 
 def _load_style_engine():
     try:
@@ -128,6 +137,7 @@ def _load_style_engine():
     globals()["StyleTTSVoice"] = StyleTTSVoice
     return StyleTTSEngine
 
+
 def _load_piper_engine():
     try:
         from .engines.piper_engine import PiperEngine, PiperVoice
@@ -140,9 +150,10 @@ def _load_piper_engine():
     globals()["PiperVoice"] = PiperVoice
     return PiperEngine
 
+
 def _load_kokoro_engine():
     try:
-        from .engines.kokoro_engine import KokoroEngine
+        from .engines.kokoro_engine import KokoroEngine, KokoroVoice
     except ImportError as e:
         raise ImportError(
             "Failed to load KokoroEngine. Make sure you have installed the kokoro dependencies by running:\n"
@@ -150,7 +161,9 @@ def _load_kokoro_engine():
             "(or pip install realtimetts[kokoro,jp,zh] for japanese and chinese support)"
         ) from e
     globals()["KokoroEngine"] = KokoroEngine
+    globals()["KokoroVoice"] = KokoroVoice
     return KokoroEngine
+
 
 def _load_orpheus_engine():
     try:
@@ -163,6 +176,7 @@ def _load_orpheus_engine():
     globals()["OrpheusEngine"] = OrpheusEngine
     globals()["OrpheusVoice"] = OrpheusVoice
     return OrpheusEngine
+
 
 # Mapping names to their lazy loader functions.
 _lazy_imports = {
@@ -190,6 +204,7 @@ _lazy_imports = {
     "OrpheusEngine": _load_orpheus_engine,
     "OrpheusVoice": _load_orpheus_engine,
 }
+
 
 def __getattr__(name):
     if name in _lazy_imports:
