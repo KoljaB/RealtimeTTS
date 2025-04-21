@@ -34,8 +34,6 @@ class OrpheusVoice:
         ValueError: If the voice name provided is not in AVAILABLE_VOICES.
     """
     def __init__(self, name: str):
-        if name not in AVAILABLE_VOICES:
-            raise ValueError(f"Invalid voice '{name}'. Available voices: {AVAILABLE_VOICES}")
         self.name = name
 
     def __repr__(self):
@@ -341,8 +339,6 @@ class OrpheusEngine(BaseEngine):
             TypeError: If the voice argument is neither a string nor an OrpheusVoice instance.
         """
         if isinstance(voice, str):
-            if voice not in AVAILABLE_VOICES:
-                raise ValueError(f"Invalid voice '{voice}'")
             self.voice = OrpheusVoice(voice)
         elif isinstance(voice, OrpheusVoice):
             self.voice = voice
