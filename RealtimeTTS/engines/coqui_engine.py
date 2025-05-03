@@ -870,14 +870,23 @@ class CoquiEngine(BaseEngine):
         if self.prepare_text_callback:
             return self.prepare_text_callback(text)
 
+        # Remove every non-alphanumeric character at the start of the text
+        text = re.sub(r'^[^a-zA-Z0-9]+', '', text)
+
         text = text.strip()
+        text = text.replace("—", "-").replace("“", '"').replace("”", '"').replace("‘", "'").replace("’", "'").replace("…", "...")
+        text = text.replace("`", "").replace("´", "").replace("\n", " ").replace("\r", " ").replace("\t", " ")
         text = text.replace("</s>", "")
         text = re.sub("\\(.*?\\)", "", text, flags=re.DOTALL)
         text = text.replace("```", "")
         text = text.replace("...", " ")
         text = text.replace("»", "")
         text = text.replace("«", "")
-        text = re.sub(" +", " ", text)
+
+        text = re.sub(" +", " ", text) # Remove extra spaces
+
+        # Again remove every non-alphanumeric character at the start of the text bcs maybe something has been replaced
+        text = re.sub(r'^[^a-zA-Z0-9]+', '', text)
 
         try:
             if len(text) > 2 and text[-1] in ["."]:

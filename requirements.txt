@@ -14,13 +14,13 @@ elevenlabs==1.57.0
 gtts==2.5.4
 
 # openai is for OpenAIEngine
-openai==1.75.0
+openai==1.77.0
 
 # pyttsx3 is for SystemEngine
 pyttsx3==2.98
 
 # edge-tts is for EdgeEngine
-edge-tts==7.0.1
+edge-tts==7.0.2
 
 # kokoro is for KokoroEngine
 kokoro==0.9.4

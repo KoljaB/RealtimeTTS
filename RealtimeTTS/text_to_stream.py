@@ -557,6 +557,7 @@ class TextToAudioStream:
                                 print(f"Traceback: {tb_str}")
                                 print(f"Error: {e}")
 
+                            print("SYNTHESIS FINISHED")
                             if not synthesis_successful:
                                 if len(self.engines) == 1:
                                     time.sleep(0.2)
@@ -720,7 +721,7 @@ class TextToAudioStream:
         Returns:
             Boolean indicating if the stream is playing.
         """
-        return self.stream_running
+        return self.stream_running and not self.is_playing_flag
 
     def _on_audio_stream_start(self):
         """

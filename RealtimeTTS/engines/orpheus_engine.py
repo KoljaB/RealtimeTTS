@@ -34,8 +34,8 @@ class OrpheusVoice:
         ValueError: If the voice name provided is not in AVAILABLE_VOICES.
     """
     def __init__(self, name: str):
-        if name not in AVAILABLE_VOICES:
-            raise ValueError(f"Invalid voice '{name}'. Available voices: {AVAILABLE_VOICES}")
+        # if name not in AVAILABLE_VOICES:
+        #     raise ValueError(f"Invalid voice '{name}'. Available voices: {AVAILABLE_VOICES}")
         self.name = name
 
     def __repr__(self):
@@ -145,7 +145,6 @@ class OrpheusEngine(BaseEngine):
                 # forward this chunk
                 self.queue.put(audio_chunk)
 
-            # done: any silent_buffer left is trailing silence → drop it
             return True
 
         except Exception as e:
@@ -341,8 +340,8 @@ class OrpheusEngine(BaseEngine):
             TypeError: If the voice argument is neither a string nor an OrpheusVoice instance.
         """
         if isinstance(voice, str):
-            if voice not in AVAILABLE_VOICES:
-                raise ValueError(f"Invalid voice '{voice}'")
+            # if voice not in AVAILABLE_VOICES:
+            #     raise ValueError(f"Invalid voice '{voice}'")
             self.voice = OrpheusVoice(voice)
         elif isinstance(voice, OrpheusVoice):
             self.voice = voice
