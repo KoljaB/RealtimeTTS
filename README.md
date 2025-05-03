@@ -58,7 +58,7 @@ Let me know if you need any adjustments or additional languages!
 
 ## Updates
 
-Latest Version: v0.5.4
+Latest Version: v0.5.5
 
 - **New Engine:** OrpheusEngine
   - **Installation:** `pip install RealtimeTTS[orpheus]
