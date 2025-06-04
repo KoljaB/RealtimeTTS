@@ -43,6 +43,7 @@ class TextToAudioStream:
         on_character=None,
         on_word=None,
         output_device_index=None,
+        mpv_audio_device=None,
         tokenizer: str = "nltk",
         language: str = "en",
         muted: bool = False,
@@ -102,6 +103,13 @@ class TextToAudioStream:
                 This index corresponds to the device indices returned by the
                 PyAudio interface.
 
+            mpv_audio_device (str, optional):
+                The name of the audio device to use for playback.
+                If None, the system's default audio output device will be used.
+                This name corresponds to the device names returned by the
+                MPV interface.
+                Use `mpv --audio-device=help` to get the device names.
+
             tokenizer (str, optional):
                 Specifies the tokenizer used to split input text into sentences
                 or smaller chunks for synthesis. Supported options are:
@@ -148,6 +156,7 @@ class TextToAudioStream:
         self.on_audio_stream_start = on_audio_stream_start
         self.on_audio_stream_stop = on_audio_stream_stop
         self.output_device_index = output_device_index
+        self.mpv_audio_device = mpv_audio_device
         self.on_word_spoken = on_word
         self.output_wavfile = None
         self.chunk_callback = None
@@ -210,6 +219,7 @@ class TextToAudioStream:
             channels,
             rate,
             self.output_device_index,
+            self.mpv_audio_device,
             muted=self.global_muted,
             frames_per_buffer=self.frames_per_buffer,
             playout_chunk_size=self.playout_chunk_size,
