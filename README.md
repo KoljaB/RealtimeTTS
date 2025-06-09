@@ -134,7 +134,7 @@ This library uses:
 
 > **Note:** Basic Installation with `pip install realtimetts` is not recommended anymore, use `pip install realtimetts[all]` instead.
 
-> **Note:** Set `output_device_index` in TextToAudioStream if needed. Linux users: Install portaudio via `apt-get install -y portaudio19-dev`
+> **Note:** Set `output_device_index` in TextToAudioStream if needed. Linux users: Install portaudio via `apt-get install -y portaudio19-dev` | MacOS users: Install portaudio via `brew install portaudio`
 
 The RealtimeTTS library provides installation options for various dependencies for your use case. Here are the different ways you can install RealtimeTTS depending on your needs:
 
