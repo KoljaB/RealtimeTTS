@@ -657,112 +657,122 @@ class CoquiEngine(BaseEngine):
                     break  # This exits the loop, effectively stopping the worker process.
 
                 elif command == "synthesize":
-                    stop_event.clear()
-                    text = data["text"]
-                    language = data["language"]
+                    try:
+                        stop_event.clear()
+                        text = data["text"]
+                        language = data["language"]
 
-                    logging.debug(f"Starting inference for text: {text}")
+                        logging.debug(f"Starting inference for text: {text}")
 
-                    time_start = time.time()
-                    seconds_to_first_chunk = 0.0
-                    full_generated_seconds = 0.0
-                    raw_inference_start = 0.0
-                    first_chunk_length_seconds = 0.0
+                        time_start = time.time()
+                        seconds_to_first_chunk = 0.0
+                        full_generated_seconds = 0.0
+                        raw_inference_start = 0.0
+                        first_chunk_length_seconds = 0.0
 
-                    chunks = tts.inference_stream(
-                        text,
-                        language,
-                        gpt_cond_latent,
-                        speaker_embedding,
-                        stream_chunk_size=stream_chunk_size,
-                        overlap_wav_len=overlap_wav_len,
-                        temperature=temperature,
-                        length_penalty=length_penalty,
-                        repetition_penalty=repetition_penalty,
-                        top_k=top_k,
-                        top_p=top_p,
-                        speed=speed,
-                        enable_text_splitting=enable_text_splitting,
-                    )
-
-                    if full_sentences:
-                        chunklist = []
-
-                        for i, chunk in enumerate(chunks):
-                            if stop_event.is_set():
-                                logging.info("Stop event detected during chunk generation. Interrupting synthesis.")
-                                break # Exit the for loop
-
-                            chunk = postprocess_wave(chunk)
-                            chunk_bytes = chunk.tobytes()
-                            chunklist.append(chunk_bytes)
-                            chunk_duration = len(chunk_bytes) / (4 * 24000)
-                            full_generated_seconds += chunk_duration
-                            if i == 0:
-                                first_chunk_length_seconds = chunk_duration
-                                raw_inference_start = time.time()
-                                seconds_to_first_chunk = (
-                                    raw_inference_start - time_start
-                                )
-
-                        for i, chunk in enumerate(chunks):
-                            if stop_event.is_set():
-                                logging.info("Stop event detected during chunk generation. Interrupting synthesis.")
-                                break # Exit the for loop
-
-                            chunk = postprocess_wave(chunk)
-                            chunklist.append(chunk.tobytes())
-
-                        if not stop_event.is_set():
-                            for chunk in chunklist:
-                                conn.send(("success", chunk))
-                    else:
-                        for i, chunk in enumerate(chunks):
-                            if stop_event.is_set():
-                                logging.info("Stop event detected during chunk generation. Interrupting synthesis.")
-                                break # Exit the for loop
-
-                            chunk = postprocess_wave(chunk)
-                            chunk_bytes = chunk.tobytes()
-
-                            conn.send(("success", chunk_bytes))
-                            chunk_duration = len(chunk_bytes) / (4 * 24000)  # 4 bytes per sample, 24000 Hz
-                            full_generated_seconds += chunk_duration
-                            if i == 0:
-                                first_chunk_length_seconds = chunk_duration
-                                raw_inference_start = time.time()
-                                seconds_to_first_chunk = (
-                                    raw_inference_start - time_start
-                                )
-                            else:
-                                chunk_production_seconds = time.time() - time_start
-                                generated_audio_seconds = full_generated_seconds
-
-                                # wait only if we are faster than realtime
-                                if load_balancing:
-                                    if chunk_production_seconds < (generated_audio_seconds + load_balancing_buffer_length):
-                                        waiting_time = generated_audio_seconds - chunk_production_seconds - load_balancing_cut_off
-                                        if waiting_time > 0:
-                                            print(f"Waiting for {waiting_time} seconds")
-                                            time.sleep(waiting_time)
-
-                    time_end = time.time()
-                    seconds = time_end - time_start
-
-                    if (
-                        full_generated_seconds > 0
-                        and (full_generated_seconds - first_chunk_length_seconds) > 0
-                    ):
-                        realtime_factor = seconds / full_generated_seconds
-                        raw_inference_time = seconds - seconds_to_first_chunk
-                        raw_inference_factor = raw_inference_time / (
-                            full_generated_seconds - first_chunk_length_seconds
+                        chunks = tts.inference_stream(
+                            text,
+                            language,
+                            gpt_cond_latent,
+                            speaker_embedding,
+                            stream_chunk_size=stream_chunk_size,
+                            overlap_wav_len=overlap_wav_len,
+                            temperature=temperature,
+                            length_penalty=length_penalty,
+                            repetition_penalty=repetition_penalty,
+                            top_k=top_k,
+                            top_p=top_p,
+                            speed=speed,
+                            enable_text_splitting=enable_text_splitting,
                         )
-                        if print_realtime_factor:
-                            print(f"Realtime Factor: {realtime_factor}")
-                            print(f"Raw Inference Factor: {raw_inference_factor}")
 
-                    conn.send(("finished", ""))
+                        if full_sentences:
+                            chunklist = []
+
+                            for i, chunk in enumerate(chunks):
+                                if stop_event.is_set():
+                                    logging.info("Stop event detected during chunk generation. Interrupting synthesis.")
+                                    break # Exit the for loop
+
+                                chunk = postprocess_wave(chunk)
+                                chunk_bytes = chunk.tobytes()
+                                chunklist.append(chunk_bytes)
+                                chunk_duration = len(chunk_bytes) / (4 * 24000)
+                                full_generated_seconds += chunk_duration
+                                if i == 0:
+                                    first_chunk_length_seconds = chunk_duration
+                                    raw_inference_start = time.time()
+                                    seconds_to_first_chunk = (
+                                        raw_inference_start - time_start
+                                    )
+
+                            for i, chunk in enumerate(chunks):
+                                if stop_event.is_set():
+                                    logging.info("Stop event detected during chunk generation. Interrupting synthesis.")
+                                    break # Exit the for loop
+
+                                chunk = postprocess_wave(chunk)
+                                chunklist.append(chunk.tobytes())
+
+                            if not stop_event.is_set():
+                                for chunk in chunklist:
+                                    conn.send(("success", chunk))
+                        else:
+                            for i, chunk in enumerate(chunks):
+                                if stop_event.is_set():
+                                    logging.info("Stop event detected during chunk generation. Interrupting synthesis.")
+                                    break # Exit the for loop
+
+                                chunk = postprocess_wave(chunk)
+                                chunk_bytes = chunk.tobytes()
+
+                                conn.send(("success", chunk_bytes))
+                                chunk_duration = len(chunk_bytes) / (4 * 24000)  # 4 bytes per sample, 24000 Hz
+                                full_generated_seconds += chunk_duration
+                                if i == 0:
+                                    first_chunk_length_seconds = chunk_duration
+                                    raw_inference_start = time.time()
+                                    seconds_to_first_chunk = (
+                                        raw_inference_start - time_start
+                                    )
+                                else:
+                                    chunk_production_seconds = time.time() - time_start
+                                    generated_audio_seconds = full_generated_seconds
+
+                                    # wait only if we are faster than realtime
+                                    if load_balancing:
+                                        if chunk_production_seconds < (generated_audio_seconds + load_balancing_buffer_length):
+                                            waiting_time = generated_audio_seconds - chunk_production_seconds - load_balancing_cut_off
+                                            if waiting_time > 0:
+                                                print(f"Waiting for {waiting_time} seconds")
+                                                time.sleep(waiting_time)
+
+                        time_end = time.time()
+                        seconds = time_end - time_start
+
+                        if (
+                            full_generated_seconds > 0
+                            and (full_generated_seconds - first_chunk_length_seconds) > 0
+                        ):
+                            realtime_factor = seconds / full_generated_seconds
+                            raw_inference_time = seconds - seconds_to_first_chunk
+                            raw_inference_factor = raw_inference_time / (
+                                full_generated_seconds - first_chunk_length_seconds
+                            )
+                            if print_realtime_factor:
+                                print(f"Realtime Factor: {realtime_factor}")
+                                print(f"Raw Inference Factor: {raw_inference_factor}")
+
+                        conn.send(("finished", ""))
+
+                    except Exception as e:
+                        logging.error(
+                            f"Error during synthesis for text '{data.get('text', '')}': {e}"
+                        )
+                        tb_str = traceback.format_exc()
+                        print(f"Traceback: {tb_str}")
+                        print(f"Error: {e}")
+                        conn.send(("error", str(e)))
 
         except KeyboardInterrupt:
             logging.info("Keyboard interrupt received. Exiting worker process.")

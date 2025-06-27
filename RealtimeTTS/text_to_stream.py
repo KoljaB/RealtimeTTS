@@ -515,6 +515,7 @@ class TextToAudioStream:
 
                                 if before_sentence_synthesized:
                                     before_sentence_synthesized(sentence)
+
                                 success = self.engine.synthesize(sentence)
 
                                 # insert potential silence
