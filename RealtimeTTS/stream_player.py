@@ -448,6 +448,7 @@ class StreamPlayer:
         self.first_chunk_played = False
         self.muted = muted
         self.seconds_played = 0
+        self.volume = 1.0  # Default volume at 100%
 
     def _play_mpeg_chunk(self, chunk):
         """
@@ -508,6 +509,19 @@ class StreamPlayer:
 
         for i in range(0, len(chunk), sub_chunk_size):
             sub_chunk = chunk[i : i + sub_chunk_size]
+
+            # Apply volume scaling if volume is not 1.0
+            if self.volume != 1.0:
+                if self.audio_stream.config.format == pyaudio.paFloat32:
+                    # Use frombuffer with copy=False for speed, then multiply in-place
+                    audio_data = np.frombuffer(sub_chunk, dtype=np.float32).copy()
+                    audio_data *= self.volume
+                    sub_chunk = audio_data.tobytes()
+                else:
+                    # For 16-bit audio - use faster integer scaling
+                    audio_data = np.frombuffer(sub_chunk, dtype=np.int16).copy()
+                    np.multiply(audio_data, self.volume, out=audio_data, casting='unsafe')
+                    sub_chunk = audio_data.tobytes()
 
             if not self.first_chunk_played and self.on_playback_start:
                 self.on_playback_start()
@@ -665,3 +679,12 @@ class StreamPlayer:
     def mute(self, muted: bool = True):
         """Mutes audio playback."""
         self.muted = muted
+
+    def set_volume(self, volume: float):
+        """
+        Set the playback volume.
+        
+        Args:
+            volume (float): Volume level from 0.0 (muted) to 1.0 (full volume)
+        """
+        self.volume = max(0.0, min(1.0, volume))
