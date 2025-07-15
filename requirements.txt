@@ -35,7 +35,7 @@ mojimoji==0.0.13
 pyopenjtalk==0.4.1
 
 # pypinyin is to support chinese language for KokoroEngine
-pypinyin==0.54.0st
+pypinyin==0.54.0
 ordered_set==4.1.0
 jieba==0.42.1
 cn2an==0.5.23
