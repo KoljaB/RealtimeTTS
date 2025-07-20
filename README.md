@@ -8,6 +8,12 @@
 
 *Easy to use, low-latency text-to-speech library for realtime applications*
 
+> ❗ **Project Status: Community-Driven**
+> 
+> This project is no longer being actively maintained by me due to time constraints. I've taken on too many projects and I have to step back. I will no longer be implementing new features or providing user support.
+>
+> I will continue to review and merge high-quality, well-written Pull Requests from the community from time to time. Your contributions are welcome and appreciated!
+
 ## About the Project
 
 RealtimeTTS is a state-of-the-art text-to-speech (TTS) library designed for real-time applications. It stands out in its ability to convert text streams fast into high-quality auditory output with minimal latency.
