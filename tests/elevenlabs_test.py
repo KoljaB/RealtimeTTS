@@ -1,3 +1,6 @@
+"""
+Instructions: ensure "pip install keyboard" before running this script.
+"""
 if __name__ == "__main__":
     from RealtimeTTS import TextToAudioStream, ElevenlabsEngine
     import time
@@ -13,15 +16,17 @@ if __name__ == "__main__":
     signal.signal(signal.SIGINT, signal_handler)
 
     def dummy_generator():
-        yield "This is a longer test with a bit of content."
-
-        # yield "Press spacebar to pause or resume playback. Press Q to quit. "
-        # yield "Quick technical note: When you press pause, there may be a brief delay before the audio stops with EdgeEngine. "
-        # yield "This happens because the audio player (MPV) pre-buffers some audio data for smooth playback - like water still flowing from a pipe even after you close the tap. "
+        yield "Press spacebar to pause or resume playback. Press Q to quit. "
+        yield "Quick technical note: When you press pause, there may be a brief delay before the audio stops with ElevenlabsEngine. "
+        yield "This happens because the audio player (MPV) pre-buffers some audio data for smooth playback - like water still flowing from a pipe even after you close the tap. "
 
     engine = ElevenlabsEngine()
-    stream = TextToAudioStream(engine, output_device_index=0)
+    voices = engine.get_voices()
 
+    for voice in voices:
+        print(f"Voice: {voice.name}, ID: {voice.voice_id}, Category: {voice.category}, Description: {voice.description}")
+
+    stream = TextToAudioStream(engine)
 
     print("Starting stream - Press SPACE to pause/resume, Q to quit")
 

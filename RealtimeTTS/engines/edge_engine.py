@@ -169,6 +169,10 @@ class EdgeEngine(BaseEngine):
                     self.current_voice = installed_voice
                     return
             for installed_voice in installed_voices:
+                if voice in installed_voice.name:
+                    self.current_voice = installed_voice
+                    return
+            for installed_voice in installed_voices:
                 if voice.lower() in installed_voice.name.lower():
                     self.current_voice = installed_voice
                     return

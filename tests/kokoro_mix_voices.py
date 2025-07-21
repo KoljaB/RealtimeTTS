@@ -1,7 +1,7 @@
 from RealtimeTTS import TextToAudioStream, KokoroEngine
 
 # Initialize the engine
-engine = KokoroEngine(voice="af_sky")
+engine = KokoroEngine(voice="af_sky", debug=True)
 
 # Define the voices we want to test
 voices = {
