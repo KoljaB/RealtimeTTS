@@ -36,7 +36,7 @@ if __name__ == "__main__":
         return before_sentence_callback, on_sentence_callback
 
     # for normal use with minimal logging:
-    engine = CoquiEngine(use_deepspeed=True)
+    engine = CoquiEngine()
 
     # test with extended logging:
     # import logging
