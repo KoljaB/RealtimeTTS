@@ -8,9 +8,9 @@
 
 *Easy to use, low-latency text-to-speech library for realtime applications*
 
-> ❗ **Project Status: Community-Driven**
+> ❗ **Project Status: Mostly Community-Driven**
 > 
-> This project is no longer being actively maintained by me due to time constraints. I've taken on too many projects and I have to step back. I will no longer be implementing new features or providing user support.
+> This project is no longer being actively maintained by me due to time constraints. I've taken on too many projects and I have to step back. I will no longer be implementing many features or providing user support.
 >
 > I will continue to review and merge high-quality, well-written Pull Requests from the community from time to time. Your contributions are welcome and appreciated!
 
@@ -64,7 +64,9 @@ Let me know if you need any adjustments or additional languages!
 
 ## Updates
 
-Latest Version: v0.5.5
+- **New Engine:** ZipoVoiceEngine
+  - **Installation:** `pip install RealtimeTTS
+  - **Test File Example:** [zipvoice_test.py](https://github.com/KoljaB/RealtimeTTS/blob/master/tests/zipvoice_test.py)
 
 - **New Engine:** OrpheusEngine
   - **Installation:** `pip install RealtimeTTS[orpheus]
@@ -125,7 +127,9 @@ This library uses:
   - **ParlerEngine** 🏠: Local neural TTS for high-end GPUs
   - **SystemEngine** 🏠: Built-in system TTS for quick setup
   - **PiperEngine** 🏠: Very fast TTS system, also runs on Raspberry Pi 
-
+  - **StyleTTS2Engine** 🏠: Expressive, natural speech
+  - **OrpheusEngine** 🏠: Llama‑powered TTS with emotion tags
+  - **ZipVoiceEngine** 🏠: 123M zero‑shot model, state‑of‑the‑art quality
 
 🏠 Local processing (no internet required)
 🌐 Requires internet connection
