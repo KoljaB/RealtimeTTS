@@ -4,6 +4,7 @@ import tempfile
 import pyaudio
 import shutil
 import subprocess
+import json
 from typing import Optional
 from .base_engine import BaseEngine
 from queue import Queue
@@ -67,6 +68,23 @@ class PiperEngine(BaseEngine):
     def post_init(self):
         self.engine_name = "piper"
 
+    def _get_sample_rate_from_config(self) -> int:
+        """
+        Reads the sample rate from the Piper voice configuration file.
+        
+        Returns:
+            int: Sample rate from config, or 16000 as fallback
+        """
+        if not self.voice or not self.voice.config_file:
+            return 16000
+        
+        try:
+            with open(self.voice.config_file, 'r') as f:
+                config = json.load(f)
+                return config.get('audio', {}).get('sample_rate', 16000)
+        except (FileNotFoundError, json.JSONDecodeError, KeyError):
+            return 16000
+
     def get_stream_info(self):
         """
         Returns PyAudio stream configuration for Piper.
@@ -74,7 +92,8 @@ class PiperEngine(BaseEngine):
         Returns:
             tuple: (format, channels, rate)
         """
-        return pyaudio.paInt16, 1, 16000
+        sample_rate = self._get_sample_rate_from_config()
+        return pyaudio.paInt16, 1, sample_rate
 
     def synthesize(self, text: str) -> bool:
         """
