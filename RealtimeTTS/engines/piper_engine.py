@@ -114,12 +114,14 @@ class PiperEngine(BaseEngine):
         cmd_list = [
             self.piper_path,
             "-m", self.voice.model_file,
-            "--output-raw",
         ]
         
-        # If a JSON config file is available, add it.
+        # If a JSON config file is available, add it BEFORE --output-raw for proper parameter loading.
         if self.voice.config_file:
             cmd_list.extend(["-c", self.voice.config_file])
+        
+        # Add --output-raw last to ensure config parameters are applied first
+        cmd_list.append("--output-raw")
 
         # Debug: show the exact command (helpful for troubleshooting)
         if self.debug:
