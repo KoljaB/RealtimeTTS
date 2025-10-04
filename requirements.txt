@@ -4,6 +4,9 @@ stream2sentence==0.3.1
 # azure-cognitiveservices-speech is for AzureEngine
 azure-cognitiveservices-speech==1.45.0
 
+# cartesia is for CartesiaEngine
+cartesia==2.0.9
+
 # coqui_tts is for CoquiEngine
 coqui_tts==0.27.0
 
@@ -46,5 +49,5 @@ pyaudio==0.2.14
 # pydub is used to convert chunks from mp3 to pcm (for openai tts)
 pydub==0.25.1
 
-# resampy is used to resample from the tts to the target device sample rate 
+# resampy is used to resample from the tts to the target device sample rate
 resampy==0.4.3
