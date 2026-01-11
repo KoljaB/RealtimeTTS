@@ -161,6 +161,7 @@ class TextToAudioStream:
         self.player = None
         self.play_lock = threading.Lock()
         self.is_playing_flag = False
+        self._volume = 1.0  # Default volume at 100%
 
         self._create_iterators()
 
@@ -222,8 +223,33 @@ class TextToAudioStream:
             on_playback_start=self._on_audio_stream_start,
             on_word_spoken=self._on_word_spoken,
         )
+        
+        # Set initial volume if player was created
+        if hasattr(self, '_volume'):
+            self.player.set_volume(self._volume)
 
         logging.info(f"loaded engine {self.engine.engine_name}")
+
+    @property
+    def volume(self) -> float:
+        """Get the current volume (0.0 to 1.0)"""
+        return self._volume
+
+    @volume.setter
+    def volume(self, value: float):
+        """Set the volume (0.0 to 1.0)"""
+        self.set_volume(value)
+
+    def set_volume(self, volume: float):
+        """
+        Set the playback volume.
+        
+        Args:
+            volume (float): Volume level from 0.0 (muted) to 1.0 (full volume)
+        """
+        self._volume = max(0.0, min(1.0, volume))
+        if self.player:
+            self.player.set_volume(self._volume)
 
     def feed(self, text_or_iterator: Union[str, Iterator[str]]):
         """
