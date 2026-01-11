@@ -6,25 +6,61 @@ This repository contains a FastAPI server that serves as a wrapper for Realtime 
 
 ## Installation
 
-```
-pip install fastapi
+```bash
+pip install fastapi uvicorn websockets pyaudio
 ```
 
 ## Components
 
-### `server.py`
+### `async_server.py`
 
-This file contains the FastAPI wrapper for Realtime TTS. It is responsible for handling incoming requests, synthesizing text into speech, and sending wave headers to ensure compatibility with browsers. Example usage:
+This file contains the FastAPI server with both HTTP and WebSocket endpoints for Realtime TTS. It is responsible for handling incoming requests, synthesizing text into speech, and streaming audio. Features:
 
+- **HTTP endpoint** (`/tts`): Traditional REST API for text-to-speech
+- **WebSocket endpoint** (`/ws`): Real-time bidirectional TTS communication with support for multiple concurrent users
+
+Example HTTP usage:
 ```http
 GET http://localhost:8000/tts?text=Hello%20World
 ```
 
+Example WebSocket usage:
+```python
+# Connect to ws://localhost:8000/ws
+# Send text messages, receive base64-encoded audio chunks
+```
+
+### `server.py`
+
+Legacy synchronous server (use `async_server.py` for production).
+
 ### `client.py`
 
-This file provides a test client in Python for interacting with the server. It can be used to verify the functionality of the server.
+This file provides a HTTP test client in Python for interacting with the `/tts` endpoint.
+
+### `websocket_client.py`
+
+WebSocket demo client that:
+- Connects to the `/ws` endpoint
+- Sends text messages for TTS synthesis
+- Receives and plays audio in real-time
+- Optionally saves audio to WAV files
+
+Usage:
+```bash
+# Start the server first
+python async_server.py
+
+# Run the WebSocket client with default test messages
+python websocket_client.py
+
+# Or provide custom messages
+python websocket_client.py "Hello world" "This is a test"
+```
 
 ## Routes
+
+### HTTP Endpoints
 
 - `/`: Serves HTML and JavaScript to operate the server.
 - `/tts`: Returns audio chunks for text synthesis.
@@ -41,11 +77,44 @@ This file provides a test client in Python for interacting with the server. It c
   - Parameters:
     - `voice_name`: Name of the voice to switch to.
 
-## User Limitation
+### WebSocket Endpoint
 
-Currently, the server can only serve one user at a time when the `/tts` route is called. This limitation is primarily due to the Coqui TTS engine's inability to handle multiple synthesis requests in parallel. Potential solutions include:
+- `/ws`: Real-time TTS synthesis via WebSocket
+  - **Send**: Plain text messages to synthesize
+  - **Receive**: JSON messages with audio chunks:
+    ```json
+    {
+      "audioOutput": {
+        "audio": "base64_encoded_audio_data",
+        "format": "wav",
+        "sampleRate": 24000,
+        "isHeader": true  // Only present in first message
+      }
+    }
+    ```
+  - **Completion signal**:
+    ```json
+    {
+      "finalOutput": {
+        "isFinal": true
+      }
+    }
+    ```
+  - **Stop**: Send "stop" message to close connection
+
+## Concurrent User Support
+
+### HTTP Endpoint (`/tts`)
+
+Currently, the HTTP endpoint can only serve one user at a time. This limitation is primarily due to the Coqui TTS engine's inability to handle multiple synthesis requests in parallel. Potential solutions include:
 
 - Allowing multiple user requests only when using non-Coqui engines.
 - Implementing multiprocessing to create multiple Coqui synthesizers. However, this approach is hardware-intensive, as each synthesizer requires approximately 4GB of RAM. For example, a system with a NVIDIA GeForce RTX 4090 could potentially serve up to 6 users in parallel using this method. However, achieving flawless operation with multiprocessing may require substantial effort and optimization.
 
-While the server can process large amounts of text for synthesis, it currently cannot handle text fed in chunk by chunk, as might be required for bidirectional communication with large language models (LLMs) like GPT. I have some solution approaches in mind that could work for this fastapi server but currently I think this might be a functionality for the coming websocket server only.
+### WebSocket Endpoint (`/ws`)
+
+**The WebSocket endpoint supports multiple concurrent users!** Each WebSocket connection:
+- Has its own dedicated request queue
+- Processes requests sequentially per connection
+- Runs independently from other connections
+- Creates dedicated TTS handlers for each synthesis request
