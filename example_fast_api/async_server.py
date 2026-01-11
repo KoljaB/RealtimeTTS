@@ -451,11 +451,35 @@ def root_page():
                     margin: 10px auto;
                     display: block;
                 }}
+                .mode-selector {{
+                    display: flex;
+                    justify-content: center;
+                    gap: 10px;
+                    margin: 20px 0;
+                }}
+                .mode-selector button {{
+                    width: auto;
+                    padding: 10px 20px;
+                }}
+                .mode-selector button.active {{
+                    background-color: #28a745;
+                }}
+                .status {{
+                    text-align: center;
+                    margin: 10px 0;
+                    color: #666;
+                    font-size: 14px;
+                }}
             </style>
         </head>
         <body>
             <div id="container">
                 <h2>Text to Speech</h2>
+                <div class="mode-selector">
+                    <button id="httpMode" class="active">HTTP Mode</button>
+                    <button id="wsMode">WebSocket Mode</button>
+                </div>
+                <div class="status" id="status">Mode: HTTP</div>
                 <label for="engine">Select Engine:</label>
                 <select id="engine">
                     {engines_options}
@@ -466,7 +490,7 @@ def root_page():
                 </select>
                 <textarea id="text" rows="4" cols="50" placeholder="Enter text here..."></textarea>
                 <button id="speakButton">Speak</button>
-                <audio id="audio" controls></audio> <!-- Hidden audio player -->
+                <audio id="audio" controls></audio>
             </div>
             <script src="/static/tts.js"></script>
         </body>
@@ -509,8 +533,12 @@ if __name__ == "__main__":
             engines["kokoro"] = KokoroEngine()
 
         if "openai" == engine_name:
-            print("Initializing openai engine")
-            engines["openai"] = OpenAIEngine()
+            openai_api_key = os.environ.get("OPENAI_API_KEY")
+            if openai_api_key:
+                print("Initializing openai engine")
+                engines["openai"] = OpenAIEngine()
+            else:
+                print("OpenAI engine skipped - missing OPENAI_API_KEY")
 
     for _engine in engines.keys():
         print(f"Retrieving voices for TTS Engine {_engine}")
