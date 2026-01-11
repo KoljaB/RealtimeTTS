@@ -23,13 +23,15 @@ from RealtimeTTS import (
 
 from fastapi.responses import StreamingResponse, HTMLResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi import FastAPI, Query, Request
+from fastapi import FastAPI, Query, Request, WebSocket, WebSocketDisconnect
 from fastapi.staticfiles import StaticFiles
 
-from queue import Queue
+from queue import Queue, Empty
 import threading
 import logging
 import uvicorn
+import asyncio
+import base64
 import wave
 import io
 import os
@@ -45,9 +47,8 @@ SUPPORTED_ENGINES = [
     "kokoro"
 ]
 
-# change start engine by moving engine name
-# to the first position in SUPPORTED_ENGINES
-START_ENGINE = SUPPORTED_ENGINES[0]
+# START_ENGINE will be set to the first successfully initialized engine
+START_ENGINE = None
 
 BROWSER_IDENTIFIERS = [
     "mozilla",
@@ -75,6 +76,7 @@ play_text_to_speech_semaphore = threading.Semaphore(1)
 engines = {}
 voices = {}
 current_engine = None
+current_engine_name = None
 speaking_lock = threading.Lock()
 tts_lock = threading.Lock()
 gen_lock = threading.Lock()
@@ -88,6 +90,7 @@ class TTSRequestHandler:
             engine, on_audio_stream_stop=self.on_audio_stream_stop, muted=True
         )
         self.speaking = False
+        self.generation_complete = threading.Event()
 
     def on_audio_chunk(self, chunk):
         self.audio_queue.put(chunk)
@@ -95,6 +98,7 @@ class TTSRequestHandler:
     def on_audio_stream_stop(self):
         self.audio_queue.put(None)
         self.speaking = False
+        self.generation_complete.set()
 
     def play_text_to_speech(self, text):
         self.speaking = True
@@ -156,14 +160,18 @@ async def favicon():
 
 
 def _set_engine(engine_name):
-    global current_engine, stream
-    if current_engine is None:
-        current_engine = engines[engine_name]
-    else:
-        current_engine = engines[engine_name]
+    global current_engine, current_engine_name, stream
+    if engine_name not in engines:
+        print(f"Warning: Engine '{engine_name}' not available")
+        return False
+    
+    current_engine = engines[engine_name]
+    current_engine_name = engine_name
 
     if voices[engine_name]:
         engines[engine_name].set_voice(voices[engine_name][0].name)
+    
+    return True
 
 
 @app.get("/set_engine")
@@ -239,8 +247,11 @@ def get_engines():
 
 @app.get("/voices")
 def get_voices():
+    if not current_engine_name or current_engine_name not in voices:
+        return []
+    
     voices_list = []
-    for voice in voices[current_engine.engine_name]:
+    for voice in voices[current_engine_name]:
         voices_list.append(voice.name)
     return voices_list
 
@@ -260,6 +271,136 @@ def set_voice(request: Request, voice_name: str = Query(...)):
         print(f"Error setting voice: {str(e)}")
         logging.error(f"Error setting voice: {str(e)}")
         return {"error": "Failed to set voice"}
+
+
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    """Simple WebSocket endpoint for TTS - supports multiple concurrent users"""
+    
+    # Check if system engine is active - it doesn't support WebSocket mode
+    if current_engine_name == "system":
+        await websocket.accept()
+        await websocket.send_json({
+            "error": {
+                "message": "System engine (pyttsx3) does not support WebSocket mode. Please switch to OpenAI, Kokoro, Azure, or ElevenLabs engine.",
+                "engineName": "system"
+            }
+        })
+        await websocket.close()
+        print("WebSocket connection rejected - system engine not supported")
+        return
+    
+    await websocket.accept()
+    print("WebSocket client connected")
+    
+    request_queue = asyncio.Queue()
+    is_active = True
+    
+    async def generate_audio(text: str):
+        """Generate audio for given text and return chunks"""
+        # Create dedicated handler for this request
+        handler = TTSRequestHandler(current_engine)
+        
+        # Start generation in background thread
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(None, handler.play_text_to_speech, text)
+        
+        # Collect all audio chunks
+        chunks = []
+        while True:
+            try:
+                chunk = handler.audio_queue.get(timeout=0.1)
+                if chunk is None:
+                    break
+                chunks.append(chunk)
+            except Empty:
+                if handler.generation_complete.is_set():
+                    break
+                await asyncio.sleep(0.01)
+        
+        return chunks
+    
+    async def process_requests():
+        """Process queued requests one by one"""
+        while is_active:
+            try:
+                text = await asyncio.wait_for(request_queue.get(), timeout=1.0)
+                if text is None:
+                    break
+                
+                print(f"Processing: '{text}'")
+                
+                # Generate audio
+                audio_chunks = await generate_audio(text)
+                
+                # Send WAV header
+                wave_header = create_wave_header_for_engine(current_engine)
+                _, _, sample_rate = current_engine.get_stream_info()
+                
+                await websocket.send_json({
+                    "audioOutput": {
+                        "audio": base64.b64encode(wave_header).decode('utf-8'),
+                        "format": "wav",
+                        "sampleRate": sample_rate,
+                        "isHeader": True
+                    }
+                })
+                
+                # Send audio chunks
+                for chunk in audio_chunks:
+                    await websocket.send_json({
+                        "audioOutput": {
+                            "audio": base64.b64encode(chunk).decode('utf-8')
+                        }
+                    })
+                
+                # Send completion signal
+                await websocket.send_json({
+                    "finalOutput": {
+                        "isFinal": True
+                    }
+                })
+                print(f"Sent {len(audio_chunks)} chunks")
+                
+            except asyncio.TimeoutError:
+                continue
+            except Exception as e:
+                print(f"Error processing request: {e}")
+                break
+    
+    async def receive_messages():
+        """Receive and queue text messages"""
+        nonlocal is_active
+        try:
+            while is_active:
+                text = await websocket.receive_text()
+                if text.strip() and text.strip().lower() != "stop":
+                    await request_queue.put(text)
+                    print(f"Queued: '{text}'")
+                else:
+                    is_active = False
+                    await request_queue.put(None)
+                    break
+        except WebSocketDisconnect:
+            print("Client disconnected")
+            is_active = False
+            await request_queue.put(None)
+        except Exception as e:
+            print(f"Error receiving: {e}")
+            is_active = False
+            await request_queue.put(None)
+    
+    try:
+        await asyncio.gather(receive_messages(), process_requests())
+    except Exception as e:
+        print(f"WebSocket error: {e}")
+    finally:
+        is_active = False
+        try:
+            await websocket.close()
+        except:
+            pass
+        print("WebSocket closed")
 
 
 @app.get("/")
@@ -326,11 +467,35 @@ def root_page():
                     margin: 10px auto;
                     display: block;
                 }}
+                .mode-selector {{
+                    display: flex;
+                    justify-content: center;
+                    gap: 10px;
+                    margin: 20px 0;
+                }}
+                .mode-selector button {{
+                    width: auto;
+                    padding: 10px 20px;
+                }}
+                .mode-selector button.active {{
+                    background-color: #28a745;
+                }}
+                .status {{
+                    text-align: center;
+                    margin: 10px 0;
+                    color: #666;
+                    font-size: 14px;
+                }}
             </style>
         </head>
         <body>
             <div id="container">
                 <h2>Text to Speech</h2>
+                <div class="mode-selector">
+                    <button id="httpMode" class="active">HTTP Mode</button>
+                    <button id="wsMode">WebSocket Mode</button>
+                </div>
+                <div class="status" id="status">Mode: HTTP</div>
                 <label for="engine">Select Engine:</label>
                 <select id="engine">
                     {engines_options}
@@ -341,7 +506,7 @@ def root_page():
                 </select>
                 <textarea id="text" rows="4" cols="50" placeholder="Enter text here..."></textarea>
                 <button id="speakButton">Speak</button>
-                <audio id="audio" controls></audio> <!-- Hidden audio player -->
+                <audio id="audio" controls></audio>
             </div>
             <script src="/static/tts.js"></script>
         </body>
@@ -360,12 +525,16 @@ if __name__ == "__main__":
             if azure_api_key and azure_region:
                 print("Initializing azure engine")
                 engines["azure"] = AzureEngine(azure_api_key, azure_region)
+            else:
+                print("Azure engine skipped - missing AZURE_SPEECH_KEY or AZURE_SPEECH_REGION")
 
         if "elevenlabs" == engine_name:
             elevenlabs_api_key = os.environ.get("ELEVENLABS_API_KEY")
             if elevenlabs_api_key:
                 print("Initializing elevenlabs engine")
                 engines["elevenlabs"] = ElevenlabsEngine(elevenlabs_api_key)
+            else:
+                print("Elevenlabs engine skipped - missing ELEVENLABS_API_KEY")
 
         if "system" == engine_name:
             print("Initializing system engine")
@@ -380,8 +549,12 @@ if __name__ == "__main__":
             engines["kokoro"] = KokoroEngine()
 
         if "openai" == engine_name:
-            print("Initializing openai engine")
-            engines["openai"] = OpenAIEngine()
+            openai_api_key = os.environ.get("OPENAI_API_KEY")
+            if openai_api_key:
+                print("Initializing openai engine")
+                engines["openai"] = OpenAIEngine()
+            else:
+                print("OpenAI engine skipped - missing OPENAI_API_KEY")
 
     for _engine in engines.keys():
         print(f"Retrieving voices for TTS Engine {_engine}")
@@ -391,7 +564,25 @@ if __name__ == "__main__":
             voices[_engine] = []
             logging.error(f"Error retrieving voices for {_engine}: {str(e)}")
 
-    _set_engine(START_ENGINE)
+    # Set START_ENGINE to first available engine
+    if not engines:
+        print("Error: No TTS engines were successfully initialized!")
+        print("Please check your API keys and configuration.")
+        exit(1)
+    
+    # Try to use the first engine from SUPPORTED_ENGINES that was initialized
+    START_ENGINE = None
+    for engine_name in SUPPORTED_ENGINES:
+        if engine_name in engines:
+            START_ENGINE = engine_name
+            break
+    
+    if START_ENGINE:
+        _set_engine(START_ENGINE)
+        print(f"Default engine set to: {START_ENGINE}")
+    else:
+        print("Error: Could not set default engine")
+        exit(1)
 
     print("Server ready")
     uvicorn.run(app, host="0.0.0.0", port=PORT)
