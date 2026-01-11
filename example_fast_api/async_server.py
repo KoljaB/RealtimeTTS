@@ -76,6 +76,7 @@ play_text_to_speech_semaphore = threading.Semaphore(1)
 engines = {}
 voices = {}
 current_engine = None
+current_engine_name = None
 speaking_lock = threading.Lock()
 tts_lock = threading.Lock()
 gen_lock = threading.Lock()
@@ -159,15 +160,13 @@ async def favicon():
 
 
 def _set_engine(engine_name):
-    global current_engine, stream
+    global current_engine, current_engine_name, stream
     if engine_name not in engines:
         print(f"Warning: Engine '{engine_name}' not available")
         return False
     
-    if current_engine is None:
-        current_engine = engines[engine_name]
-    else:
-        current_engine = engines[engine_name]
+    current_engine = engines[engine_name]
+    current_engine_name = engine_name
 
     if voices[engine_name]:
         engines[engine_name].set_voice(voices[engine_name][0].name)
@@ -248,8 +247,11 @@ def get_engines():
 
 @app.get("/voices")
 def get_voices():
+    if not current_engine_name or current_engine_name not in voices:
+        return []
+    
     voices_list = []
-    for voice in voices[current_engine.engine_name]:
+    for voice in voices[current_engine_name]:
         voices_list.append(voice.name)
     return voices_list
 
@@ -276,7 +278,7 @@ async def websocket_endpoint(websocket: WebSocket):
     """Simple WebSocket endpoint for TTS - supports multiple concurrent users"""
     
     # Check if system engine is active - it doesn't support WebSocket mode
-    if current_engine and current_engine.engine_name == "system":
+    if current_engine_name == "system":
         await websocket.accept()
         await websocket.send_json({
             "error": {
