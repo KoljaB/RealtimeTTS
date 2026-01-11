@@ -61,6 +61,16 @@ function initWebSocket() {
             try {
                 const message = JSON.parse(event.data);
                 
+                // Handle error messages
+                if (message.error) {
+                    console.error('Server error:', message.error.message);
+                    alert(message.error.message);
+                    updateStatus('Error: ' + message.error.message);
+                    websocket.close();
+                    reject(new Error(message.error.message));
+                    return;
+                }
+                
                 // Handle audio chunks
                 if (message.audioOutput?.audio) {
                     const audioData = base64ToArrayBuffer(message.audioOutput.audio);

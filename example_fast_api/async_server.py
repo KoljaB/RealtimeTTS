@@ -274,6 +274,20 @@ def set_voice(request: Request, voice_name: str = Query(...)):
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     """Simple WebSocket endpoint for TTS - supports multiple concurrent users"""
+    
+    # Check if system engine is active - it doesn't support WebSocket mode
+    if current_engine and current_engine.engine_name == "system":
+        await websocket.accept()
+        await websocket.send_json({
+            "error": {
+                "message": "System engine (pyttsx3) does not support WebSocket mode. Please switch to OpenAI, Kokoro, Azure, or ElevenLabs engine.",
+                "engineName": "system"
+            }
+        })
+        await websocket.close()
+        print("WebSocket connection rejected - system engine not supported")
+        return
+    
     await websocket.accept()
     print("WebSocket client connected")
     
