@@ -775,6 +775,16 @@ While the source of this library is open-source, the usage of many of the engine
 
 **Disclaimer**: This is a summarization of the licenses as understood at the time of writing. It is not legal advice. Please read and respect the licenses of the different engine providers if you plan to use them in a project.
 
+## Star History
+
+<a href="https://star-history.com/#KoljaB/RealtimeTTS&Date">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=KoljaB/RealtimeTTS&type=Date&theme=dark" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=KoljaB/RealtimeTTS&type=Date" />
+   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=KoljaB/RealtimeTTS&type=Date" />
+ </picture>
+</a>
+
 ## Contributors
 
 <a href="https://github.com/traceloop/openllmetry/graphs/contributors">
