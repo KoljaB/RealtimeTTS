@@ -64,6 +64,15 @@ Let me know if you need any adjustments or additional languages!
 
 ## Updates
 
+- **New Engine:** PocketTTSEngine
+  - **Installation:** `pip install pocket-tts`
+  - Kyutai Labs' lightweight 100M parameter TTS, CPU-optimized (~6x real-time)
+  - Voice cloning via WAV files, ~200ms latency, 8 built-in voices
+
+- **New Engine:** NeuTTSEngine
+  - On-device voice cloning TTS with 3-second reference audio
+  - **Installation:** Clone from https://github.com/neuphonic/neutts
+
 - **New Engine:** ZipoVoiceEngine
   - **Installation:** `pip install RealtimeTTS
   - **Test File Example:** [zipvoice_test.py](https://github.com/KoljaB/RealtimeTTS/blob/master/tests/zipvoice_test.py)
@@ -130,6 +139,8 @@ This library uses:
   - **StyleTTS2Engine** 🏠: Expressive, natural speech
   - **OrpheusEngine** 🏠: Llama‑powered TTS with emotion tags
   - **ZipVoiceEngine** 🏠: 123M zero‑shot model, state‑of‑the‑art quality
+  - **PocketTTSEngine** 🏠: Kyutai Labs 100M model, CPU-optimized with voice cloning
+  - **NeuTTSEngine** 🏠: Voice cloning with 3-second reference audio
 
 🏠 Local processing (no internet required)
 🌐 Requires internet connection
