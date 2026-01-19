@@ -64,6 +64,10 @@ Let me know if you need any adjustments or additional languages!
 
 ## Updates
 
+- **New Engine:** NeuTTSEngine
+  - On-device voice cloning TTS with 3-second reference audio
+  - **Installation:** Clone from https://github.com/neuphonic/neutts
+
 - **New Engine:** ZipoVoiceEngine
   - **Installation:** `pip install RealtimeTTS
   - **Test File Example:** [zipvoice_test.py](https://github.com/KoljaB/RealtimeTTS/blob/master/tests/zipvoice_test.py)
@@ -130,6 +134,7 @@ This library uses:
   - **StyleTTS2Engine** 🏠: Expressive, natural speech
   - **OrpheusEngine** 🏠: Llama‑powered TTS with emotion tags
   - **ZipVoiceEngine** 🏠: 123M zero‑shot model, state‑of‑the‑art quality
+  - **NeuTTSEngine** 🏠: Voice cloning with 3-second reference audio
 
 🏠 Local processing (no internet required)
 🌐 Requires internet connection
