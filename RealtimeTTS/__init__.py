@@ -15,9 +15,10 @@ __all__ = [
     "EdgeEngine", "EdgeVoice",
     "StyleTTSEngine", "StyleTTSVoice",
     "PiperEngine", "PiperVoice",
-    "KokoroEngine", "KokoroVoice"
+    "KokoroEngine", "KokoroVoice",
     "OrpheusEngine", "OrpheusVoice",
     "ZipVoiceEngine", "ZipVoiceVoice",
+    "PocketTTSEngine", "PocketTTSVoice",
 ]
 
 
@@ -191,6 +192,20 @@ def _load_zipvoice_engine():
     globals()["ZipVoiceVoice"] = ZipVoiceVoice
     return ZipVoiceEngine
 
+
+def _load_pocket_engine():
+    try:
+        from .engines.pocket_engine import PocketTTSEngine, PocketTTSVoice
+    except ImportError as e:
+        raise ImportError(
+            "Failed to load PocketTTSEngine and PocketTTSVoice. "
+            "Please install with: pip install pocket-tts"
+        ) from e
+    globals()["PocketTTSEngine"] = PocketTTSEngine
+    globals()["PocketTTSVoice"] = PocketTTSVoice
+    return PocketTTSEngine
+
+
 # Mapping names to their lazy loader functions.
 _lazy_imports = {
     "SystemEngine": _load_system_engine,
@@ -218,7 +233,9 @@ _lazy_imports = {
     "OrpheusEngine": _load_orpheus_engine,
     "OrpheusVoice": _load_orpheus_engine,
     "ZipVoiceEngine": _load_zipvoice_engine,
-    "ZipVoiceVoice": _load_zipvoice_engine,    
+    "ZipVoiceVoice": _load_zipvoice_engine,
+    "PocketTTSEngine": _load_pocket_engine,
+    "PocketTTSVoice": _load_pocket_engine,
 }
 
 
