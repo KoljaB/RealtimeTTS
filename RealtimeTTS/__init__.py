@@ -19,6 +19,7 @@ __all__ = [
     "OrpheusEngine", "OrpheusVoice",
     "ZipVoiceEngine", "ZipVoiceVoice",
     "PocketTTSEngine", "PocketTTSVoice",
+    "NeuTTSEngine", "NeuTTSVoice",
 ]
 
 
@@ -206,6 +207,19 @@ def _load_pocket_engine():
     return PocketTTSEngine
 
 
+def _load_neutts_engine():
+    try:
+        from .engines.neutts_engine import NeuTTSEngine, NeuTTSVoice
+    except ImportError as e:
+        raise ImportError(
+            "Failed to load NeuTTSEngine and NeuTTSVoice. "
+            "Install NeuTTS from: https://github.com/neuphonic/neutts"
+        ) from e
+    globals()["NeuTTSEngine"] = NeuTTSEngine
+    globals()["NeuTTSVoice"] = NeuTTSVoice
+    return NeuTTSEngine
+
+
 # Mapping names to their lazy loader functions.
 _lazy_imports = {
     "SystemEngine": _load_system_engine,
@@ -236,6 +250,8 @@ _lazy_imports = {
     "ZipVoiceVoice": _load_zipvoice_engine,
     "PocketTTSEngine": _load_pocket_engine,
     "PocketTTSVoice": _load_pocket_engine,
+    "NeuTTSEngine": _load_neutts_engine,
+    "NeuTTSVoice": _load_neutts_engine,
 }
 
 

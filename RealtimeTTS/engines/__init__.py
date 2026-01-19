@@ -16,6 +16,7 @@ __all__ = [
     "OrpheusEngine", "OrpheusVoice",
     "ZipVoiceEngine", "ZipVoiceVoice",
     "PocketTTSEngine", "PocketTTSVoice",
+    "NeuTTSEngine", "NeuTTSVoice",
 ]
 
 
@@ -118,6 +119,13 @@ def _load_pocket_engine():
     return PocketTTSEngine
 
 
+def _load_neutts_engine():
+    from .neutts_engine import NeuTTSEngine, NeuTTSVoice
+    globals()["NeuTTSEngine"] = NeuTTSEngine
+    globals()["NeuTTSVoice"] = NeuTTSVoice
+    return NeuTTSEngine
+
+
 # Map attribute names to lazy loader functions.
 _lazy_imports = {
     "AzureEngine": _load_azure_engine,
@@ -148,6 +156,8 @@ _lazy_imports = {
     "ZipVoiceVoice": _load_zipvoice_engine,
     "PocketTTSEngine": _load_pocket_engine,
     "PocketTTSVoice": _load_pocket_engine,
+    "NeuTTSEngine": _load_neutts_engine,
+    "NeuTTSVoice": _load_neutts_engine,
 }
 
 
