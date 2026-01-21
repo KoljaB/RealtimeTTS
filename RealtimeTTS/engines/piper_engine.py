@@ -4,6 +4,7 @@ import tempfile
 import pyaudio
 import shutil
 import subprocess
+import json
 from typing import Optional
 from .base_engine import BaseEngine
 from queue import Queue
@@ -67,6 +68,23 @@ class PiperEngine(BaseEngine):
     def post_init(self):
         self.engine_name = "piper"
 
+    def _get_sample_rate_from_config(self) -> int:
+        """
+        Reads the sample rate from the Piper voice configuration file.
+        
+        Returns:
+            int: Sample rate from config, or 16000 as fallback
+        """
+        if not self.voice or not self.voice.config_file:
+            return 16000
+        
+        try:
+            with open(self.voice.config_file, 'r') as f:
+                config = json.load(f)
+                return config.get('audio', {}).get('sample_rate', 16000)
+        except (FileNotFoundError, json.JSONDecodeError, KeyError):
+            return 16000
+
     def get_stream_info(self):
         """
         Returns PyAudio stream configuration for Piper.
@@ -74,7 +92,8 @@ class PiperEngine(BaseEngine):
         Returns:
             tuple: (format, channels, rate)
         """
-        return pyaudio.paInt16, 1, 16000
+        sample_rate = self._get_sample_rate_from_config()
+        return pyaudio.paInt16, 1, sample_rate
 
     def synthesize(self, text: str) -> bool:
         """
@@ -90,21 +109,19 @@ class PiperEngine(BaseEngine):
             print("No voice set. Please provide a PiperVoice configuration.")
             return False
 
-        # Create a unique temporary WAV file.
-        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp_wav_file:
-            output_wav_path = tmp_wav_file.name
-
         # Build the argument list for Piper (no shell piping).
         # If piper_path is on the PATH, you can use just "piper". Otherwise, use the full path.
         cmd_list = [
             self.piper_path,
             "-m", self.voice.model_file,
-            "-f", output_wav_path
         ]
         
-        # If a JSON config file is available, add it.
+        # If a JSON config file is available, add it BEFORE --output-raw for proper parameter loading.
         if self.voice.config_file:
             cmd_list.extend(["-c", self.voice.config_file])
+        
+        # Add --output-raw last to ensure config parameters are applied first
+        cmd_list.append("--output-raw")
 
         # Debug: show the exact command (helpful for troubleshooting)
         if self.debug:
@@ -115,25 +132,12 @@ class PiperEngine(BaseEngine):
             result = subprocess.run(
                 cmd_list,
                 input=text.encode("utf-8"),  # Piper reads from STDIN
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
+                capture_output=True,
                 check=True,              # Raises CalledProcessError on non-zero exit
                 shell=False              # No shell means no special quoting issues
             )
-
-            # Open the synthesized WAV file and (optionally) validate audio properties.
-            with wave.open(output_wav_path, "rb") as wf:
-                # If you require specific WAV properties, check them:
-                if wf.getnchannels() != 1 or wf.getframerate() != 16000 or wf.getsampwidth() != 2:
-                    print(f"Unexpected WAV properties: "
-                        f"Channels={wf.getnchannels()}, "
-                        f"Rate={wf.getframerate()}, "
-                        f"Width={wf.getsampwidth()}")
-                    return False
-
-                # Read audio data and put it into the queue.
-                audio_data = wf.readframes(wf.getnframes())
-                self.queue.put(audio_data)
+            # Put the captured audio data in the queue
+            self.queue.put(result.stdout)
 
             return True
 
@@ -144,10 +148,6 @@ class PiperEngine(BaseEngine):
             # Piper returned an error code; show the stderr output for troubleshooting.
             print(f"Error running Piper: {e.stderr.decode('utf-8', errors='replace')}")
             return False
-        finally:
-            # Clean up the temporary WAV file after reading it.
-            if os.path.isfile(output_wav_path):
-                os.remove(output_wav_path)
 
     def set_voice(self, voice: PiperVoice):
         """

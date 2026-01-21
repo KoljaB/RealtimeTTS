@@ -15,7 +15,9 @@ Key Components:
 
 Designed for flexible, real-time audio playback and streaming, with error handling for unsupported configurations.
 """
+
 from pydub import AudioSegment
+
 try:
     import pyaudio._portaudio as pa
 except ImportError:
@@ -45,7 +47,8 @@ class AudioConfiguration:
         rate: int = 16000,
         output_device_index=None,
         muted: bool = False,
-        frames_per_buffer: int = pa.paFramesPerBufferUnspecified,
+        # Changed from paFramesPerBufferUnspecified for better audio quality
+        frames_per_buffer: int = 1024,
         playout_chunk_size: int = -1,
     ):
         """
@@ -88,18 +91,30 @@ class AudioStream:
     def get_supported_sample_rates(self, device_index):
         """
         Test which standard sample rates are supported by the specified device.
-        
+
         Args:
             device_index (int): The index of the audio device to test
-            
+
         Returns:
             list: List of supported sample rates
         """
-        standard_rates = [8000, 9600, 11025, 12000, 16000, 22050, 24000, 32000, 44100, 48000]
+        standard_rates = [
+            8000,
+            9600,
+            11025,
+            12000,
+            16000,
+            22050,
+            24000,
+            32000,
+            44100,
+            48000,
+        ]
         supported_rates = []
 
-        device_info = self.pyaudio_instance.get_device_info_by_index(device_index)
-        max_channels = device_info.get('maxOutputChannels')
+        device_info = self.pyaudio_instance.get_device_info_by_index(
+            device_index)
+        max_channels = device_info.get("maxOutputChannels")
 
         # Test each standard sample rate
         for rate in standard_rates:
@@ -118,22 +133,28 @@ class AudioStream:
     def _get_best_sample_rate(self, device_index, desired_rate):
         """
         Determines the best available sample rate for the device.
-        
+
         Args:
             device_index: Index of the audio device
             desired_rate: Preferred sample rate
-            
+
         Returns:
             int: Best available sample rate
         """
         try:
             # First determine the actual device index to use
-            actual_device_index = (device_index if device_index is not None 
-                                else self.pyaudio_instance.get_default_output_device_info()['index'])
+            actual_device_index = (
+                device_index
+                if device_index is not None
+                else self.pyaudio_instance.get_default_output_device_info()["index"]
+            )
 
             # Now use the actual_device_index for getting device info and supported rates
-            device_info = self.pyaudio_instance.get_device_info_by_index(actual_device_index)
-            supported_rates = self.get_supported_sample_rates(actual_device_index)
+            device_info = self.pyaudio_instance.get_device_info_by_index(
+                actual_device_index
+            )
+            supported_rates = self.get_supported_sample_rates(
+                actual_device_index)
 
             # Check if desired rate is supported
             if desired_rate in supported_rates:
@@ -150,7 +171,7 @@ class AudioStream:
                 return min(higher_rates)
 
             # If nothing else works, return device's default rate
-            return int(device_info.get('defaultSampleRate', 44100))
+            return int(device_info.get("defaultSampleRate", 44100))
 
         except Exception as e:
             logging.warning(f"Error determining sample rate: {e}")
@@ -186,8 +207,14 @@ class AudioStream:
             logging.debug("Muted mode, no opening stream")
 
         else:
-            if self.config.format == pyaudio.paCustomFormat and pyChannels == -1 and desired_rate == -1:
-                logging.debug("Opening mpv stream for mpeg audio chunks, no need to determine sample rate")
+            if (
+                self.config.format == pyaudio.paCustomFormat
+                and pyChannels == -1
+                and desired_rate == -1
+            ):
+                logging.debug(
+                    "Opening mpv stream for mpeg audio chunks, no need to determine sample rate"
+                )
                 if not self.is_installed("mpv"):
                     message = (
                         "mpv not found, necessary to stream audio. "
@@ -206,7 +233,7 @@ class AudioStream:
                     "--cache=no",
                     "--cache-secs=0",
                     "--",
-                    "fd://0"
+                    "fd://0",
                 ]
 
                 self.mpv_process = subprocess.Popen(
@@ -218,7 +245,8 @@ class AudioStream:
                 return
 
             # Determine the best sample rate
-            best_rate = self._get_best_sample_rate(pyOutput_device_index, desired_rate)
+            best_rate = self._get_best_sample_rate(
+                pyOutput_device_index, desired_rate)
             self.actual_sample_rate = best_rate
 
             if self.config.format == pyaudio.paCustomFormat:
@@ -247,8 +275,11 @@ class AudioStream:
             except Exception as e:
                 print(
                     "Error opening stream with parameters:"
-                    f" format={pyFormat}, channels={pyChannels}, rate={best_rate}, output_device_index={pyOutput_device_index}"
-                    f"Error message: {e}")
+                    f" format={pyFormat}, channels={pyChannels}, rate={
+                        best_rate
+                    }, output_device_index={pyOutput_device_index}"
+                    f"Error message: {e}"
+                )
 
                 # Get the number of available audio devices
                 device_count = self.pyaudio_instance.get_device_count()
@@ -257,13 +288,26 @@ class AudioStream:
 
                 # Iterate through all devices and print their details
                 for i in range(device_count):
-                    device_info = self.pyaudio_instance.get_device_info_by_index(i)
+                    device_info = self.pyaudio_instance.get_device_info_by_index(
+                        i)
                     print(f"Device Index: {i}")
                     print(f"  Name: {device_info['name']}")
-                    print(f"  Sample Rate (Default): {device_info['defaultSampleRate']} Hz")
-                    print(f"  Max Input Channels: {device_info['maxInputChannels']}")
-                    print(f"  Max Output Channels: {device_info['maxOutputChannels']}")
-                    print(f"  Host API: {self.pyaudio_instance.get_host_api_info_by_index(device_info['hostApi'])['name']}")
+                    print(
+                        f"  Sample Rate (Default): {
+                            device_info['defaultSampleRate']
+                        } Hz"
+                    )
+                    print(f"  Max Input Channels: {
+                          device_info['maxInputChannels']}")
+                    print(f"  Max Output Channels: {
+                          device_info['maxOutputChannels']}")
+                    print(
+                        f"  Host API: {
+                            self.pyaudio_instance.get_host_api_info_by_index(
+                                device_info['hostApi']
+                            )['name']
+                        }"
+                    )
                     print("\n")
 
                 exit(0)
@@ -306,11 +350,11 @@ class AudioBufferManager:
     """
 
     def __init__(
-            self,
-            audio_buffer: queue.Queue,
-            timings: queue.Queue,
-            config: AudioConfiguration
-        ):
+        self,
+        audio_buffer: queue.Queue,
+        timings: queue.Queue,
+        config: AudioConfiguration,
+    ):
         """
         Args:
             audio_buffer (queue.Queue): Queue to be used as the audio buffer.
@@ -366,7 +410,7 @@ class AudioBufferManager:
                 pyaudio.paInt24: 3,
                 pyaudio.paInt16: 2,
                 pyaudio.paInt8: 1,
-                pyaudio.paUInt8: 1
+                pyaudio.paUInt8: 1,
             }
 
             # Get format and channels from config
@@ -375,8 +419,12 @@ class AudioBufferManager:
 
             # Log if format is unknown
             if audio_format not in format_bytes:
-                print(f"Warning: Unknown audio format {audio_format} (0x{audio_format:x})")
-                print(f"Available formats: {[hex(k) for k in format_bytes.keys()]}")
+                print(
+                    f"Warning: Unknown audio format {
+                        audio_format} (0x{audio_format:x})"
+                )
+                print(f"Available formats: {[hex(k)
+                      for k in format_bytes.keys()]}")
                 format_bytes[audio_format] = 4  # Default to 4 bytes
 
             # Calculate bytes per frame
@@ -463,7 +511,10 @@ class StreamPlayer:
                 self.first_chunk_played = True
 
             if not self.muted:
-                if self.audio_stream.mpv_process and self.audio_stream.mpv_process.stdin:
+                if (
+                    self.audio_stream.mpv_process
+                    and self.audio_stream.mpv_process.stdin
+                ):
                     self.audio_stream.mpv_process.stdin.write(chunk)
                     self.audio_stream.mpv_process.stdin.flush()
 
@@ -471,6 +522,7 @@ class StreamPlayer:
                 self.on_audio_chunk(chunk)
 
             import time
+
             while self.pause_event.is_set():
                 time.sleep(0.01)
 
@@ -484,30 +536,50 @@ class StreamPlayer:
             sample_width = segment.sample_width
             channels = segment.channels
         else:
-            sample_width = self.audio_stream.pyaudio_instance.get_sample_size(self.audio_stream.config.format)
+            sample_width = self.audio_stream.pyaudio_instance.get_sample_size(
+                self.audio_stream.config.format
+            )
             channels = self.audio_stream.config.channels
 
-        if self.audio_stream.config.rate != self.audio_stream.actual_sample_rate and self.audio_stream.actual_sample_rate > 0:
+        if (
+            self.audio_stream.config.rate != self.audio_stream.actual_sample_rate
+            and self.audio_stream.actual_sample_rate > 0
+        ):
             if self.audio_stream.config.format == pyaudio.paFloat32:
                 audio_data = np.frombuffer(chunk, dtype=np.float32)
-                resampled_data = resampy.resample(audio_data, self.audio_stream.config.rate, self.audio_stream.actual_sample_rate)
+                resampled_data = resampy.resample(
+                    audio_data,
+                    self.audio_stream.config.rate,
+                    self.audio_stream.actual_sample_rate,
+                )
                 chunk = resampled_data.astype(np.float32).tobytes()
             else:
                 audio_data = np.frombuffer(chunk, dtype=np.int16)
                 audio_data = audio_data.astype(np.float32) / 32768.0
-                resampled_data = resampy.resample(audio_data, self.audio_stream.config.rate, self.audio_stream.actual_sample_rate)
+                resampled_data = resampy.resample(
+                    audio_data,
+                    self.audio_stream.config.rate,
+                    self.audio_stream.actual_sample_rate,
+                )
                 chunk = (resampled_data * 32768.0).astype(np.int16).tobytes()
 
         if self.audio_stream.config.playout_chunk_size > 0:
             sub_chunk_size = self.audio_stream.config.playout_chunk_size
         else:
-            if self.audio_stream.config.frames_per_buffer == pa.paFramesPerBufferUnspecified:
-                sub_chunk_size = 512
+            if (
+                self.audio_stream.config.frames_per_buffer
+                == pa.paFramesPerBufferUnspecified
+            ):
+                sub_chunk_size = (
+                    4096  # Increased from 512 to 4096 bytes for better audio quality
+                )
             else:
-                sub_chunk_size = self.audio_stream.config.frames_per_buffer * sample_width * channels
+                sub_chunk_size = (
+                    self.audio_stream.config.frames_per_buffer * sample_width * channels
+                )
 
         for i in range(0, len(chunk), sub_chunk_size):
-            sub_chunk = chunk[i : i + sub_chunk_size]
+            sub_chunk = chunk[i: i + sub_chunk_size]
 
             if not self.first_chunk_played and self.on_playback_start:
                 self.on_playback_start()
@@ -515,28 +587,11 @@ class StreamPlayer:
 
             if not self.muted:
                 try:
-                    import time
-
-                    # Define the timeout duration in seconds
-                    timeout = 0.1
-
-                    # Record the start time
-                    start_time = time.time()
-
-                    frames_in_sub_chunk = len(sub_chunk) // (sample_width * channels)
-
-                    # Wait until there's space in the buffer or the timeout is reached
-                    while self.audio_stream.stream.get_write_available() < frames_in_sub_chunk:
-                        if time.time() - start_time > timeout:
-                            print(f"Wait aborted: Timeout of {timeout}s exceeded. "
-                                f"Buffer availability: {self.audio_stream.stream.get_write_available()}, "
-                                f"Frames in sub-chunk: {frames_in_sub_chunk}")
-                            break
-                        time.sleep(0.001)  # Small sleep to let the stream process audio
-
                     self.audio_stream.stream.write(sub_chunk)
-                    self.seconds_played += len(sub_chunk) / (self.audio_stream.config.rate * sample_width * channels)
-                    while (True):
+                    self.seconds_played += len(sub_chunk) / (
+                        self.audio_stream.config.rate * sample_width * channels
+                    )
+                    while True:
                         try:
                             timing = self.timings.get_nowait()
                             self.timings_list.append(timing)
@@ -557,6 +612,8 @@ class StreamPlayer:
 
             # Pause playback if the event is set
             while self.pause_event.is_set():
+                import time
+
                 time.sleep(0.01)
 
             if self.immediate_stop.is_set():
@@ -571,14 +628,14 @@ class StreamPlayer:
         """
         # --- Handle Raw MPEG Stream (MPV) ---
         is_mpeg_stream = (
-            self.audio_stream.config.format == pyaudio.paCustomFormat and
-            self.audio_stream.config.channels == -1 and
-            self.audio_stream.config.rate == -1
+            self.audio_stream.config.format == pyaudio.paCustomFormat
+            and self.audio_stream.config.channels == -1
+            and self.audio_stream.config.rate == -1
         )
 
         if is_mpeg_stream:
             self._play_mpeg_chunk(chunk)
-            return # Finished processing MPEG chunk
+            return  # Finished processing MPEG chunk
 
         self._play_wav_chunk(chunk)
 
@@ -607,8 +664,10 @@ class StreamPlayer:
             float: Duration of buffered audio in seconds.
         """
         if self.audio_stream.config.rate > 0:
-            return self.buffer_manager.get_buffered_seconds(self.audio_stream.config.rate)
-        else: # mpeg
+            return self.buffer_manager.get_buffered_seconds(
+                self.audio_stream.config.rate
+            )
+        else:  # mpeg
             return self.buffer_manager.get_buffered_seconds(16000)
 
     def start(self):
@@ -621,7 +680,8 @@ class StreamPlayer:
         self.audio_stream.start_stream()
 
         if not self.playback_thread or not self.playback_thread.is_alive():
-            self.playback_thread = threading.Thread(target=self._process_buffer)
+            self.playback_thread = threading.Thread(
+                target=self._process_buffer)
             self.playback_thread.start()
 
     def stop(self, immediate: bool = False):
