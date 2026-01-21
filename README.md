@@ -454,6 +454,14 @@ When you initialize the `TextToAudioStream` class, you have various options to c
   - **How It Works**: The system will use the device corresponding to this index for audio playback. If `None`, the system's default audio output device is used.  
   - **Obtaining Device Indices**: Use PyAudio's device query methods to retrieve available indices.
 
+#### `mpv_audio_device` (str) For ElevenlabsEngine and EdgeEngine (MPV playout)
+- **Type**: `str`
+- **Required**: No
+- **Default**: `None`
+- **Description**: The name of the audio device to use for playback.
+  - **How It Works**: The system will use the device corresponding to this name for audio playback. If `None`, the system's default audio output device is used.
+  - **Obtaining Device Names**: Use `mpv --audio-device=help` to get the device names.
+
 #### `tokenizer` (string)
 - **Type**: `str`
 - **Required**: No

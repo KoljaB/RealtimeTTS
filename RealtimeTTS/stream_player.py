@@ -44,6 +44,7 @@ class AudioConfiguration:
         channels: int = 1,
         rate: int = 16000,
         output_device_index=None,
+        mpv_audio_device=None,
         muted: bool = False,
         frames_per_buffer: int = pa.paFramesPerBufferUnspecified,
         playout_chunk_size: int = -1,
@@ -54,6 +55,7 @@ class AudioConfiguration:
             channels (int): Number of audio channels, e.g., 1 for mono or 2 for stereo. Defaults to 1 (mono).
             rate (int): Sample rate of the audio stream in Hz. Defaults to 16000.
             output_device_index (int): Index of the audio output device. If None, the default output device is used.
+            mpv_audio_device (str): Name of the audio device to use for mpv playback. If None, the system's default audio output device will be used.
             muted (bool): If True, audio playback is muted. Defaults to False.
             frames_per_buffer (int): Number of frames per buffer for PyAudio. Defaults to pa.paFramesPerBufferUnspecified, letting PyAudio choose.
             playout_chunk_size (int): Size of audio chunks (in bytes) to be played out. Defaults to -1, which determines the chunk size based on frames_per_buffer or a default value.
@@ -63,6 +65,7 @@ class AudioConfiguration:
         self.channels = channels
         self.rate = rate
         self.output_device_index = output_device_index
+        self.mpv_audio_device = mpv_audio_device
         self.muted = muted
         self.frames_per_buffer = frames_per_buffer
         self.playout_chunk_size = playout_chunk_size
@@ -208,6 +211,9 @@ class AudioStream:
                     "--",
                     "fd://0"
                 ]
+
+                if self.config.mpv_audio_device:
+                    mpv_command.insert(1, f"--audio-device={self.config.mpv_audio_device}")
 
                 self.mpv_process = subprocess.Popen(
                     mpv_command,
