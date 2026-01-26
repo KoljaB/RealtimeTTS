@@ -3,6 +3,7 @@ from openai import OpenAI
 from typing import Union
 import pyaudio
 import time
+from os import getenv
 
 # ANSI escape codes for colors
 COLOR_GREEN = "\033[92m"   # Green for text messages
@@ -26,7 +27,8 @@ class OpenAIEngine(BaseEngine):
             debug: bool = False,
             speed: float = None,
             response_format: str = "mp3",
-            timeout: float = None
+            timeout: float = None,
+            api_key: str = getenv("OPENAI_API_KEY")
         ):
         """
         Initializes an OpenAI realtime text to speech engine object.
@@ -42,6 +44,7 @@ class OpenAIEngine(BaseEngine):
             speed (float, optional): Optional speech speed for synthesis.
             response_format (str, optional): Audio format for the response. Only "mp3" and "pcm" are allowed.
             timeout (float, optional): Timeout for the API call in seconds.
+            api_key (str, optional): Your OpenAI API key. If unspecified, uses the OPENAI_API_KEY environment variable.
         """
         self.voices = ["alloy", "ash", "coral", "echo", "fable", "onyx", "nova", "sage", "shimmer"]
         self.model = model
@@ -57,7 +60,7 @@ class OpenAIEngine(BaseEngine):
 
         self.timeout = timeout
 
-        self.client = OpenAI()
+        self.client = OpenAI(api_key=api_key)
         # Assuming queue is defined elsewhere or should be initialized
         self.queue = None
 
