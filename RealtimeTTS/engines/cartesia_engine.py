@@ -33,12 +33,12 @@ class CartesiaEngine(BaseEngine):
     self.debug = debug
 
     if not api_key:
-        api_key = os.environ.get("ELEVENLABS_API_KEY")
+        api_key = os.environ.get("CARTESIA_API_KEY")
     if not api_key:
         raise ValueError(
-            "Missing ElevenLabs API key. Either:\n"
+            "Missing Cartesia API key. Either:\n"
             "1. Pass the API key as a parameter\n"
-            "2. Set ELEVENLABS_API_KEY environment variable"
+            "2. Set CARTESIA_API_KEY environment variable"
         )
 
     self.client = Cartesia(api_key=api_key).tts.websocket()
