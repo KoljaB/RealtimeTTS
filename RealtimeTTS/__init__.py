@@ -15,7 +15,8 @@ __all__ = [
     "EdgeEngine", "EdgeVoice",
     "StyleTTSEngine", "StyleTTSVoice",
     "PiperEngine", "PiperVoice",
-    "KokoroEngine", "KokoroVoice"
+    "KokoroEngine", "KokoroVoice",
+    "ModelsLabEngine", "ModelsLabVoice",
     "OrpheusEngine", "OrpheusVoice",
     "ZipVoiceEngine", "ZipVoiceVoice",
 ]
@@ -151,6 +152,19 @@ def _load_piper_engine():
     globals()["PiperVoice"] = PiperVoice
     return PiperEngine
 
+
+
+def _load_modelslab_engine():
+    try:
+        from .modelslab_engine import ModelsLabEngine, ModelsLabVoice
+    except ImportError as e:
+        raise ImportError(
+            "Failed to load ModelsLabEngine and ModelsLabVoice. "
+            "Please install with:\npip install realtimetts[modelslab]"
+        ) from e
+    globals()["ModelsLabEngine"] = ModelsLabEngine
+    globals()["ModelsLabVoice"] = ModelsLabVoice
+    return ModelsLabEngine
 
 def _load_kokoro_engine():
     try:
