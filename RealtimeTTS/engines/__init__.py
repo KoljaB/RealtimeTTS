@@ -1,10 +1,16 @@
 from .base_engine import BaseEngine, TimingInfo
 
+try:
+    from .modelslab_engine import ModelsLabEngine, ModelsLabVoice
+except ImportError:
+    pass
+
 __all__ = [
     "BaseEngine", "TimingInfo",
     "AzureEngine", "AzureVoice",
     "SystemEngine", "SystemVoice",
     "ElevenlabsEngine", "ElevenlabsVoice",
+    "ModelsLabEngine", "ModelsLabVoice",
     "CoquiEngine", "CoquiVoice",
     "OpenAIEngine", "OpenAIVoice",
     "GTTSEngine", "GTTSVoice",
