@@ -32,7 +32,7 @@ https://github.com/KoljaB/RealtimeTTS/assets/7604638/87dcd9a5-3a4e-4f57-be45-837
 - **High-Quality Audio**
   - generates clear and natural-sounding speech
 - **Multiple TTS Engine Support**
-  - supports OpenAI TTS, Elevenlabs, Azure Speech Services, Coqui TTS, StyleTTS2, Piper, gTTS, Edge TTS, Parler TTS, Kokoro and System TTS
+  - supports OpenAI TTS, Elevenlabs, Azure Speech Services, Coqui TTS, StyleTTS2, Piper, gTTS, Edge TTS, Parler TTS, Kokoro, CAMB AI and System TTS
 - **Multilingual**
 - **Robust and Reliable**:
   - ensures continuous operation through a fallback mechanism
@@ -129,6 +129,7 @@ This library uses:
   - **PiperEngine** 🏠: Very fast TTS system, also runs on Raspberry Pi 
   - **StyleTTS2Engine** 🏠: Expressive, natural speech
   - **OrpheusEngine** 🏠: Llama‑powered TTS with emotion tags
+  - **CambEngine** 🌐: CAMB AI MARS models with 140+ languages
   - **ZipVoiceEngine** 🏠: 123M zero‑shot model, state‑of‑the‑art quality
 
 🏠 Local processing (no internet required)
@@ -168,6 +169,7 @@ Install only required dependencies using these options:
 - **gtts**: Google Text-to-Speech
 - **edge**: Microsoft Edge TTS
 - **coqui**: Coqui TTS engine
+- **camb**: CAMB AI MARS TTS
 - **minimal**: Core package only (for custom engine development)
 
 Example: `pip install realtimetts[all]`, `pip install realtimetts[azure]`, `pip install realtimetts[azure,elevenlabs,openai]`
@@ -206,6 +208,13 @@ To use the `AzureEngine`, you will need:
 - Microsoft Azure service region.
 
 Make sure you have these credentials available and correctly configured when initializing the `AzureEngine`.
+
+### CambEngine
+To use the `CambEngine`, you need:
+- CAMB AI API key (provided via CambEngine constructor parameter "api_key" or in the environment variable CAMB_API_KEY)
+- `mpv` installed on your system (essential for streaming audio).
+- Available models: `mars-flash` (low-latency), `mars-pro` (high-fidelity), `mars-instruct` (instruction-following)
+- 140+ languages via BCP-47 codes (e.g., `en-us`, `es-es`, `ja-jp`)
 
 ### ElevenlabsEngine
 For the `ElevenlabsEngine`, you need:

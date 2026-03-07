@@ -15,9 +15,10 @@ __all__ = [
     "EdgeEngine", "EdgeVoice",
     "StyleTTSEngine", "StyleTTSVoice",
     "PiperEngine", "PiperVoice",
-    "KokoroEngine", "KokoroVoice"
+    "KokoroEngine", "KokoroVoice",
     "OrpheusEngine", "OrpheusVoice",
     "ZipVoiceEngine", "ZipVoiceVoice",
+    "CambEngine", "CambVoice",
 ]
 
 
@@ -191,6 +192,19 @@ def _load_zipvoice_engine():
     globals()["ZipVoiceVoice"] = ZipVoiceVoice
     return ZipVoiceEngine
 
+
+def _load_camb_engine():
+    try:
+        from .engines.camb_engine import CambEngine, CambVoice
+    except ImportError as e:
+        raise ImportError(
+            "Failed to load CambEngine and CambVoice. "
+            "Please install with:\npip install realtimetts[camb]"
+        ) from e
+    globals()["CambEngine"] = CambEngine
+    globals()["CambVoice"] = CambVoice
+    return CambEngine
+
 # Mapping names to their lazy loader functions.
 _lazy_imports = {
     "SystemEngine": _load_system_engine,
@@ -218,7 +232,9 @@ _lazy_imports = {
     "OrpheusEngine": _load_orpheus_engine,
     "OrpheusVoice": _load_orpheus_engine,
     "ZipVoiceEngine": _load_zipvoice_engine,
-    "ZipVoiceVoice": _load_zipvoice_engine,    
+    "ZipVoiceVoice": _load_zipvoice_engine,
+    "CambEngine": _load_camb_engine,
+    "CambVoice": _load_camb_engine,
 }
 
 
