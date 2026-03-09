@@ -81,6 +81,8 @@ class CambEngine(BaseEngine):
             audio_stream = self.client.text_to_speech.tts(**tts_kwargs)
 
             for chunk in audio_stream:
+                if self.stop_synthesis_event.is_set():
+                    break
                 if chunk:
                     self.queue.put(chunk)
             return True
@@ -108,3 +110,6 @@ class CambEngine(BaseEngine):
             self.speech_model = voice_parameters["speech_model"]
         if "user_instructions" in voice_parameters:
             self.user_instructions = voice_parameters["user_instructions"]
+
+    def shutdown(self):
+        self.client = None
