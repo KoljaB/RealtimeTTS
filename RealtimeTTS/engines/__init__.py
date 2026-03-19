@@ -16,6 +16,7 @@ __all__ = [
     "OrpheusEngine", "OrpheusVoice",
     "ZipVoiceEngine", "ZipVoiceVoice",
     "CambEngine", "CambVoice",
+    "ModelsLabEngine", "ModelsLabVoice",
 ]
 
 
@@ -110,12 +111,17 @@ def _load_zipvoice_engine():
     globals()["ZipVoiceVoice"] = ZipVoiceVoice
     return ZipVoiceEngine
 
-
 def _load_camb_engine():
     from .camb_engine import CambEngine, CambVoice
     globals()["CambEngine"] = CambEngine
     globals()["CambVoice"] = CambVoice
     return CambEngine
+
+def _load_modelslab_engine():
+    from .modelslab_engine import ModelsLabEngine, ModelsLabVoice
+    globals()["ModelsLabEngine"] = ModelsLabEngine
+    globals()["ModelsLabVoice"] = ModelsLabVoice
+    return ModelsLabEngine
 
 
 # Map attribute names to lazy loader functions.
@@ -148,6 +154,8 @@ _lazy_imports = {
     "ZipVoiceVoice": _load_zipvoice_engine,
     "CambEngine": _load_camb_engine,
     "CambVoice": _load_camb_engine,
+    "ModelsLabEngine": _load_modelslab_engine,
+    "ModelsLabVoice": _load_modelslab_engine,
 }
 
 
