@@ -46,5 +46,8 @@ pyaudio==0.2.14
 # pydub is used to convert chunks from mp3 to pcm (for openai tts)
 pydub==0.25.1
 
-# resampy is used to resample from the tts to the target device sample rate 
+# camb-sdk is for CambEngine
+camb-sdk==1.5.8
+
+# resampy is used to resample from the tts to the target device sample rate
 resampy==0.4.3

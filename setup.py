@@ -27,6 +27,7 @@ Available engine options include:
 - **gtts**: Google Text-to-Speech
 - **edge**: Microsoft Edge TTS
 - **coqui**: Coqui TTS engine
+- **camb**: CAMB AI MARS TTS
 - **minimal**: Core package only (for custom engine development)
 
 You can install multiple engines by separating them with commas. For example:
@@ -73,7 +74,8 @@ extras_require = {
     + [requirements["gtts"]]
     + [requirements["coqui_tts"]]
     + [requirements["edge-tts"]]
-    + [requirements["kokoro"]],    
+    + [requirements["kokoro"]]
+    + [requirements["camb-sdk"]],
     "system": base_requirements + [requirements["pyttsx3"]],
     "azure": base_requirements + [requirements["azure-cognitiveservices-speech"]],
     "elevenlabs": base_requirements + [requirements["elevenlabs"]],
@@ -82,6 +84,7 @@ extras_require = {
     "coqui": base_requirements + [requirements["coqui_tts"]],
     "edge": base_requirements + [requirements["edge-tts"]],
     "kokoro": base_requirements + [requirements["kokoro"]],
+    "camb": base_requirements + [requirements["camb-sdk"]],
     "orpheus": base_requirements + [requirements["snac"]],
     "jp": base_requirements + ["mecab-python3==1.0.6", "unidic-lite==1.0.8", "cutlet", "fugashi==1.4.0", "jaconv==0.4.0", "mojimoji==0.0.13", "pyopenjtalk==0.4.0"],
     "zh": base_requirements + ["pypinyin==0.53.0", "ordered_set==4.1.0", "jieba==0.42.1", "cn2an==0.5.23"],
@@ -103,7 +106,7 @@ setuptools.setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    python_requires=">=3.9, <3.13",
+    python_requires=">=3.9, <3.15",
     install_requires=base_requirements,
     extras_require=extras_require,
     package_data={"RealtimeTTS": ["engines/*.json"]},
