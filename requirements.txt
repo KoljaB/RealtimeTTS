@@ -1,53 +1,51 @@
 # stream2sentence is the core of RealtimeTTS - it quickly converts streamed text into sentences for real-time synthesis
-stream2sentence==0.3.1
+stream2sentence>=0.3.1
 
 # azure-cognitiveservices-speech is for AzureEngine
-azure-cognitiveservices-speech==1.45.0
+azure-cognitiveservices-speech>=1.48.2
 
 # coqui_tts is for CoquiEngine
-coqui_tts==0.27.0
+coqui_tts>=0.27.5
 
 # elevenlabs is for ElevenlabsEngine
-elevenlabs==2.8.0
+elevenlabs>=2.39.0
 
 # gtts is for GTTSEngine
-gtts==2.5.4
+gtts>=2.5.4
 
 # openai is for OpenAIEngine
-openai==1.97.0
+openai>=2.29.0
 
 # pyttsx3 is for SystemEngine
-pyttsx3==2.98
+pyttsx3>=2.99
 
 # edge-tts is for EdgeEngine
-edge-tts==7.0.2
+edge-tts>=7.2.7
 
 # kokoro is for KokoroEngine
-kokoro==0.9.4
+kokoro>=0.9.4
 
 # snac is for OrpheusEngine
-snac==1.2.1
+snac>=1.2.1
 
 # fugashi is to support japanese language for KokoroEngine
-fugashi==1.4.0
-jaconv==0.4.0
-mojimoji==0.0.13
-pyopenjtalk==0.4.1
+fugashi>=1.5.2
+jaconv>=0.5.0
+mojimoji>=0.0.13
+pyopenjtalk>=0.4.1
+unidic-lite=>1.0.8
 
 # pypinyin is to support chinese language for KokoroEngine
-pypinyin==0.54.0
-ordered_set==4.1.0
-jieba==0.42.1
-cn2an==0.5.23
+pypinyin>=0.55.0
+ordered_set>=4.1.0
+jieba>=0.42.1
+cn2an>=0.5.23
 
 # pyaudio is for playing chunks over output device
-pyaudio==0.2.14
+pyaudio>=0.2.14
 
 # pydub is used to convert chunks from mp3 to pcm (for openai tts)
-pydub==0.25.1
+pydub>=0.25.1
 
-# camb-sdk is for CambEngine
-camb-sdk==1.5.8
-
-# resampy is used to resample from the tts to the target device sample rate
-resampy==0.4.3
+# resampy is used to resample from the tts to the target device sample rate 
+resampy>=0.4.3
