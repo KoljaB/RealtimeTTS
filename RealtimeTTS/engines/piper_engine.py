@@ -114,6 +114,7 @@ class PiperEngine(BaseEngine):
         cmd_list = [
             self.piper_path,
             "-m", self.voice.model_file,
+            "--output-raw",
         ]
         
         # If a JSON config file is available, add it BEFORE --output-raw for proper parameter loading.
