@@ -18,13 +18,11 @@ __all__ = [
     "KokoroEngine", "KokoroVoice",
     "OrpheusEngine", "OrpheusVoice",
     "ZipVoiceEngine", "ZipVoiceVoice",
-<<<<<<< HEAD
     "PocketTTSEngine", "PocketTTSVoice",
     "NeuTTSEngine", "NeuTTSVoice",
     "CambEngine", "CambVoice",
-=======
+    "MiniMaxEngine", "MiniMaxVoice",
     "CartesiaEngine", "CartesiaVoice",
->>>>>>> pr-348
 ]
 
 
@@ -238,7 +236,20 @@ def _load_camb_engine():
     return CambEngine
 
 
-def _load_cartesia_engine():
+def _load_minimax_engine():
+    try:
+        from .engines.minimax_engine import MiniMaxEngine, MiniMaxVoice
+    except ImportError as e:
+        raise ImportError(
+            "Failed to load MiniMaxEngine and MiniMaxVoice. "
+            "Please install with:\npip install realtimetts[minimax]"
+        ) from e
+    globals()["MiniMaxEngine"] = MiniMaxEngine
+    globals()["MiniMaxVoice"] = MiniMaxVoice
+    return MiniMaxEngine
+
+  
+  def _load_cartesia_engine():
     try:
         from .engines.cartesia_engine import CartesiaEngine, CartesiaVoice
     except ImportError as e:
@@ -285,6 +296,8 @@ _lazy_imports = {
     "NeuTTSVoice": _load_neutts_engine,
     "CambEngine": _load_camb_engine,
     "CambVoice": _load_camb_engine,
+    "MiniMaxEngine": _load_minimax_engine,
+    "MiniMaxVoice": _load_minimax_engine,
     "CartesiaEngine": _load_cartesia_engine,
     "CartesiaVoice": _load_cartesia_engine,
 }

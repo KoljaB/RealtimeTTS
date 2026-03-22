@@ -32,7 +32,7 @@ https://github.com/KoljaB/RealtimeTTS/assets/7604638/87dcd9a5-3a4e-4f57-be45-837
 - **High-Quality Audio**
   - generates clear and natural-sounding speech
 - **Multiple TTS Engine Support**
-  - supports OpenAI TTS, Elevenlabs, Azure Speech Services, Coqui TTS, StyleTTS2, Piper, gTTS, Edge TTS, Parler TTS, Kokoro, CAMB AI and System TTS
+  - supports OpenAI TTS, Elevenlabs, Azure Speech Services, Coqui TTS, StyleTTS2, Piper, gTTS, Edge TTS, Parler TTS, Kokoro, CAMB AI, MiniMax and System TTS
 - **Multilingual**
 - **Robust and Reliable**:
   - ensures continuous operation through a fallback mechanism
@@ -139,6 +139,7 @@ This library uses:
   - **StyleTTS2Engine** 🏠: Expressive, natural speech
   - **OrpheusEngine** 🏠: Llama‑powered TTS with emotion tags
   - **CambEngine** 🌐: CAMB AI MARS models with 140+ languages
+  - **MiniMaxEngine** 🌐: MiniMax Cloud TTS with 12 voice presets
   - **ZipVoiceEngine** 🏠: 123M zero‑shot model, state‑of‑the‑art quality
   - **PocketTTSEngine** 🏠: Kyutai Labs 100M model, CPU-optimized with voice cloning
   - **NeuTTSEngine** 🏠: Voice cloning with 3-second reference audio
@@ -181,6 +182,7 @@ Install only required dependencies using these options:
 - **edge**: Microsoft Edge TTS
 - **coqui**: Coqui TTS engine
 - **camb**: CAMB AI MARS TTS
+- **minimax**: MiniMax Cloud TTS
 - **minimal**: Core package only (for custom engine development)
 
 Example: `pip install realtimetts[all]`, `pip install realtimetts[azure]`, `pip install realtimetts[azure,elevenlabs,openai]`
@@ -226,6 +228,12 @@ To use the `CambEngine`, you need:
 - `mpv` installed on your system (essential for streaming audio).
 - Available models: `mars-flash` (low-latency), `mars-pro` (high-fidelity), `mars-instruct` (instruction-following)
 - 140+ languages via BCP-47 codes (e.g., `en-us`, `es-es`, `ja-jp`)
+
+### MiniMaxEngine
+To use the `MiniMaxEngine`, you need:
+- MiniMax API key (provided via MiniMaxEngine constructor parameter "api_key" or in the environment variable MINIMAX_API_KEY)
+- Available models: `speech-2.8-hd` (high quality), `speech-2.8-turbo` (fast)
+- 12 voice presets including English and multilingual options
 
 ### ElevenlabsEngine
 For the `ElevenlabsEngine`, you need:

@@ -19,6 +19,7 @@ __all__ = [
     "NeuTTSEngine", "NeuTTSVoice",
     "CambEngine", "CambVoice",
     "ModelsLabEngine", "ModelsLabVoice",
+    "MiniMaxEngine", "MiniMaxVoice",
     "CartesiaEngine", "CartesiaVoice"
 ]
 
@@ -128,6 +129,12 @@ def _load_modelslab_engine():
     globals()["ModelsLabVoice"] = ModelsLabVoice
     return ModelsLabEngine
 
+def _load_minimax_engine():
+    from .minimax_engine import MiniMaxEngine, MiniMaxVoice
+    globals()["MiniMaxEngine"] = MiniMaxEngine
+    globals()["MiniMaxVoice"] = MiniMaxVoice
+    return MiniMaxEngine
+
 
 def _load_pocket_engine():
     from .pocket_engine import PocketTTSEngine, PocketTTSVoice
@@ -186,6 +193,8 @@ _lazy_imports = {
     "CambVoice": _load_camb_engine,
     "ModelsLabEngine": _load_modelslab_engine,
     "ModelsLabVoice": _load_modelslab_engine,
+    "MiniMaxEngine": _load_minimax_engine,
+    "MiniMaxVoice": _load_minimax_engine,
     "CartesiaEngine": _load_cartesia_engine,
     "CartesiaVoice": _load_cartesia_engine,
 }
