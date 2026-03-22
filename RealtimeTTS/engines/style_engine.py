@@ -47,17 +47,27 @@ class StyleTTSVoice:
         )
 
 class StyleTTSEngine(BaseEngine):
-    def __init__(self, 
-                 style_root: str, 
-                 voice: StyleTTSVoice,
-                 device: str = 'cuda',
-                 alpha: float = 0.3,
-                 beta: float = 0.7,
-                 diffusion_steps: int = 5,
-                 embedding_scale: float = 1.0,
-                 cuda_reset_delay: float = 0.0,
-                 seed: int = -1,
-        ):
+    def __init__(
+        self,
+        style_root: str,
+        voice: StyleTTSVoice,
+        device: str = 'cuda',
+        alpha: float = 0.3,
+        beta: float = 0.7,
+        diffusion_steps: int = 5,
+        embedding_scale: float = 1.0,
+        cuda_reset_delay: float = 0.0,
+        seed: int = -1,
+        trim_silence: bool = True,
+        silence_threshold: float = 0.005,
+        extra_start_ms: int = 15,
+        extra_end_ms: int = 15,
+        fade_in_ms: int = 10,
+        fade_out_ms: int = 10,
+        comma_silence_duration=0.3,
+        sentence_silence_duration=0.6,
+        default_silence_duration=0.3,
+    ):
         """
         Initializes the StyleTTS engine with customizable parameters.
 
@@ -115,6 +125,25 @@ class StyleTTSEngine(BaseEngine):
                 - A very high scale might introduce artifacts or unnatural audio, so fine-tuning is recommended.
 
             cuda_reset_delay (float): Time in seconds to wait after resetting the CUDA device.
+
+            seed (int): Random seed for reproducibility.
+
+            trim_silence (bool): Whether to trim silence from the synthesized audio.
+                - If True, silence at the beginning and end of the audio will be removed.
+                - If False, the entire synthesized audio will be returned.
+
+            silence_threshold (float): Threshold for silence detection.
+                - Determines the level below which audio is considered silence.
+                - A lower value means more aggressive trimming of quiet parts.
+
+            extra_start_ms (int): Extra milliseconds to trim from the start of the audio.
+
+            extra_end_ms (int): Extra milliseconds to trim from the end of the audio.
+
+            fade_in_ms (int): Fade-in duration in milliseconds for the start of the audio.
+
+            fade_out_ms (int): Fade-out duration in milliseconds for the end of the audio.
+
         """
         self.device = device if torch.cuda.is_available() else 'cpu'
         self.style_root = style_root.replace("\\", "/")
@@ -124,6 +153,15 @@ class StyleTTSEngine(BaseEngine):
         self.model_config_path = self.voice.model_config_path.replace("\\", "/")
         self.model_checkpoint_path = self.voice.model_checkpoint_path.replace("\\", "/")
         self.ref_audio_path = self.voice.ref_audio_path
+        self.trim_silence = trim_silence
+        self.silence_threshold = silence_threshold
+        self.extra_start_ms = extra_start_ms
+        self.extra_end_ms = extra_end_ms
+        self.fade_in_ms = fade_in_ms
+        self.fade_out_ms = fade_out_ms
+        self.comma_silence_duration = comma_silence_duration
+        self.sentence_silence_duration = sentence_silence_duration
+        self.default_silence_duration = default_silence_duration
 
         # Parameters for synthesis
         self.alpha = alpha
@@ -237,14 +275,45 @@ class StyleTTSEngine(BaseEngine):
         Args:
             text (str): Text to synthesize.
         """
-        audio_waveform = self.inference(text,
-                                        alpha=self.alpha,
-                                        beta=self.beta,
-                                        diffusion_steps=self.diffusion_steps,
-                                        embedding_scale=self.embedding_scale)
-        if audio_waveform is not None:
-            audio_data = (audio_waveform * 32767).astype(np.int16).tobytes()
+        audio_float32 = self.inference(
+            text,
+            alpha=self.alpha,
+            beta=self.beta,
+            diffusion_steps=self.diffusion_steps,
+            embedding_scale=self.embedding_scale
+        )
+        if audio_float32 is not None:
+            if self.trim_silence:
+                audio_float32 = self._trim_silence(
+                    audio_float32,
+                    silence_threshold = self.silence_threshold,
+                    extra_start_ms = self.extra_start_ms,
+                    extra_end_ms = self.extra_end_ms,
+                    fade_in_ms = self.fade_in_ms,
+                    fade_out_ms = self.fade_out_ms,
+                )
+
+            audio_data = (audio_float32 * 32767).astype(np.int16).tobytes()
+
+            # Send silent audio
+            sample_rate = 24000
+
+            end_sentence_delimeters = ".!?…。¡¿"
+            mid_sentence_delimeters = ";:,\n()[]{}-“”„”—/|《》"
+
+            text_stripped = text.strip()
+            if text_stripped and text_stripped[-1] in end_sentence_delimeters:
+                silence_duration = self.sentence_silence_duration
+            elif text_stripped and text_stripped[-1] in mid_sentence_delimeters:
+                silence_duration = self.comma_silence_duration
+            else:
+                silence_duration = self.default_silence_duration
+
+            silent_samples = int(sample_rate * silence_duration)
+            silent_chunk = np.zeros(silent_samples, dtype=np.float32)
+
             self.queue.put(audio_data)
+            self.queue.put(silent_chunk.tobytes())
             return True
         else:
             return False

@@ -1,11 +1,21 @@
-# threadsafe_generators.py
+"""
+Module: threadsafe_generators.py
 
+This module offers tools for safe, thread-friendly iteration over generators and iterables.
+
+Classes:
+
+1. CharIterator:
+   - Iterates over characters from strings or string iterators.
+   - Logs each character and triggers callbacks for the first and last text chunks.
+   - Can be stopped instantly with a threading event.
+
+2. AccumulatingThreadSafeGenerator:
+   - Wraps a generator for safe multi-threaded token consumption.
+   - Accumulates tokens into a full text.
+   - Uses locks to avoid race conditions and supports first/last token callbacks.
 """
-This file contains a collection of classes aimed at providing thread-safe operations over generators
-and iterables. The utility of this module can be mainly seen in multi-threaded environments where generators 
-or iterables need to be consumed across threads without race conditions. Additionally, functionalities like 
-character-based iteration and accumulation are provided for enhanced flexibility.
-"""
+
 
 from typing import Union, Iterator, Callable, Optional
 import threading

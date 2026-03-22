@@ -1,6 +1,7 @@
 from .base_engine import BaseEngine
 import torch.multiprocessing as mp
 from threading import Lock, Thread
+from .safepipe import SafePipe
 from typing import Union, List
 from pathlib import Path
 from tqdm import tqdm
@@ -37,7 +38,7 @@ class QueueWriter(io.TextIOBase):
         Args:
             msg (str): The message to write.
         """
-        if msg.strip():  # Avoid sending empty strings and newline characters.
+        if msg.strip():
             self.queue.put(msg)
 
 
@@ -50,6 +51,7 @@ class CoquiVoice:
 
 
 class CoquiEngine(BaseEngine):
+
     def __init__(
         self,
         model_name="tts_models/multilingual/multi-dataset/xtts_v2",
@@ -75,9 +77,6 @@ class CoquiEngine(BaseEngine):
         prepare_text_for_synthesis_callback=None,
         add_sentence_filter=False,
         pretrained=False,
-        comma_silence_duration=0.3,
-        sentence_silence_duration=0.6,
-        default_silence_duration=0.3,
         print_realtime_factor=False,
         load_balancing=False,
         load_balancing_buffer_length=0,
@@ -97,9 +96,10 @@ class CoquiEngine(BaseEngine):
               Path to a local models directory.
               If not specified, a directory "models" will be created in the
               script directory.
-            voice (str):
-              Name to the file containing the voice to clone.
-              Works with a 44100Hz or 22050Hz mono 32bit float WAV file.
+            voice (Union[str, List[str]]):
+              Name(s) of the file(s) containing the voice to clone.
+              Works with a 44100Hz or 22050Hz mono 32bit float WAV file,
+              or a list of such files.
             language (str):
               Language to use for the coqui model.
             speed (float):
@@ -135,16 +135,10 @@ class CoquiEngine(BaseEngine):
               Function to prepare text for synthesis.
               If not specified, a default sentence parser will be used.
             add_sentence_filter (bool):
-              Adds a own sentence filter in addition
-              to the one coqui tts already provides.
+              Adds a custom sentence filter in addition
+              to the one coqui TTS already provides.
             pretrained (bool):
               Use a pretrained model for the coqui model.
-            comma_silence_duration (float):
-              Duration of the silence after a comma.
-            sentence_silence_duration (float):
-              Duration of the silence after a sentence.
-            default_silence_duration (float):
-                Default duration of the silence.
             print_realtime_factor (bool):
                 Print the realtime factor for the coqui model.
             load_balancing (bool):
@@ -173,9 +167,6 @@ class CoquiEngine(BaseEngine):
         self.use_deepspeed = use_deepspeed
         self.device = device
         self.add_sentence_filter = add_sentence_filter
-        self.comma_silence_duration = comma_silence_duration
-        self.sentence_silence_duration = sentence_silence_duration
-        self.default_silence_duration = default_silence_duration
         self.print_realtime_factor = print_realtime_factor
         self.load_balancing = load_balancing
         self.load_balancing_buffer_length = load_balancing_buffer_length
@@ -212,7 +203,6 @@ class CoquiEngine(BaseEngine):
         # Start the worker process
         try:
             # Only set the start method if it hasn't been set already
-                # Check the current platform and set the start method
             if sys.platform.startswith('linux') or sys.platform == 'darwin':  # For Linux or macOS
                 mp.set_start_method("spawn")
             elif mp.get_start_method(allow_none=True) is None:
@@ -220,6 +210,8 @@ class CoquiEngine(BaseEngine):
         except RuntimeError as e:
             print("Start method has already been set. Details:", e)
 
+    def post_init(self):
+        self.engine_name = "coqui"
         self.create_worker_process()
 
     def create_worker_process(self):
@@ -245,7 +237,8 @@ class CoquiEngine(BaseEngine):
         self.output_worker_thread.start()
 
         self.main_synthesize_ready_event = mp.Event()
-        self.parent_synthesize_pipe, child_synthesize_pipe = mp.Pipe()
+        self.parent_synthesize_pipe, child_synthesize_pipe = SafePipe()
+
         self.voices_list = []
         self.retrieve_coqui_voices()
 
@@ -254,6 +247,7 @@ class CoquiEngine(BaseEngine):
             args=(
                 self.output_queue,
                 child_synthesize_pipe,
+                self.stop_synthesis_event,
                 self.model_name,
                 self.cloning_reference_wav,
                 self.language,
@@ -276,9 +270,6 @@ class CoquiEngine(BaseEngine):
                 self.voices_path,
                 self.voices_list,
                 self.pretrained,
-                self.comma_silence_duration,
-                self.sentence_silence_duration,
-                self.default_silence_duration,
                 self.print_realtime_factor,
                 self.load_balancing,
                 self.load_balancing_buffer_length,
@@ -291,13 +282,11 @@ class CoquiEngine(BaseEngine):
         self.main_synthesize_ready_event.wait()
         logging.info("Coqui synthesis model ready")
 
-    def post_init(self):
-        self.engine_name = "coqui"
-
     @staticmethod
     def _synthesize_worker(
         output_queue,
         conn,
+        stop_event,
         model_name,
         cloning_reference_wav: Union[str, List[str]],
         language,
@@ -320,9 +309,6 @@ class CoquiEngine(BaseEngine):
         voices_path,
         predefined_voices,
         pretrained,
-        comma_silence_duration,
-        sentence_silence_duration,
-        default_silence_duration,
         print_realtime_factor,
         load_balancing,
         load_balancing_buffer_length,
@@ -335,8 +321,8 @@ class CoquiEngine(BaseEngine):
             conn (multiprocessing.Connection):
               Connection to the parent process.
             model_name (str): Name of the coqui model to use.
-            cloning_reference_wav (str):
-              Name to the file containing the voice to clone.
+            cloning_reference_wav (Union[str, List[str]]):
+              The file(s) containing the voice to clone.
             language (str): Language to use for the coqui model.
             ready_event (multiprocessing.Event):
               Event to signal when the model is ready.
@@ -356,7 +342,7 @@ class CoquiEngine(BaseEngine):
 
         def get_conditioning_latents(filenames: Union[str, List[str]], tts):
             """
-            Method still needs some rework
+            Computes and/or loads speaker latents for the given filename(s).
             """
             if not isinstance(filenames, list):
                 filenames = [filenames]
@@ -370,7 +356,6 @@ class CoquiEngine(BaseEngine):
             if len(filenames) == 1:
                 logging.debug("Handling of single voice file")
 
-                # verify that filename ends with .wav
                 filename = filenames[0]
                 if filename.endswith(".json"):
                     filename_json = filename
@@ -467,7 +452,6 @@ class CoquiEngine(BaseEngine):
             else:
                 audio_path_list = []
                 for filename in filenames:
-                    # verify that filename ends with .wav
                     if filename.endswith(".wav"):
                         if voices_path:
                             filename_voice_wav = os.path.join(voices_path, filename)
@@ -493,8 +477,7 @@ class CoquiEngine(BaseEngine):
                             f"Default voice file {filename_voice_json} not found."
                         )
 
-                # compute and write latents to json file
-                logging.debug(f"Computing latents for {filename}")
+                logging.debug(f"Computing latents for the provided list: {filenames}")
 
                 gpt_cond_latent, speaker_embedding = tts.get_conditioning_latents(
                     audio_path=audio_path_list, gpt_cond_len=30, max_ref_length=60
@@ -507,6 +490,7 @@ class CoquiEngine(BaseEngine):
                     .half()
                     .tolist(),
                 }
+                # Save latents alongside the first WAV
                 filename_voice_json = audio_path_list[0][:-3] + "json"
                 with open(filename_voice_json, "w") as new_file:
                     json.dump(latents, new_file)
@@ -622,7 +606,7 @@ class CoquiEngine(BaseEngine):
 
         try:
             while True:
-                timeout = 0.1
+                timeout = 0.01
                 if conn.poll(timeout):  # Use poll with a tiny timeout to avoid blocking
                     try:
                         message = conn.recv()
@@ -653,6 +637,14 @@ class CoquiEngine(BaseEngine):
                     speed = data["speed"]
                     conn.send(("success", "Speed updated successfully"))
 
+                elif command == "set_language":
+                    language = data["language"]
+                    conn.send(("success", "Language updated successfully"))
+
+                elif command == "set_stream_chunk_size":
+                    stream_chunk_size = data["stream_chunk_size"]
+                    conn.send(("success", "stream_chunk_size updated successfully"))
+
                 elif command == "set_model":
                     checkpoint = data["checkpoint"]
                     logging.info(f"Updating model checkpoint to {checkpoint}")
@@ -665,124 +657,125 @@ class CoquiEngine(BaseEngine):
                     break  # This exits the loop, effectively stopping the worker process.
 
                 elif command == "synthesize":
-                    text = data["text"]
-                    language = data["language"]
+                    try:
+                        stop_event.clear()
+                        text = data["text"]
+                        language = data["language"]
 
-                    logging.debug(f"Starting inference for text: {text}")
+                        logging.debug(f"Starting inference for text: {text}")
 
-                    time_start = time.time()
-                    seconds_to_first_chunk = 0.0
-                    full_generated_seconds = 0.0
-                    raw_inference_start = 0.0
-                    first_chunk_length_seconds = 0.0
+                        time_start = time.time()
+                        seconds_to_first_chunk = 0.0
+                        full_generated_seconds = 0.0
+                        raw_inference_start = 0.0
+                        first_chunk_length_seconds = 0.0
 
-                    chunks = tts.inference_stream(
-                        text,
-                        language,
-                        gpt_cond_latent,
-                        speaker_embedding,
-                        stream_chunk_size=stream_chunk_size,
-                        overlap_wav_len=overlap_wav_len,
-                        temperature=temperature,
-                        length_penalty=length_penalty,
-                        repetition_penalty=repetition_penalty,
-                        top_k=top_k,
-                        top_p=top_p,
-                        speed=speed,
-                        enable_text_splitting=enable_text_splitting,
-                    )
-
-                    if full_sentences:
-                        chunklist = []
-
-                        for i, chunk in enumerate(chunks):
-                            chunk = postprocess_wave(chunk)
-                            chunk_bytes = chunk.tobytes()
-                            chunklist.append(chunk_bytes)
-                            chunk_duration = len(chunk_bytes) / (4 * 24000)
-                            full_generated_seconds += chunk_duration
-                            if i == 0:
-                                first_chunk_length_seconds = chunk_duration
-                                raw_inference_start = time.time()
-                                seconds_to_first_chunk = (
-                                    raw_inference_start - time_start
-                                )
-
-                        for i, chunk in enumerate(chunks):
-                            chunk = postprocess_wave(chunk)
-                            chunklist.append(chunk.tobytes())
-
-                        for chunk in chunklist:
-                            conn.send(("success", chunk))
-                    else:
-                        for i, chunk in enumerate(chunks):
-                            chunk = postprocess_wave(chunk)
-                            chunk_bytes = chunk.tobytes()
-
-                            conn.send(("success", chunk_bytes))
-                            chunk_duration = len(chunk_bytes) / (
-                                4 * 24000
-                            )  # 4 bytes per sample, 24000 Hz
-                            full_generated_seconds += chunk_duration
-                            if i == 0:
-                                first_chunk_length_seconds = chunk_duration
-                                raw_inference_start = time.time()
-                                seconds_to_first_chunk = (
-                                    raw_inference_start - time_start
-                                )
-                            else:
-                                chunk_production_seconds = time.time() - time_start
-                                generated_audio_seconds = full_generated_seconds
-
-                                # wait only if we are faster than realtime, meaning
-                                # that chunk_production_seconds is smaller than generated_audio_seconds
-                                if load_balancing:
-                                    if chunk_production_seconds < (generated_audio_seconds + load_balancing_buffer_length):
-                                        waiting_time = generated_audio_seconds - chunk_production_seconds - load_balancing_cut_off
-                                        if waiting_time > 0:
-                                            print(f"Waiting for {waiting_time} seconds")
-                                            time.sleep(waiting_time)
-
-                    time_end = time.time()
-                    seconds = time_end - time_start
-
-                    if (
-                        full_generated_seconds > 0
-                        and (full_generated_seconds - first_chunk_length_seconds) > 0
-                    ):
-                        realtime_factor = seconds / full_generated_seconds
-                        raw_inference_time = seconds - seconds_to_first_chunk
-                        raw_inference_factor = raw_inference_time / (
-                            full_generated_seconds - first_chunk_length_seconds
+                        chunks = tts.inference_stream(
+                            text,
+                            language,
+                            gpt_cond_latent,
+                            speaker_embedding,
+                            stream_chunk_size=stream_chunk_size,
+                            overlap_wav_len=overlap_wav_len,
+                            temperature=temperature,
+                            length_penalty=length_penalty,
+                            repetition_penalty=repetition_penalty,
+                            top_k=top_k,
+                            top_p=top_p,
+                            speed=speed,
+                            enable_text_splitting=enable_text_splitting,
                         )
-                        if print_realtime_factor:
-                            print(f"Realtime Factor: {realtime_factor}")
-                            print(f"Raw Inference Factor: {raw_inference_factor}")
 
+                        if full_sentences:
+                            chunklist = []
 
-                    # Send silent audio
-                    sample_rate = config.audio.sample_rate
+                            for i, chunk in enumerate(chunks):
+                                if stop_event.is_set():
+                                    logging.info("Stop event detected during chunk generation. Interrupting synthesis.")
+                                    break # Exit the for loop
 
-                    end_sentence_delimeters = ".!?…。¡¿"
-                    mid_sentence_delimeters = ";:,\n()[]{}-“”„”—/|《》"
+                                chunk = postprocess_wave(chunk)
+                                chunk_bytes = chunk.tobytes()
+                                chunklist.append(chunk_bytes)
+                                chunk_duration = len(chunk_bytes) / (4 * 24000)
+                                full_generated_seconds += chunk_duration
+                                if i == 0:
+                                    first_chunk_length_seconds = chunk_duration
+                                    raw_inference_start = time.time()
+                                    seconds_to_first_chunk = (
+                                        raw_inference_start - time_start
+                                    )
 
-                    if text[-1] in end_sentence_delimeters:
-                        silence_duration = sentence_silence_duration
-                    elif text[-1] in mid_sentence_delimeters:
-                        silence_duration = comma_silence_duration
-                    else:
-                        silence_duration = default_silence_duration
+                            for i, chunk in enumerate(chunks):
+                                if stop_event.is_set():
+                                    logging.info("Stop event detected during chunk generation. Interrupting synthesis.")
+                                    break # Exit the for loop
 
-                    silent_samples = int(sample_rate * silence_duration)
-                    silent_chunk = np.zeros(silent_samples, dtype=np.float32)
-                    conn.send(("success", silent_chunk.tobytes()))
+                                chunk = postprocess_wave(chunk)
+                                chunklist.append(chunk.tobytes())
 
-                    conn.send(("finished", ""))
+                            if not stop_event.is_set():
+                                for chunk in chunklist:
+                                    conn.send(("success", chunk))
+                        else:
+                            for i, chunk in enumerate(chunks):
+                                if stop_event.is_set():
+                                    logging.info("Stop event detected during chunk generation. Interrupting synthesis.")
+                                    break # Exit the for loop
 
-                    end_time = time.time()
+                                chunk = postprocess_wave(chunk)
+                                chunk_bytes = chunk.tobytes()
+
+                                conn.send(("success", chunk_bytes))
+                                chunk_duration = len(chunk_bytes) / (4 * 24000)  # 4 bytes per sample, 24000 Hz
+                                full_generated_seconds += chunk_duration
+                                if i == 0:
+                                    first_chunk_length_seconds = chunk_duration
+                                    raw_inference_start = time.time()
+                                    seconds_to_first_chunk = (
+                                        raw_inference_start - time_start
+                                    )
+                                else:
+                                    chunk_production_seconds = time.time() - time_start
+                                    generated_audio_seconds = full_generated_seconds
+
+                                    # wait only if we are faster than realtime
+                                    if load_balancing:
+                                        if chunk_production_seconds < (generated_audio_seconds + load_balancing_buffer_length):
+                                            waiting_time = generated_audio_seconds - chunk_production_seconds - load_balancing_cut_off
+                                            if waiting_time > 0:
+                                                print(f"Waiting for {waiting_time} seconds")
+                                                time.sleep(waiting_time)
+
+                        time_end = time.time()
+                        seconds = time_end - time_start
+
+                        if (
+                            full_generated_seconds > 0
+                            and (full_generated_seconds - first_chunk_length_seconds) > 0
+                        ):
+                            realtime_factor = seconds / full_generated_seconds
+                            raw_inference_time = seconds - seconds_to_first_chunk
+                            raw_inference_factor = raw_inference_time / (
+                                full_generated_seconds - first_chunk_length_seconds
+                            )
+                            if print_realtime_factor:
+                                print(f"Realtime Factor: {realtime_factor}")
+                                print(f"Raw Inference Factor: {raw_inference_factor}")
+
+                        conn.send(("finished", ""))
+
+                    except Exception as e:
+                        logging.error(
+                            f"Error during synthesis for text '{data.get('text', '')}': {e}"
+                        )
+                        tb_str = traceback.format_exc()
+                        print(f"Traceback: {tb_str}")
+                        print(f"Error: {e}")
+                        conn.send(("error", str(e)))
 
         except KeyboardInterrupt:
-            logging.info("Keyboard interrupt received. " "Exiting worker process.")
+            logging.info("Keyboard interrupt received. Exiting worker process.")
             conn.send(("shutdown", "shutdown"))
 
         except Exception as e:
@@ -796,7 +789,7 @@ class CoquiEngine(BaseEngine):
             print(f"Error: {e}")
 
             conn.send(("error", str(e)))
-    
+
         sys.stdout = sys.__stdout__
         sys.stderr = sys.__stderr__
 
@@ -807,9 +800,13 @@ class CoquiEngine(BaseEngine):
         message = {"command": command, "data": data}
         self.parent_synthesize_pipe.send(message)
 
-    def set_cloning_reference(self, cloning_reference_wav: str):
+    def set_cloning_reference(self, cloning_reference_wav: Union[str, List[str]]):
         """
         Send an 'update_reference' command and wait for a response.
+
+        Args:
+            cloning_reference_wav (Union[str, List[str]]):
+                Name(s) of the file(s) containing the voice to clone.
         """
         if not isinstance(cloning_reference_wav, list):
             cloning_reference_wav = [cloning_reference_wav]
@@ -861,17 +858,15 @@ class CoquiEngine(BaseEngine):
             tuple: A tuple containing the audio format, number of channels,
               and the sample rate.
                   - Format (int): The format of the audio stream.
-                    pyaudio.paInt16 represents 16-bit integers.
-                  - Channels (int): The number of audio channels.
-                    1 represents mono audio.
-                  - Sample Rate (int): The sample rate of the audio in Hz.
-                    16000 represents 16kHz sample rate.
+                    pyaudio.paFloat32 represents 32-bit float samples.
+                  - Channels (int): The number of audio channels (1 = mono).
+                  - Sample Rate (int): The sample rate of the audio in Hz (24000).
         """
         return pyaudio.paFloat32, 1, 24000
 
     def _prepare_text_for_synthesis(self, text: str):
         """
-        Splits a text into sentences.
+        Splits and cleans a text for speech synthesis.
 
         Args:
             text (str): Text to prepare for synthesis.
@@ -885,19 +880,23 @@ class CoquiEngine(BaseEngine):
         if self.prepare_text_callback:
             return self.prepare_text_callback(text)
 
-        # A fast fix for last character, may produce weird sounds if it is with text
+        # Remove every non-alphanumeric character at the start of the text
+        text = re.sub(r'^[^a-zA-Z0-9]+', '', text)
+
         text = text.strip()
+        text = text.replace("—", "-").replace("“", '"').replace("”", '"').replace("‘", "'").replace("’", "'").replace("…", "...")
+        text = text.replace("`", "").replace("´", "").replace("\n", " ").replace("\r", " ").replace("\t", " ")
         text = text.replace("</s>", "")
-        # text = re.sub("```.*```", "", text, flags=re.DOTALL)
-        # text = re.sub("`.*`", "", text, flags=re.DOTALL)
         text = re.sub("\\(.*?\\)", "", text, flags=re.DOTALL)
         text = text.replace("```", "")
         text = text.replace("...", " ")
         text = text.replace("»", "")
         text = text.replace("«", "")
-        text = re.sub(" +", " ", text)
-        # text= re.sub("([^\x00-\x7F]|\w)(\.|\。|\?)",r"\1 \2\2",text)
-        # text= re.sub("([^\x00-\x7F]|\w)(\.|\。|\?)",r"\1 \2",text)
+
+        text = re.sub(" +", " ", text) # Remove extra spaces
+
+        # Again remove every non-alphanumeric character at the start of the text bcs maybe something has been replaced
+        text = re.sub(r'^[^a-zA-Z0-9]+', '', text)
 
         try:
             if len(text) > 2 and text[-1] in ["."]:
@@ -908,7 +907,6 @@ class CoquiEngine(BaseEngine):
                 text = text[:-2]
             elif len(text) > 3 and text[-2] in ["!", "?", ","]:
                 text = text[:-2] + " " + text[-2]
-            
         except Exception as e:
             logging.warning(
                 f'Error fixing sentence end punctuation: {e}, Text: "{text}"'
@@ -928,7 +926,10 @@ class CoquiEngine(BaseEngine):
             text (str): Text to synthesize.
         """
 
+        super().synthesize(text)
+
         with self._synthesize_lock:
+
             if self.add_sentence_filter:
                 text = self._prepare_text_for_synthesis(text)
 
@@ -941,13 +942,22 @@ class CoquiEngine(BaseEngine):
             status, result = self.parent_synthesize_pipe.recv()
 
             while "finished" not in status:
+                if self.stop_synthesis_event.is_set():
+                    return False
+
                 if "shutdown" in status or "error" in status:
                     if "error" in status:
                         logging.error(f"Error synthesizing text: {text}")
                         logging.error(f"Error: {result}")
                     return False
 
-                self.queue.put(result)
+                if isinstance(result, bytes):
+                    # it's good, do your thing
+                    self.queue.put(result)
+                elif isinstance(result, str):
+                    # uh-oh, probably something went wrong in pipe
+                    logging.error(f"Error in pipe, chunk bytes expected but string was sent: {result}")
+
                 status, result = self.parent_synthesize_pipe.recv()
 
             return True
@@ -1008,21 +1018,21 @@ class CoquiEngine(BaseEngine):
         voices_appended = []
 
         # Add custom voices
-        files = os.listdir(self.voices_path)
-        for file in files:
-            # remove ending .wav or .json from filename
-            if file.endswith(".wav"):
-                file = file[:-4]
-            elif file.endswith(".json"):
-                file = file[:-5]
-            else:
-                continue
+        if self.voices_path and os.path.isdir(self.voices_path):
+            files = os.listdir(self.voices_path)
+            for file in files:
+                if file.endswith(".wav"):
+                    file = file[:-4]
+                elif file.endswith(".json"):
+                    file = file[:-5]
+                else:
+                    continue
 
-            if file in voices_appended:
-                continue
+                if file in voices_appended:
+                    continue
 
-            voices_appended.append(file)
-            voice_objects.append(CoquiVoice(file))
+                voices_appended.append(file)
+                voice_objects.append(CoquiVoice(file))
 
         # Add predefined coqui system voices
         for voice in self.voices_list:
@@ -1030,19 +1040,34 @@ class CoquiEngine(BaseEngine):
 
         return voice_objects
 
-    def set_voice(self, voice: str):
+    def set_voice(self, voice: Union[str, List[str], CoquiVoice]):
         """
-        Sets the voice to be used for speech synthesis.
+        Sets the voice(s) to be used for speech synthesis.
+
+        Args:
+            voice (Union[str, List[str], CoquiVoice]):
+                Name of the voice, a list of voice file paths,
+                or a CoquiVoice instance.
         """
+        # If it's a CoquiVoice instance, just use its name
         if isinstance(voice, CoquiVoice):
-            self.set_cloning_reference(voice.name)
-        else:
-            installed_voices = self.get_voices()
-            for installed_voice in installed_voices:
-                if voice in installed_voice.name:
-                    self.set_cloning_reference(installed_voice.name)
-                    return
-            self.set_cloning_reference(voice)
+            return self.set_cloning_reference(voice.name)
+
+        # If it's a list of strings, we assume these are file paths
+        if isinstance(voice, list):
+            if not voice:
+                logging.warning("Received an empty list for set_voice.")
+                return
+            return self.set_cloning_reference(voice)
+
+        # Otherwise, it's a string
+        installed_voices = self.get_voices()
+        for installed_voice in installed_voices:
+            if voice == installed_voice.name:
+                return self.set_cloning_reference(installed_voice.name)
+
+        # If not found among installed_voices, treat as a new file or path
+        self.set_cloning_reference(voice)
 
     def set_voice_parameters(self, **voice_parameters):
         """
@@ -1051,7 +1076,7 @@ class CoquiEngine(BaseEngine):
         Args:
             **voice_parameters: The voice parameters to be used for speech synthesis.
 
-        This method should be overridden by the derived class to set the desired voice parameters.
+        This method can be overridden by the derived class to set the desired voice parameters.
         """
         pass
 
@@ -1072,7 +1097,6 @@ class CoquiEngine(BaseEngine):
             if "shutdown" in status:
                 logging.info("Worker process acknowledged shutdown")
         except EOFError:
-            # Pipe was closed, meaning the process is already down
             logging.warning(
                 "Worker process pipe was closed before shutdown acknowledgement"
             )
@@ -1087,6 +1111,39 @@ class CoquiEngine(BaseEngine):
         # Wait for the process to terminate
         self.synthesize_process.join()
         logging.info("Worker process has been terminated")
+
+
+    def set_language(self, language: str):
+        """
+        Sets the language to be used for speech synthesis.
+
+        Args:
+            language (str): New language code to use (e.g., "en", "es", etc.)
+        """
+        self.language = language
+        self.send_command("set_language", {"language": language})
+        status, result = self.parent_synthesize_pipe.recv()
+        if status == "success":
+            logging.info("Language updated successfully")
+        else:
+            logging.error("Error updating language")
+        return status, result
+
+    def set_stream_chunk_size(self, stream_chunk_size: int):
+        """
+        Sets the stream chunk size for the speech synthesis.
+
+        Args:
+            stream_chunk_size (int): The number of samples to process at a time.
+        """
+        self.send_command("set_stream_chunk_size", {"stream_chunk_size": stream_chunk_size})
+        status, result = self.parent_synthesize_pipe.recv()
+        if status == "success":
+            self.stream_chunk_size = stream_chunk_size
+            logging.info("Stream chunk size updated successfully")
+        else:
+            logging.error("Error updating stream chunk size")
+        return status, result
 
     def retrieve_coqui_voices(self):
         """

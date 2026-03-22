@@ -1,58 +1,206 @@
-from .base_engine import BaseEngine  # noqa: F401
+from .base_engine import BaseEngine, TimingInfo
 
-# Optional dependencies
-try:
-    from .azure_engine import AzureEngine, AzureVoice  # noqa: F401
-    import azure.cognitiveservices.speech as tts
-except ImportError:
-    AzureEngine, AzureVoice, tts = None, None, None
+__all__ = [
+    "BaseEngine", "TimingInfo",
+    "AzureEngine", "AzureVoice",
+    "SystemEngine", "SystemVoice",
+    "ElevenlabsEngine", "ElevenlabsVoice",
+    "CoquiEngine", "CoquiVoice",
+    "OpenAIEngine", "OpenAIVoice",
+    "GTTSEngine", "GTTSVoice",
+    "ParlerEngine", "ParlerVoice",
+    "EdgeEngine", "EdgeVoice",
+    "StyleTTSEngine", "StyleTTSVoice",
+    "PiperEngine", "PiperVoice",
+    "KokoroEngine", "KokoroVoice",
+    "OrpheusEngine", "OrpheusVoice",
+    "ZipVoiceEngine", "ZipVoiceVoice",
+    "PocketTTSEngine", "PocketTTSVoice",
+    "NeuTTSEngine", "NeuTTSVoice",
+    "CambEngine", "CambVoice",
+    "ModelsLabEngine", "ModelsLabVoice",
+    "MiniMaxEngine", "MiniMaxVoice",
+    "CartesiaEngine", "CartesiaVoice"
+]
 
-try:
-    from .system_engine import SystemEngine, SystemVoice  # noqa: F401
-    import pyttsx3
-except ImportError:
-    SystemEngine, SystemVoice, pyttsx3 = None, None, None
 
-try:
-    from .elevenlabs_engine import ElevenlabsEngine, ElevenlabsVoice  # noqa: F401
-    from elevenlabs.client import ElevenLabs
-except ImportError:
-    ElevenlabsEngine, ElevenlabsVoice, ElevenLabs = None, None, None
+# Lazy loader functions for the engines in this subpackage.
+def _load_azure_engine():
+    from .azure_engine import AzureEngine, AzureVoice
+    globals()["AzureEngine"] = AzureEngine
+    globals()["AzureVoice"] = AzureVoice
+    return AzureEngine
 
-try:
-    from .coqui_engine import CoquiEngine, CoquiVoice  # noqa: F401
-    from TTS.utils.manage import ModelManager
-except ImportError:
-    CoquiEngine, CoquiVoice, ModelManager = None, None, None
 
-try:
-    from .openai_engine import OpenAIEngine, OpenAIVoice  # noqa: F401
-    from openai import OpenAI
-except ImportError:
-    OpenAIEngine, OpenAIVoice, OpenAI = None, None, None
+def _load_system_engine():
+    from .system_engine import SystemEngine, SystemVoice
+    globals()["SystemEngine"] = SystemEngine
+    globals()["SystemVoice"] = SystemVoice
+    return SystemEngine
 
-try:
-    from .gtts_engine import GTTSEngine, GTTSVoice  # noqa: F401
-    from gtts import gTTS
-except ImportError:
-    GTTSEngine, GTTSVoice, gTTS = None, None, None
 
-try:
-    from .parler_engine import ParlerEngine, ParlerVoice  # noqa: F401
-except ImportError as e:
-    ParlerEngine, ParlerVoice = None, None
+def _load_elevenlabs_engine():
+    from .elevenlabs_engine import ElevenlabsEngine, ElevenlabsVoice
+    globals()["ElevenlabsEngine"] = ElevenlabsEngine
+    globals()["ElevenlabsVoice"] = ElevenlabsVoice
+    return ElevenlabsEngine
 
-try:
-    from .edge_engine import EdgeEngine, EdgeVoice  # noqa: F401
-except ImportError as e:
-    EdgeEngine, EdgeVoice = None, None
 
-try:
-    from .style_engine import StyleTTSEngine, StyleTTSVoice  # noqa: F401
-except ImportError as e:
-    StyleTTSEngine, StyleTTSVoice = None
+def _load_coqui_engine():
+    from .coqui_engine import CoquiEngine, CoquiVoice
+    globals()["CoquiEngine"] = CoquiEngine
+    globals()["CoquiVoice"] = CoquiVoice
+    return CoquiEngine
 
-try:
-    from .piper_engine import PiperEngine, PiperVoice  # noqa: F401
-except ImportError as e:
-    PiperEngine, PiperVoice = None
+
+def _load_openai_engine():
+    from .openai_engine import OpenAIEngine, OpenAIVoice
+    globals()["OpenAIEngine"] = OpenAIEngine
+    globals()["OpenAIVoice"] = OpenAIVoice
+    return OpenAIEngine
+
+
+def _load_gtts_engine():
+    from .gtts_engine import GTTSEngine, GTTSVoice
+    globals()["GTTSEngine"] = GTTSEngine
+    globals()["GTTSVoice"] = GTTSVoice
+    return GTTSEngine
+
+
+def _load_parler_engine():
+    from .parler_engine import ParlerEngine, ParlerVoice
+    globals()["ParlerEngine"] = ParlerEngine
+    globals()["ParlerVoice"] = ParlerVoice
+    return ParlerEngine
+
+
+def _load_edge_engine():
+    from .edge_engine import EdgeEngine, EdgeVoice
+    globals()["EdgeEngine"] = EdgeEngine
+    globals()["EdgeVoice"] = EdgeVoice
+    return EdgeEngine
+
+
+def _load_style_engine():
+    from .style_engine import StyleTTSEngine, StyleTTSVoice
+    globals()["StyleTTSEngine"] = StyleTTSEngine
+    globals()["StyleTTSVoice"] = StyleTTSVoice
+    return StyleTTSEngine
+
+
+def _load_piper_engine():
+    from .piper_engine import PiperEngine, PiperVoice
+    globals()["PiperEngine"] = PiperEngine
+    globals()["PiperVoice"] = PiperVoice
+    return PiperEngine
+
+
+def _load_kokoro_engine():
+    from .kokoro_engine import KokoroEngine, KokoroVoice
+    globals()["KokoroEngine"] = KokoroEngine
+    globals()["KokoroVoice"] = KokoroVoice
+    return KokoroEngine
+
+
+def _load_orpheus_engine():
+    from .orpheus_engine import OrpheusEngine, OrpheusVoice
+    globals()["OrpheusEngine"] = OrpheusEngine
+    globals()["OrpheusVoice"] = OrpheusVoice
+    return OrpheusEngine
+
+
+def _load_zipvoice_engine():
+    from .zipvoice_engine import ZipVoiceEngine, ZipVoiceVoice
+    globals()["ZipVoiceEngine"] = ZipVoiceEngine
+    globals()["ZipVoiceVoice"] = ZipVoiceVoice
+    return ZipVoiceEngine
+
+
+def _load_camb_engine():
+    from .camb_engine import CambEngine, CambVoice
+    globals()["CambEngine"] = CambEngine
+    globals()["CambVoice"] = CambVoice
+    return CambEngine
+
+
+def _load_modelslab_engine():
+    from .modelslab_engine import ModelsLabEngine, ModelsLabVoice
+    globals()["ModelsLabEngine"] = ModelsLabEngine
+    globals()["ModelsLabVoice"] = ModelsLabVoice
+    return ModelsLabEngine
+
+def _load_minimax_engine():
+    from .minimax_engine import MiniMaxEngine, MiniMaxVoice
+    globals()["MiniMaxEngine"] = MiniMaxEngine
+    globals()["MiniMaxVoice"] = MiniMaxVoice
+    return MiniMaxEngine
+
+
+def _load_pocket_engine():
+    from .pocket_engine import PocketTTSEngine, PocketTTSVoice
+    globals()["PocketTTSEngine"] = PocketTTSEngine
+    globals()["PocketTTSVoice"] = PocketTTSVoice
+    return PocketTTSEngine
+
+
+def _load_neutts_engine():
+    from .neutts_engine import NeuTTSEngine, NeuTTSVoice
+    globals()["NeuTTSEngine"] = NeuTTSEngine
+    globals()["NeuTTSVoice"] = NeuTTSVoice
+    return NeuTTSEngine
+
+
+def _load_cartesia_engine():
+    from .cartesia_engine import CartesiaEngine, CartesiaVoice
+    globals()["CartesiaEngine"] = CartesiaEngine
+    globals()["CartesiaVoice"] = CartesiaVoice
+    return CartesiaEngine
+
+
+# Map attribute names to lazy loader functions.
+_lazy_imports = {
+    "AzureEngine": _load_azure_engine,
+    "AzureVoice": _load_azure_engine,
+    "SystemEngine": _load_system_engine,
+    "SystemVoice": _load_system_engine,
+    "ElevenlabsEngine": _load_elevenlabs_engine,
+    "ElevenlabsVoice": _load_elevenlabs_engine,
+    "CoquiEngine": _load_coqui_engine,
+    "CoquiVoice": _load_coqui_engine,
+    "OpenAIEngine": _load_openai_engine,
+    "OpenAIVoice": _load_openai_engine,
+    "GTTSEngine": _load_gtts_engine,
+    "GTTSVoice": _load_gtts_engine,
+    "ParlerEngine": _load_parler_engine,
+    "ParlerVoice": _load_parler_engine,
+    "EdgeEngine": _load_edge_engine,
+    "EdgeVoice": _load_edge_engine,
+    "StyleTTSEngine": _load_style_engine,
+    "StyleTTSVoice": _load_style_engine,
+    "PiperEngine": _load_piper_engine,
+    "PiperVoice": _load_piper_engine,
+    "KokoroEngine": _load_kokoro_engine,
+    "KokoroVoice": _load_kokoro_engine,
+    "OrpheusEngine": _load_orpheus_engine,
+    "OrpheusVoice": _load_orpheus_engine,
+    "ZipVoiceEngine": _load_zipvoice_engine,
+    "ZipVoiceVoice": _load_zipvoice_engine,
+    "PocketTTSEngine": _load_pocket_engine,
+    "PocketTTSVoice": _load_pocket_engine,
+    "NeuTTSEngine": _load_neutts_engine,
+    "NeuTTSVoice": _load_neutts_engine,
+    "CambEngine": _load_camb_engine,
+    "CambVoice": _load_camb_engine,
+    "ModelsLabEngine": _load_modelslab_engine,
+    "ModelsLabVoice": _load_modelslab_engine,
+    "MiniMaxEngine": _load_minimax_engine,
+    "MiniMaxVoice": _load_minimax_engine,
+    "CartesiaEngine": _load_cartesia_engine,
+    "CartesiaVoice": _load_cartesia_engine,
+}
+
+
+def __getattr__(name):
+    if name in _lazy_imports:
+        return _lazy_imports[name]()
+    raise AttributeError(f"module {__name__} has no attribute {name}")

@@ -1,3 +1,4 @@
+print("Loading RealtimeTTS...")
 import argparse
 
 if __name__ == "__main__":
@@ -5,6 +6,8 @@ if __name__ == "__main__":
     print_detailed_voices = False
 
     from RealtimeTTS import TextToAudioStream, EdgeEngine, EdgeVoice
+
+    print("Starting script...")
     from install_packages import check_and_install_packages
     import time
     import signal

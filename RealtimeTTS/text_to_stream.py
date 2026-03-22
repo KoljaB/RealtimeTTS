@@ -1,3 +1,17 @@
+"""
+TextToAudioStream Module
+------------------------
+Converts text into real-time audio using one or more TTS engines. Key features include:
+
+- Synthesis: Transforms text or text streams into audio.
+- Multi-Engine: Supports engine switching if one fails.
+- Async Playback: Handles play, pause, resume, and stop with separate threads.
+- Callbacks: Offers hooks for stream events, per-character, and per-word processing.
+- Buffer Management: Generates audio chunks based on buffered duration.
+- Output Options: Plays audio live or writes to a WAV file.
+"""
+
+
 from .threadsafe_generators import CharIterator, AccumulatingThreadSafeGenerator
 from .stream_player import StreamPlayer, AudioConfiguration
 from typing import Union, Iterator, List
@@ -17,7 +31,6 @@ import queue
 import time
 import wave
 
-
 class TextToAudioStream:
     def __init__(
         self,
@@ -28,6 +41,7 @@ class TextToAudioStream:
         on_audio_stream_start=None,
         on_audio_stream_stop=None,
         on_character=None,
+        on_word=None,
         output_device_index=None,
         tokenizer: str = "nltk",
         language: str = "en",
@@ -74,6 +88,13 @@ class TextToAudioStream:
                 processed during synthesis. This can be useful for real-time
                 updates, such as visualizing which character is being processed
                 or sent for synthesis.
+
+            on_word (callable, optional):
+                A callback function triggered when a word is spoken. This can be
+                useful for tracking word-level progress or highlighting spoken
+                words in a text display.
+                Currently only works for AzureEngine and KokoroEngine, since
+                the other engines don't provide word-level timings.
 
             output_device_index (int, optional):
                 The index of the audio output device to use for playback.
@@ -127,6 +148,7 @@ class TextToAudioStream:
         self.on_audio_stream_start = on_audio_stream_start
         self.on_audio_stream_stop = on_audio_stream_stop
         self.output_device_index = output_device_index
+        self.on_word_spoken = on_word
         self.output_wavfile = None
         self.chunk_callback = None
         self.wf = None
@@ -194,7 +216,11 @@ class TextToAudioStream:
         )
 
         self.player = StreamPlayer(
-            self.engine.queue, config, on_playback_start=self._on_audio_stream_start
+            self.engine.queue,
+            self.engine.timings,
+            config,
+            on_playback_start=self._on_audio_stream_start,
+            on_word_spoken=self._on_word_spoken,
         )
 
         logging.info(f"loaded engine {self.engine.engine_name}")
@@ -231,6 +257,9 @@ class TextToAudioStream:
         language: str = "",
         context_size: int = 12,
         context_size_look_overhead: int = 12,
+        comma_silence_duration=0.0,
+        sentence_silence_duration=0.0,
+        default_silence_duration=0.0,
         muted: bool = False,
         sentence_fragment_delimiters: str = ".?!;:,\n…。",
         force_first_fragment_after_words=30,
@@ -259,6 +288,9 @@ class TextToAudioStream:
                 language,
                 context_size,
                 context_size_look_overhead,
+                comma_silence_duration,
+                sentence_silence_duration,
+                default_silence_duration,
                 muted,
                 sentence_fragment_delimiters,
                 force_first_fragment_after_words,
@@ -289,6 +321,9 @@ class TextToAudioStream:
         language: str = "en",
         context_size: int = 12,
         context_size_look_overhead: int = 12,
+        comma_silence_duration=0.0,
+        sentence_silence_duration=0.0,
+        default_silence_duration=0.0,
         muted: bool = False,
         sentence_fragment_delimiters: str = ".?!;:,\n…。",
         force_first_fragment_after_words=30,
@@ -319,6 +354,10 @@ class TextToAudioStream:
         - tokenize_sentences (Callable): A function that tokenizes sentences from the input text. You can write your own lightweight tokenizer here if you are unhappy with nltk and stanza. Defaults to None. Takes text as string and should return splitted sentences as list of strings.
         - language: Language to use for sentence splitting.
         - context_size: The number of characters used to establish context for sentence boundary detection. A larger context improves the accuracy of detecting sentence boundaries. Default is 12 characters.
+        - context_size_look_overhead: The number of characters to look ahead when determining sentence boundaries. This helps in identifying the end of a sentence more accurately. Default is 12 characters.
+        - comma_silence_duration: The duration of silence to insert after a comma in seconds. Default is 0.0 seconds.
+        - sentence_silence_duration: The duration of silence to insert after a sentence in seconds. Default is 0.0 seconds.
+        - default_silence_duration: The default duration of silence to insert after a sentence in seconds. Default is 0.0 seconds.
         - muted: If True, disables audio playback via local speakers (in case you want to synthesize to file or process audio chunks). Default is False.
         - sentence_fragment_delimiters (str): A string of characters that are
             considered sentence delimiters. Default is ".?!;:,\n…)]}。-".
@@ -332,11 +371,13 @@ class TextToAudioStream:
             muted = True
 
         if is_external_call:
+            self.engine.reset_audio_duration()
             if not self.play_lock.acquire(blocking=False):
                 logging.warning("play() called while already playing audio, skipping")
                 return
 
         self.is_playing_flag = True
+        self.error_flag = False
 
         # Log the start of the stream
         logging.info("stream start")
@@ -421,7 +462,6 @@ class TextToAudioStream:
         else:
             try:
                 # Start the audio player to handle playback
-
                 if self.player:
                     self.player.start()
                     self.player.on_audio_chunk = self._on_audio_chunk
@@ -453,12 +493,16 @@ class TextToAudioStream:
                 )
 
                 sentence_queue = queue.Queue()
+                sentence_count = 0
 
                 def synthesize_worker():
+                    nonlocal sentence_count
                     while not abort_event.is_set():
                         sentence = sentence_queue.get()
                         if sentence is None:  # Sentinel value to stop the worker
                             break
+
+                        sentence_count += 1
 
                         synthesis_successful = False
                         if log_synthesized_text:
@@ -471,7 +515,32 @@ class TextToAudioStream:
 
                                 if before_sentence_synthesized:
                                     before_sentence_synthesized(sentence)
+
                                 success = self.engine.synthesize(sentence)
+
+                                # insert potential silence
+                                stream_format, _, sample_rate = self.engine.get_stream_info()
+
+                                end_sentence_delimeters = ".!?…。¡¿"
+                                mid_sentence_delimeters = ";:,\n()[]{}-“”„”—/|《》"
+
+                                text_stripped = sentence.strip()
+                                if text_stripped and text_stripped[-1] in end_sentence_delimeters:
+                                    silence_duration = sentence_silence_duration
+                                elif text_stripped and text_stripped[-1] in mid_sentence_delimeters:
+                                    silence_duration = comma_silence_duration
+                                else:
+                                    silence_duration = default_silence_duration
+
+                                if silence_duration > 0:
+                                    silent_samples = int(sample_rate * silence_duration)
+                                    if stream_format==pyaudio.paInt16:
+                                        silent_chunk = np.zeros(silent_samples, dtype=np.int16)
+                                    else:
+                                        silent_chunk = np.zeros(silent_samples, dtype=np.float32)
+                                    self.engine.queue.put(silent_chunk.tobytes())
+
+
                                 if success:
                                     if on_sentence_synthesized:
                                         on_sentence_synthesized(sentence)
@@ -512,6 +581,7 @@ class TextToAudioStream:
                         sentence_queue.task_done()
 
                 worker_thread = threading.Thread(target=synthesize_worker)
+                worker_thread.daemon = True
                 worker_thread.start()
 
                 # Iterate through the synthesized chunks and feed them to the engine for audio synthesis
@@ -529,6 +599,7 @@ class TextToAudioStream:
                 worker_thread.join()
 
             except Exception as e:
+                self.error_flag = True
                 logging.warning(
                     f"error in play() with engine {self.engine.engine_name}: {e}"
                 )
@@ -553,9 +624,15 @@ class TextToAudioStream:
                         self.wf.close()
                         self.wf = None
 
-            if (len(self.char_iter.items) > 0
+            if (not self.error_flag
+                and len(self.char_iter.items) > 1
                 and self.char_iter.iterated_text == ""
-                and not self.char_iter.immediate_stop.is_set()):
+                and not self.char_iter.immediate_stop.is_set()
+                and not abort_event.is_set()
+                and not (sentence_count == 0 and not is_external_call)
+            ):
+
+                logging.info(f"{len(self.char_iter.items)} unprocessed characters left, recursively calling play()")
 
                 # new text was feeded while playing audio but after the last character was processed
                 # we need to start another play() call (!recursively!)
@@ -607,12 +684,15 @@ class TextToAudioStream:
         """
         Stops the playback of the synthesized audio stream immediately.
         """
+        if self.engine:
+            self.engine.stop()
 
         for abort_event in self.abort_events:
             abort_event.set()
 
         if self.is_playing():
             self.char_iter.stop()
+            self.player.resume()
             self.player.stop(immediate=True)
             self.stream_running = False
 
@@ -641,7 +721,7 @@ class TextToAudioStream:
         Returns:
             Boolean indicating if the stream is playing.
         """
-        return self.stream_running
+        return self.stream_running or self.is_playing_flag
 
     def _on_audio_stream_start(self):
         """
@@ -657,6 +737,13 @@ class TextToAudioStream:
         if self.on_audio_stream_start:
             self.on_audio_stream_start()
 
+    def _on_word_spoken(self, word):
+        """
+        Handles the spoken word event.
+        """
+        if self.on_word_spoken:
+            self.on_word_spoken(word)
+
     def _on_audio_chunk(self, chunk):
         """
         Postprocessing of single chunks of audio data.
@@ -666,7 +753,7 @@ class TextToAudioStream:
         Args:
             chunk (bytes): The audio data chunk to be processed.
         """
-        format, _, _ = self.engine.get_stream_info()
+        format, channels, sample_rate = self.engine.get_stream_info()
 
         if format == pyaudio.paFloat32:
             audio_data = np.frombuffer(chunk, dtype=np.float32)

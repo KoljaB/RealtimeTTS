@@ -14,9 +14,21 @@ if __name__ == "__main__":
         audio_format="riff-48khz-16bit-mono-pcm"
     )
 
-    stream = TextToAudioStream(engine)
+    import string
+    last_word = None
+    def process_word(word):
+        global last_word
+        if last_word and word.word not in set(string.punctuation):
+            print(" ", end="", flush=True)
+
+        print(f"{word.word}", end="", flush=True)
+        last_word = word.word
+
+    engine.set_voice("Ava")
+
+    stream = TextToAudioStream(engine, on_word=process_word)
 
     print("Starting to play stream")
-    stream.feed(dummy_generator()).play(log_synthesized_text=True)
+    stream.feed(dummy_generator()).play(output_wavfile = "output.wav")
 
     engine.shutdown()
