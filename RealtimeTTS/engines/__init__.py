@@ -15,6 +15,7 @@ __all__ = [
     "KokoroEngine", "KokoroVoice",
     "OrpheusEngine", "OrpheusVoice",
     "ZipVoiceEngine", "ZipVoiceVoice",
+    "CartesiaEngine", "CartesiaVoice"
 ]
 
 
@@ -110,6 +111,13 @@ def _load_zipvoice_engine():
     return ZipVoiceEngine
 
 
+def _load_cartesia_engine():
+    from .cartesia_engine import CartesiaEngine, CartesiaVoice
+    globals()["CartesiaEngine"] = CartesiaEngine
+    globals()["CartesiaVoice"] = CartesiaVoice
+    return CartesiaEngine
+
+
 # Map attribute names to lazy loader functions.
 _lazy_imports = {
     "AzureEngine": _load_azure_engine,
@@ -138,6 +146,8 @@ _lazy_imports = {
     "OrpheusVoice": _load_orpheus_engine,
     "ZipVoiceEngine": _load_zipvoice_engine,
     "ZipVoiceVoice": _load_zipvoice_engine,
+    "CartesiaEngine": _load_cartesia_engine,
+    "CartesiaVoice": _load_cartesia_engine,
 }
 
 

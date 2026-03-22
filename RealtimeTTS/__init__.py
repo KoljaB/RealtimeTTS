@@ -18,6 +18,7 @@ __all__ = [
     "KokoroEngine", "KokoroVoice"
     "OrpheusEngine", "OrpheusVoice",
     "ZipVoiceEngine", "ZipVoiceVoice",
+    "CartesiaEngine", "CartesiaVoice",
 ]
 
 
@@ -191,6 +192,20 @@ def _load_zipvoice_engine():
     globals()["ZipVoiceVoice"] = ZipVoiceVoice
     return ZipVoiceEngine
 
+
+def _load_cartesia_engine():
+    try:
+        from .engines.cartesia_engine import CartesiaEngine, CartesiaVoice
+    except ImportError as e:
+        raise ImportError(
+            "Failed to load CartesiaEngine. "
+            "See README for installation instructions."
+        ) from e
+    globals()["CartesiaEngine"] = CartesiaEngine
+    globals()["CartesiaVoice"] = CartesiaVoice
+    return CartesiaEngine
+
+
 # Mapping names to their lazy loader functions.
 _lazy_imports = {
     "SystemEngine": _load_system_engine,
@@ -209,7 +224,7 @@ _lazy_imports = {
     "ParlerVoice": _load_parler_engine,
     "EdgeEngine": _load_edge_engine,
     "EdgeVoice": _load_edge_engine,
-    "StyleTTSEngine": _load_style_engine,
+    "StyleTTSEngine": _load_style_engine, 
     "StyleTTSVoice": _load_style_engine,
     "PiperEngine": _load_piper_engine,
     "PiperVoice": _load_piper_engine,
@@ -218,7 +233,9 @@ _lazy_imports = {
     "OrpheusEngine": _load_orpheus_engine,
     "OrpheusVoice": _load_orpheus_engine,
     "ZipVoiceEngine": _load_zipvoice_engine,
-    "ZipVoiceVoice": _load_zipvoice_engine,    
+    "ZipVoiceVoice": _load_zipvoice_engine,
+    "CartesiaEngine": _load_cartesia_engine,
+    "CartesiaVoice": _load_cartesia_engine,
 }
 
 
