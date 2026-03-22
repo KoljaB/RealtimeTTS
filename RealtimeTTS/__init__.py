@@ -18,6 +18,8 @@ __all__ = [
     "KokoroEngine", "KokoroVoice",
     "OrpheusEngine", "OrpheusVoice",
     "ZipVoiceEngine", "ZipVoiceVoice",
+    "PocketTTSEngine", "PocketTTSVoice",
+    "NeuTTSEngine", "NeuTTSVoice",
     "CambEngine", "CambVoice",
 ]
 
@@ -193,6 +195,31 @@ def _load_zipvoice_engine():
     return ZipVoiceEngine
 
 
+def _load_pocket_engine():
+    try:
+        from .engines.pocket_engine import PocketTTSEngine, PocketTTSVoice
+    except ImportError as e:
+        raise ImportError(
+            "Failed to load PocketTTSEngine and PocketTTSVoice. "
+            "Please install with: pip install pocket-tts"
+        ) from e
+    globals()["PocketTTSEngine"] = PocketTTSEngine
+    globals()["PocketTTSVoice"] = PocketTTSVoice
+    return PocketTTSEngine
+
+
+def _load_neutts_engine():
+    try:
+        from .engines.neutts_engine import NeuTTSEngine, NeuTTSVoice
+    except ImportError as e:
+        raise ImportError(
+            "Failed to load NeuTTSEngine and NeuTTSVoice. "
+            "Install NeuTTS from: https://github.com/neuphonic/neutts"
+        ) from e
+    globals()["NeuTTSEngine"] = NeuTTSEngine
+    globals()["NeuTTSVoice"] = NeuTTSVoice
+    return NeuTTSEngine
+
 def _load_camb_engine():
     try:
         from .engines.camb_engine import CambEngine, CambVoice
@@ -233,6 +260,10 @@ _lazy_imports = {
     "OrpheusVoice": _load_orpheus_engine,
     "ZipVoiceEngine": _load_zipvoice_engine,
     "ZipVoiceVoice": _load_zipvoice_engine,
+    "PocketTTSEngine": _load_pocket_engine,
+    "PocketTTSVoice": _load_pocket_engine,
+    "NeuTTSEngine": _load_neutts_engine,
+    "NeuTTSVoice": _load_neutts_engine,
     "CambEngine": _load_camb_engine,
     "CambVoice": _load_camb_engine,
 }
