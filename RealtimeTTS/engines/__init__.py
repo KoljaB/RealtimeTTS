@@ -157,6 +157,13 @@ def _load_cartesia_engine():
     return CartesiaEngine
 
 
+def _load_fasterqwen_engine():
+    from .faster_qwen_engine import FasterQwenEngine, FasterQwenVoice
+    globals()["FasterQwenEngine"] = FasterQwenEngine
+    globals()["FasterQwenVoice"] = FasterQwenVoice
+    return FasterQwenEngine
+
+
 # Map attribute names to lazy loader functions.
 _lazy_imports = {
     "AzureEngine": _load_azure_engine,
@@ -197,6 +204,8 @@ _lazy_imports = {
     "MiniMaxVoice": _load_minimax_engine,
     "CartesiaEngine": _load_cartesia_engine,
     "CartesiaVoice": _load_cartesia_engine,
+    "FasterQwenEngine": _load_fasterqwen_engine,
+    "FasterQwenVoice": _load_fasterqwen_engine,
 }
 
 

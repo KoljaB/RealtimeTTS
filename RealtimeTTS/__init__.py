@@ -23,6 +23,7 @@ __all__ = [
     "CambEngine", "CambVoice",
     "MiniMaxEngine", "MiniMaxVoice",
     "CartesiaEngine", "CartesiaVoice",
+    "FasterQwenEngine", "FasterQwenVoice",
 ]
 
 
@@ -248,8 +249,8 @@ def _load_minimax_engine():
     globals()["MiniMaxVoice"] = MiniMaxVoice
     return MiniMaxEngine
 
-  
-  def _load_cartesia_engine():
+
+def _load_cartesia_engine():
     try:
         from .engines.cartesia_engine import CartesiaEngine, CartesiaVoice
     except ImportError as e:
@@ -260,6 +261,19 @@ def _load_minimax_engine():
     globals()["CartesiaEngine"] = CartesiaEngine
     globals()["CartesiaVoice"] = CartesiaVoice
     return CartesiaEngine
+
+
+def _load_fasterqwen_engine():
+    try:
+        from .engines.faster_qwen_engine import FasterQwenEngine, FasterQwenVoice
+    except ImportError as e:
+        raise ImportError(
+            "Failed to load FasterQwenEngine. "
+            "See README for installation instructions."
+        ) from e
+    globals()["FasterQwenEngine"] = FasterQwenEngine
+    globals()["FasterQwenVoice"] = FasterQwenVoice
+    return FasterQwenEngine
 
 
 # Mapping names to their lazy loader functions.
@@ -300,6 +314,8 @@ _lazy_imports = {
     "MiniMaxVoice": _load_minimax_engine,
     "CartesiaEngine": _load_cartesia_engine,
     "CartesiaVoice": _load_cartesia_engine,
+    "FasterQwenEngine": _load_fasterqwen_engine,
+    "FasterQwenVoice": _load_fasterqwen_engine,
 }
 
 
