@@ -8,6 +8,12 @@
 
 *Easy to use, low-latency text-to-speech library for realtime applications*
 
+> ❗ **Project Status: Mostly Community-Driven**
+> 
+> This project is no longer being actively maintained by me due to time constraints. I've taken on too many projects and I have to step back. I will no longer be implementing many features or providing user support.
+>
+> I will continue to review and merge high-quality, well-written Pull Requests from the community from time to time. Your contributions are welcome and appreciated!
+
 ## About the Project
 
 RealtimeTTS is a state-of-the-art text-to-speech (TTS) library designed for real-time applications. It stands out in its ability to convert text streams fast into high-quality auditory output with minimal latency.
@@ -26,7 +32,7 @@ https://github.com/KoljaB/RealtimeTTS/assets/7604638/87dcd9a5-3a4e-4f57-be45-837
 - **High-Quality Audio**
   - generates clear and natural-sounding speech
 - **Multiple TTS Engine Support**
-  - supports OpenAI TTS, Elevenlabs, Azure Speech Services, Coqui TTS, StyleTTS2, Piper, gTTS, Edge TTS, Parler TTS, Kokoro and System TTS
+  - supports OpenAI TTS, Elevenlabs, Azure Speech Services, Coqui TTS, StyleTTS2, Piper, gTTS, Edge TTS, Parler TTS, Kokoro, CAMB AI, MiniMax and System TTS
 - **Multilingual**
 - **Robust and Reliable**:
   - ensures continuous operation through a fallback mechanism
@@ -58,7 +64,18 @@ Let me know if you need any adjustments or additional languages!
 
 ## Updates
 
-Latest Version: v0.5.5
+- **New Engine:** PocketTTSEngine
+  - **Installation:** `pip install pocket-tts`
+  - Kyutai Labs' lightweight 100M parameter TTS, CPU-optimized (~6x real-time)
+  - Voice cloning via WAV files, ~200ms latency, 8 built-in voices
+
+- **New Engine:** NeuTTSEngine
+  - On-device voice cloning TTS with 3-second reference audio
+  - **Installation:** Clone from https://github.com/neuphonic/neutts
+
+- **New Engine:** ZipoVoiceEngine
+  - **Installation:** `pip install RealtimeTTS
+  - **Test File Example:** [zipvoice_test.py](https://github.com/KoljaB/RealtimeTTS/blob/master/tests/zipvoice_test.py)
 
 - **New Engine:** OrpheusEngine
   - **Installation:** `pip install RealtimeTTS[orpheus]
@@ -119,7 +136,13 @@ This library uses:
   - **ParlerEngine** 🏠: Local neural TTS for high-end GPUs
   - **SystemEngine** 🏠: Built-in system TTS for quick setup
   - **PiperEngine** 🏠: Very fast TTS system, also runs on Raspberry Pi 
-
+  - **StyleTTS2Engine** 🏠: Expressive, natural speech
+  - **OrpheusEngine** 🏠: Llama‑powered TTS with emotion tags
+  - **CambEngine** 🌐: CAMB AI MARS models with 140+ languages
+  - **MiniMaxEngine** 🌐: MiniMax Cloud TTS with 12 voice presets
+  - **ZipVoiceEngine** 🏠: 123M zero‑shot model, state‑of‑the‑art quality
+  - **PocketTTSEngine** 🏠: Kyutai Labs 100M model, CPU-optimized with voice cloning
+  - **NeuTTSEngine** 🏠: Voice cloning with 3-second reference audio
 
 🏠 Local processing (no internet required)
 🌐 Requires internet connection
@@ -158,6 +181,8 @@ Install only required dependencies using these options:
 - **gtts**: Google Text-to-Speech
 - **edge**: Microsoft Edge TTS
 - **coqui**: Coqui TTS engine
+- **camb**: CAMB AI MARS TTS
+- **minimax**: MiniMax Cloud TTS
 - **minimal**: Core package only (for custom engine development)
 
 Example: `pip install realtimetts[all]`, `pip install realtimetts[azure]`, `pip install realtimetts[azure,elevenlabs,openai]`
@@ -196,6 +221,19 @@ To use the `AzureEngine`, you will need:
 - Microsoft Azure service region.
 
 Make sure you have these credentials available and correctly configured when initializing the `AzureEngine`.
+
+### CambEngine
+To use the `CambEngine`, you need:
+- CAMB AI API key (provided via CambEngine constructor parameter "api_key" or in the environment variable CAMB_API_KEY)
+- `mpv` installed on your system (essential for streaming audio).
+- Available models: `mars-flash` (low-latency), `mars-pro` (high-fidelity), `mars-instruct` (instruction-following)
+- 140+ languages via BCP-47 codes (e.g., `en-us`, `es-es`, `ja-jp`)
+
+### MiniMaxEngine
+To use the `MiniMaxEngine`, you need:
+- MiniMax API key (provided via MiniMaxEngine constructor parameter "api_key" or in the environment variable MINIMAX_API_KEY)
+- Available models: `speech-2.8-hd` (high quality), `speech-2.8-turbo` (fast)
+- 12 voice presets including English and multilingual options
 
 ### ElevenlabsEngine
 For the `ElevenlabsEngine`, you need:

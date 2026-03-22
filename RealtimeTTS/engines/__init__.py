@@ -14,6 +14,13 @@ __all__ = [
     "PiperEngine", "PiperVoice",
     "KokoroEngine", "KokoroVoice",
     "OrpheusEngine", "OrpheusVoice",
+    "ZipVoiceEngine", "ZipVoiceVoice",
+    "PocketTTSEngine", "PocketTTSVoice",
+    "NeuTTSEngine", "NeuTTSVoice",
+    "CambEngine", "CambVoice",
+    "ModelsLabEngine", "ModelsLabVoice",
+    "MiniMaxEngine", "MiniMaxVoice",
+    "CartesiaEngine", "CartesiaVoice"
 ]
 
 
@@ -102,6 +109,54 @@ def _load_orpheus_engine():
     return OrpheusEngine
 
 
+def _load_zipvoice_engine():
+    from .zipvoice_engine import ZipVoiceEngine, ZipVoiceVoice
+    globals()["ZipVoiceEngine"] = ZipVoiceEngine
+    globals()["ZipVoiceVoice"] = ZipVoiceVoice
+    return ZipVoiceEngine
+
+
+def _load_camb_engine():
+    from .camb_engine import CambEngine, CambVoice
+    globals()["CambEngine"] = CambEngine
+    globals()["CambVoice"] = CambVoice
+    return CambEngine
+
+
+def _load_modelslab_engine():
+    from .modelslab_engine import ModelsLabEngine, ModelsLabVoice
+    globals()["ModelsLabEngine"] = ModelsLabEngine
+    globals()["ModelsLabVoice"] = ModelsLabVoice
+    return ModelsLabEngine
+
+def _load_minimax_engine():
+    from .minimax_engine import MiniMaxEngine, MiniMaxVoice
+    globals()["MiniMaxEngine"] = MiniMaxEngine
+    globals()["MiniMaxVoice"] = MiniMaxVoice
+    return MiniMaxEngine
+
+
+def _load_pocket_engine():
+    from .pocket_engine import PocketTTSEngine, PocketTTSVoice
+    globals()["PocketTTSEngine"] = PocketTTSEngine
+    globals()["PocketTTSVoice"] = PocketTTSVoice
+    return PocketTTSEngine
+
+
+def _load_neutts_engine():
+    from .neutts_engine import NeuTTSEngine, NeuTTSVoice
+    globals()["NeuTTSEngine"] = NeuTTSEngine
+    globals()["NeuTTSVoice"] = NeuTTSVoice
+    return NeuTTSEngine
+
+
+def _load_cartesia_engine():
+    from .cartesia_engine import CartesiaEngine, CartesiaVoice
+    globals()["CartesiaEngine"] = CartesiaEngine
+    globals()["CartesiaVoice"] = CartesiaVoice
+    return CartesiaEngine
+
+
 # Map attribute names to lazy loader functions.
 _lazy_imports = {
     "AzureEngine": _load_azure_engine,
@@ -128,6 +183,20 @@ _lazy_imports = {
     "KokoroVoice": _load_kokoro_engine,
     "OrpheusEngine": _load_orpheus_engine,
     "OrpheusVoice": _load_orpheus_engine,
+    "ZipVoiceEngine": _load_zipvoice_engine,
+    "ZipVoiceVoice": _load_zipvoice_engine,
+    "PocketTTSEngine": _load_pocket_engine,
+    "PocketTTSVoice": _load_pocket_engine,
+    "NeuTTSEngine": _load_neutts_engine,
+    "NeuTTSVoice": _load_neutts_engine,
+    "CambEngine": _load_camb_engine,
+    "CambVoice": _load_camb_engine,
+    "ModelsLabEngine": _load_modelslab_engine,
+    "ModelsLabVoice": _load_modelslab_engine,
+    "MiniMaxEngine": _load_minimax_engine,
+    "MiniMaxVoice": _load_minimax_engine,
+    "CartesiaEngine": _load_cartesia_engine,
+    "CartesiaVoice": _load_cartesia_engine,
 }
 
 

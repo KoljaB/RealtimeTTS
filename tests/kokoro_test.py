@@ -38,7 +38,7 @@ prewarm_texts = {
     "p": ("pf_dora", "Aquecendo")
 }
 
-engine = KokoroEngine()
+engine = KokoroEngine(debug=True)
 
 # Prewarm voices
 stream = TextToAudioStream(engine)
