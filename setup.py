@@ -8,7 +8,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 long_description = """
-To install realtimetts, you need to specify the TTS engine(s) you wish to use. 
+To install realtimetts, you need to specify the TTS engine(s) you wish to use.
 
 For example, to install all supported engines:
 
@@ -28,7 +28,11 @@ Available engine options include:
 - **gtts**: Google Text-to-Speech
 - **edge**: Microsoft Edge TTS
 - **coqui**: Coqui TTS engine
+<<<<<<< HEAD
 - **camb**: CAMB AI MARS TTS
+=======
+- **cartesia** Cartesia API integration
+>>>>>>> pr-348
 - **minimal**: Core package only (for custom engine development)
 
 You can install multiple engines by separating them with commas. For example:
@@ -69,15 +73,16 @@ base_requirements =[
 extras_require = {
     "minimal": base_requirements,
     "all": base_requirements
-    +[requirements.get("pyttsx3", "pyttsx3")]
-    +[requirements.get("azure-cognitiveservices-speech", "azure-cognitiveservices-speech")]
+    + [requirements.get("pyttsx3", "pyttsx3")]
+    + [requirements.get("azure-cognitiveservices-speech", "azure-cognitiveservices-speech")]
     + [requirements.get("elevenlabs", "elevenlabs")]
-    +[requirements.get("openai", "openai")]
+    + [requirements.get("openai", "openai")]
     + [requirements.get("gtts", "gtts")]
     + [requirements.get("coqui_tts", "coqui_tts")]
-    +[requirements.get("edge-tts", "edge-tts")]
-    +[requirements.get("kokoro", "kokoro")]
-    + [requirements.get("camb-sdk", "camb-sdk")],
+    + [requirements.get("edge-tts", "edge-tts")]
+    + [requirements.get("kokoro", "kokoro")]
+    + [requirements.get("camb-sdk", "camb-sdk")]
+    + [requirements.get("cartesia", "cartesia")],
     "system": base_requirements + [requirements.get("pyttsx3", "pyttsx3")],
     "azure": base_requirements +[requirements.get("azure-cognitiveservices-speech", "azure-cognitiveservices-speech")],
     "elevenlabs": base_requirements +[requirements.get("elevenlabs", "elevenlabs")],

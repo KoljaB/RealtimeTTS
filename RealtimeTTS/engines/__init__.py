@@ -19,6 +19,7 @@ __all__ = [
     "NeuTTSEngine", "NeuTTSVoice",
     "CambEngine", "CambVoice",
     "ModelsLabEngine", "ModelsLabVoice",
+    "CartesiaEngine", "CartesiaVoice"
 ]
 
 
@@ -113,11 +114,13 @@ def _load_zipvoice_engine():
     globals()["ZipVoiceVoice"] = ZipVoiceVoice
     return ZipVoiceEngine
 
+
 def _load_camb_engine():
     from .camb_engine import CambEngine, CambVoice
     globals()["CambEngine"] = CambEngine
     globals()["CambVoice"] = CambVoice
     return CambEngine
+
 
 def _load_modelslab_engine():
     from .modelslab_engine import ModelsLabEngine, ModelsLabVoice
@@ -138,6 +141,13 @@ def _load_neutts_engine():
     globals()["NeuTTSEngine"] = NeuTTSEngine
     globals()["NeuTTSVoice"] = NeuTTSVoice
     return NeuTTSEngine
+
+
+def _load_cartesia_engine():
+    from .cartesia_engine import CartesiaEngine, CartesiaVoice
+    globals()["CartesiaEngine"] = CartesiaEngine
+    globals()["CartesiaVoice"] = CartesiaVoice
+    return CartesiaEngine
 
 
 # Map attribute names to lazy loader functions.
@@ -176,6 +186,8 @@ _lazy_imports = {
     "CambVoice": _load_camb_engine,
     "ModelsLabEngine": _load_modelslab_engine,
     "ModelsLabVoice": _load_modelslab_engine,
+    "CartesiaEngine": _load_cartesia_engine,
+    "CartesiaVoice": _load_cartesia_engine,
 }
 
 
