@@ -29,6 +29,7 @@ Available engine options include:
 - **edge**: Microsoft Edge TTS
 - **coqui**: Coqui TTS engine
 - **camb**: CAMB AI MARS TTS
+- **minimax**: MiniMax Cloud TTS
 - **minimal**: Core package only (for custom engine development)
 
 You can install multiple engines by separating them with commas. For example:
@@ -87,6 +88,7 @@ extras_require = {
     "edge": base_requirements + [requirements.get("edge-tts", "edge-tts")],
     "kokoro": base_requirements + [requirements.get("kokoro", "kokoro")],
     "camb": base_requirements + [requirements.get("camb-sdk", "camb-sdk")],
+    "minimax": base_requirements + [requirements.get("requests", "requests")],
     "orpheus": base_requirements + [requirements.get("snac", "snac")],
     "jp": base_requirements +["mecab-python3>=1.0.6", "unidic-lite>=1.0.8", "cutlet", "fugashi>=1.4.0", "jaconv>=0.4.0", "mojimoji>=0.0.13", "pyopenjtalk>=0.4.0"],
     "zh": base_requirements +["pypinyin>=0.53.0", "ordered_set>=4.1.0", "jieba>=0.42.1", "cn2an>=0.5.23"],

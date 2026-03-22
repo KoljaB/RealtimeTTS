@@ -19,6 +19,7 @@ __all__ = [
     "OrpheusEngine", "OrpheusVoice",
     "ZipVoiceEngine", "ZipVoiceVoice",
     "CambEngine", "CambVoice",
+    "MiniMaxEngine", "MiniMaxVoice",
 ]
 
 
@@ -205,6 +206,19 @@ def _load_camb_engine():
     globals()["CambVoice"] = CambVoice
     return CambEngine
 
+
+def _load_minimax_engine():
+    try:
+        from .engines.minimax_engine import MiniMaxEngine, MiniMaxVoice
+    except ImportError as e:
+        raise ImportError(
+            "Failed to load MiniMaxEngine and MiniMaxVoice. "
+            "Please install with:\npip install realtimetts[minimax]"
+        ) from e
+    globals()["MiniMaxEngine"] = MiniMaxEngine
+    globals()["MiniMaxVoice"] = MiniMaxVoice
+    return MiniMaxEngine
+
 # Mapping names to their lazy loader functions.
 _lazy_imports = {
     "SystemEngine": _load_system_engine,
@@ -235,6 +249,8 @@ _lazy_imports = {
     "ZipVoiceVoice": _load_zipvoice_engine,
     "CambEngine": _load_camb_engine,
     "CambVoice": _load_camb_engine,
+    "MiniMaxEngine": _load_minimax_engine,
+    "MiniMaxVoice": _load_minimax_engine,
 }
 
 

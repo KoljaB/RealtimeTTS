@@ -17,6 +17,7 @@ __all__ = [
     "ZipVoiceEngine", "ZipVoiceVoice",
     "CambEngine", "CambVoice",
     "ModelsLabEngine", "ModelsLabVoice",
+    "MiniMaxEngine", "MiniMaxVoice",
 ]
 
 
@@ -123,6 +124,12 @@ def _load_modelslab_engine():
     globals()["ModelsLabVoice"] = ModelsLabVoice
     return ModelsLabEngine
 
+def _load_minimax_engine():
+    from .minimax_engine import MiniMaxEngine, MiniMaxVoice
+    globals()["MiniMaxEngine"] = MiniMaxEngine
+    globals()["MiniMaxVoice"] = MiniMaxVoice
+    return MiniMaxEngine
+
 
 # Map attribute names to lazy loader functions.
 _lazy_imports = {
@@ -156,6 +163,8 @@ _lazy_imports = {
     "CambVoice": _load_camb_engine,
     "ModelsLabEngine": _load_modelslab_engine,
     "ModelsLabVoice": _load_modelslab_engine,
+    "MiniMaxEngine": _load_minimax_engine,
+    "MiniMaxVoice": _load_minimax_engine,
 }
 
 
