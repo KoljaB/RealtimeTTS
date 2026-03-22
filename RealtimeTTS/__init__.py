@@ -20,6 +20,7 @@ __all__ = [
     "ZipVoiceEngine", "ZipVoiceVoice",
     "PocketTTSEngine", "PocketTTSVoice",
     "NeuTTSEngine", "NeuTTSVoice",
+    "CambEngine", "CambVoice",
 ]
 
 
@@ -219,6 +220,17 @@ def _load_neutts_engine():
     globals()["NeuTTSVoice"] = NeuTTSVoice
     return NeuTTSEngine
 
+def _load_camb_engine():
+    try:
+        from .engines.camb_engine import CambEngine, CambVoice
+    except ImportError as e:
+        raise ImportError(
+            "Failed to load CambEngine and CambVoice. "
+            "Please install with:\npip install realtimetts[camb]"
+        ) from e
+    globals()["CambEngine"] = CambEngine
+    globals()["CambVoice"] = CambVoice
+    return CambEngine
 
 # Mapping names to their lazy loader functions.
 _lazy_imports = {
@@ -252,6 +264,8 @@ _lazy_imports = {
     "PocketTTSVoice": _load_pocket_engine,
     "NeuTTSEngine": _load_neutts_engine,
     "NeuTTSVoice": _load_neutts_engine,
+    "CambEngine": _load_camb_engine,
+    "CambVoice": _load_camb_engine,
 }
 
 

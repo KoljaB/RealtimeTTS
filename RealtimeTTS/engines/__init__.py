@@ -17,6 +17,8 @@ __all__ = [
     "ZipVoiceEngine", "ZipVoiceVoice",
     "PocketTTSEngine", "PocketTTSVoice",
     "NeuTTSEngine", "NeuTTSVoice",
+    "CambEngine", "CambVoice",
+    "ModelsLabEngine", "ModelsLabVoice",
 ]
 
 
@@ -111,6 +113,18 @@ def _load_zipvoice_engine():
     globals()["ZipVoiceVoice"] = ZipVoiceVoice
     return ZipVoiceEngine
 
+def _load_camb_engine():
+    from .camb_engine import CambEngine, CambVoice
+    globals()["CambEngine"] = CambEngine
+    globals()["CambVoice"] = CambVoice
+    return CambEngine
+
+def _load_modelslab_engine():
+    from .modelslab_engine import ModelsLabEngine, ModelsLabVoice
+    globals()["ModelsLabEngine"] = ModelsLabEngine
+    globals()["ModelsLabVoice"] = ModelsLabVoice
+    return ModelsLabEngine
+
 
 def _load_pocket_engine():
     from .pocket_engine import PocketTTSEngine, PocketTTSVoice
@@ -158,6 +172,10 @@ _lazy_imports = {
     "PocketTTSVoice": _load_pocket_engine,
     "NeuTTSEngine": _load_neutts_engine,
     "NeuTTSVoice": _load_neutts_engine,
+    "CambEngine": _load_camb_engine,
+    "CambVoice": _load_camb_engine,
+    "ModelsLabEngine": _load_modelslab_engine,
+    "ModelsLabVoice": _load_modelslab_engine,
 }
 
 

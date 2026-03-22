@@ -47,6 +47,7 @@ class ZipVoiceEngine(BaseEngine):
                  vocoder_path: Optional[str] = None,
                  token_file: Optional[str] = None,
                  tokenizer_type: str = "emilia",
+                 language: str = "en",
                  device: str = 'cuda',
                  # Inference parameters
                  speed: float = 1.0,
@@ -82,6 +83,9 @@ class ZipVoiceEngine(BaseEngine):
             tokenizer_type (str, optional):
                 Type of tokenizer to use ('emilia', 'libritts', 'espeak', 'simple').
                 Defaults to "emilia".
+            languge (str, optional):
+                Used language code for speech synthesis.
+                Defaults to "en"
             device (str, optional):
                 Device to run inference on ('cuda', 'mps', 'cpu').
                 Defaults to 'cuda'.
@@ -167,7 +171,7 @@ class ZipVoiceEngine(BaseEngine):
             "emilia": EmiliaTokenizer, "libritts": LibriTTSTokenizer,
             "espeak": EspeakTokenizer, "simple": SimpleTokenizer
         }
-        self.tokenizer = tokenizer_map[tokenizer_type](token_file=token_file_path)
+        self.tokenizer = tokenizer_map[tokenizer_type](token_file=token_file_path,**({"language": lang} if tokenizer_type == "espeak" else {}))
         tokenizer_config = {"vocab_size": self.tokenizer.vocab_size, "pad_id": self.tokenizer.pad_id}
 
         model_ckpt_path = hf_hub_download(HUGGINGFACE_REPO, filename=PRETRAINED_MODEL_PATHS[self.model_name]) if checkpoint is None else checkpoint
