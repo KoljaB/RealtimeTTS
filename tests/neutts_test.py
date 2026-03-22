@@ -9,26 +9,11 @@ if __name__ == "__main__":
         yield "Hey guys! These here are realtime spoken sentences based on neu text synthesis. "
         yield "With a cute voice. "
 
-        
-
-    # logging.debug("creating voice")
-    # voice = NeuTTSVoice()
-
     logging.debug("creating engine")
     engine = NeuTTSEngine(
         device="cuda",
-        voices_dir=r"D:\Projekte\TTS\RealtimeTTS\RealtimeTTS_Work\RealtimeTTS\RealtimeTTS\engines\voices"
+        voices_dir=r"D:\Projekte\TTS\RealtimeTTS\RealtimeTTS_Work\RealtimeTTS\RealtimeTTS\engines\voices" # <-- put the path to your voices directory here
     )
-
-    # engine = NeuTTSEngine(
-    # )
-    # voice = engine.add_voice(
-    #     name="jo",
-    #     audio_path="D:/path/to/neutts/samples/jo.wav",
-    #     transcript=open("D:/path/to/neutts/samples/jo.txt").read().strip()
-    # )
-
-    # engine.set_voice(voice)
 
     logging.debug("creating stream")
     stream = TextToAudioStream(engine)
