@@ -77,17 +77,35 @@ class TTSWebSocketClient:
                     if "audioOutput" in data:
                         audio_data = base64.b64decode(data["audioOutput"]["audio"])
                         
-                        # Check if this is a header
-                        if data["audioOutput"].get("isHeader", False):
-                            print(f"📥 Received WAV header")
-                            self.sample_rate = data["audioOutput"].get("sampleRate", 24000)
-                            self.wav_header = audio_data
+                        # If this is the very first chunk of a new sentence, it contains a WAV header.
+                        if len(current_audio_chunks) == 0 and audio_data.startswith(b'RIFF'):
+                            try:
+                                # Dynamically extract sample rate from the header
+                                with wave.open(io.BytesIO(audio_data), 'rb') as wf:
+                                    self.sample_rate = wf.getframerate()
+                                
+                                # Calculate header size correctly
+                                data_idx = audio_data.find(b'data')
+                                if data_idx != -1:
+                                    header_size = data_idx + 8
+                                    audio_data = audio_data[header_size:]
+                                else:
+                                    # Fallback if chunk was cut off before 'data' marker
+                                    audio_data = audio_data[44:] 
+                                    
+                            except Exception as e:
+                                print(f"⚠️ Error parsing WAV header, using fallback: {e}")
+                                # Fallback to 44 bytes if wave.open fails on a streaming header
+                                audio_data = audio_data[44:]
+
+                        # Initialize stream on first chunk AFTER sample rate is dynamically set
+                        if self.stream is None:
                             self.setup_audio_stream()
-                        else:
-                            # Audio chunk
-                            current_audio_chunks.append(audio_data)
-                            if self.stream:
-                                self.stream.write(audio_data)
+
+                        # Audio chunk
+                        current_audio_chunks.append(audio_data)
+                        if self.stream:
+                            self.stream.write(audio_data)
                     
                     # Handle completion signal
                     if "finalOutput" in data:
@@ -95,7 +113,7 @@ class TTSWebSocketClient:
                             print(f"✅ Audio complete ({len(current_audio_chunks)} chunks received)")
                             self.audio_buffer.extend(current_audio_chunks)
                             current_audio_chunks = []
-                    
+
                 except asyncio.TimeoutError:
                     print("⏱️  Timeout waiting for audio")
                     break
@@ -122,24 +140,29 @@ class TTSWebSocketClient:
             print(f"🔊 Audio stream ready (sample rate: {self.sample_rate}Hz)")
         except Exception as e:
             print(f"Error setting up audio stream: {e}")
-    
+
     def save_audio_to_file(self, filename="output.wav"):
         """Save received audio to a WAV file"""
-        if not self.audio_buffer or not self.wav_header:
+        if not self.audio_buffer:
             print("No audio data to save")
             return
-        
+
+        # Fallback sample rate if somehow not set
+        if not self.sample_rate:
+            self.sample_rate = 24000
+
         try:
             with wave.open(filename, 'wb') as wav_file:
                 wav_file.setnchannels(1)
                 wav_file.setsampwidth(2)
                 wav_file.setframerate(self.sample_rate)
+                # self.audio_buffer now contains pure PCM data
                 wav_file.writeframes(b''.join(self.audio_buffer))
             
             print(f"💾 Audio saved to {filename}")
         except Exception as e:
             print(f"Error saving audio: {e}")
-    
+
     def cleanup(self):
         """Cleanup audio resources"""
         if self.stream:
