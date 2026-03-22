@@ -18,8 +18,11 @@ __all__ = [
     "KokoroEngine", "KokoroVoice",
     "OrpheusEngine", "OrpheusVoice",
     "ZipVoiceEngine", "ZipVoiceVoice",
+    "PocketTTSEngine", "PocketTTSVoice",
+    "NeuTTSEngine", "NeuTTSVoice",
     "CambEngine", "CambVoice",
     "MiniMaxEngine", "MiniMaxVoice",
+    "CartesiaEngine", "CartesiaVoice",
 ]
 
 
@@ -194,6 +197,32 @@ def _load_zipvoice_engine():
     return ZipVoiceEngine
 
 
+def _load_pocket_engine():
+    try:
+        from .engines.pocket_engine import PocketTTSEngine, PocketTTSVoice
+    except ImportError as e:
+        raise ImportError(
+            "Failed to load PocketTTSEngine and PocketTTSVoice. "
+            "Please install with: pip install pocket-tts"
+        ) from e
+    globals()["PocketTTSEngine"] = PocketTTSEngine
+    globals()["PocketTTSVoice"] = PocketTTSVoice
+    return PocketTTSEngine
+
+
+def _load_neutts_engine():
+    try:
+        from .engines.neutts_engine import NeuTTSEngine, NeuTTSVoice
+    except ImportError as e:
+        raise ImportError(
+            "Failed to load NeuTTSEngine and NeuTTSVoice. "
+            "Install NeuTTS from: https://github.com/neuphonic/neutts"
+        ) from e
+    globals()["NeuTTSEngine"] = NeuTTSEngine
+    globals()["NeuTTSVoice"] = NeuTTSVoice
+    return NeuTTSEngine
+
+
 def _load_camb_engine():
     try:
         from .engines.camb_engine import CambEngine, CambVoice
@@ -219,6 +248,20 @@ def _load_minimax_engine():
     globals()["MiniMaxVoice"] = MiniMaxVoice
     return MiniMaxEngine
 
+  
+  def _load_cartesia_engine():
+    try:
+        from .engines.cartesia_engine import CartesiaEngine, CartesiaVoice
+    except ImportError as e:
+        raise ImportError(
+            "Failed to load CartesiaEngine. "
+            "See README for installation instructions."
+        ) from e
+    globals()["CartesiaEngine"] = CartesiaEngine
+    globals()["CartesiaVoice"] = CartesiaVoice
+    return CartesiaEngine
+
+
 # Mapping names to their lazy loader functions.
 _lazy_imports = {
     "SystemEngine": _load_system_engine,
@@ -237,7 +280,7 @@ _lazy_imports = {
     "ParlerVoice": _load_parler_engine,
     "EdgeEngine": _load_edge_engine,
     "EdgeVoice": _load_edge_engine,
-    "StyleTTSEngine": _load_style_engine,
+    "StyleTTSEngine": _load_style_engine, 
     "StyleTTSVoice": _load_style_engine,
     "PiperEngine": _load_piper_engine,
     "PiperVoice": _load_piper_engine,
@@ -247,10 +290,16 @@ _lazy_imports = {
     "OrpheusVoice": _load_orpheus_engine,
     "ZipVoiceEngine": _load_zipvoice_engine,
     "ZipVoiceVoice": _load_zipvoice_engine,
+    "PocketTTSEngine": _load_pocket_engine,
+    "PocketTTSVoice": _load_pocket_engine,
+    "NeuTTSEngine": _load_neutts_engine,
+    "NeuTTSVoice": _load_neutts_engine,
     "CambEngine": _load_camb_engine,
     "CambVoice": _load_camb_engine,
     "MiniMaxEngine": _load_minimax_engine,
     "MiniMaxVoice": _load_minimax_engine,
+    "CartesiaEngine": _load_cartesia_engine,
+    "CartesiaVoice": _load_cartesia_engine,
 }
 
 
