@@ -817,6 +817,14 @@ While the source of this library is open-source, the usage of many of the engine
   <img alt="contributors" src="https://contrib.rocks/image?repo=KoljaB/RealtimeTTS"/>
 </a>
 
+## Audio licensing
+
+Audio samples derived from the EARS dataset by Meta (Facebook Research):
+https://huggingface.co/datasets/facebookresearch/ears_dataset
+
+Licensed under CC BY-NC 4.0:
+https://creativecommons.org/licenses/by-nc/4.0/
+
 ## Author
 
 Kolja Beigel

@@ -20,7 +20,8 @@ __all__ = [
     "CambEngine", "CambVoice",
     "ModelsLabEngine", "ModelsLabVoice",
     "MiniMaxEngine", "MiniMaxVoice",
-    "CartesiaEngine", "CartesiaVoice"
+    "CartesiaEngine", "CartesiaVoice",
+    "FasterQwenEngine", "FasterQwenVoice"
 ]
 
 
@@ -128,6 +129,7 @@ def _load_modelslab_engine():
     globals()["ModelsLabEngine"] = ModelsLabEngine
     globals()["ModelsLabVoice"] = ModelsLabVoice
     return ModelsLabEngine
+
 
 def _load_minimax_engine():
     from .minimax_engine import MiniMaxEngine, MiniMaxVoice

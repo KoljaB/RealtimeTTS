@@ -281,9 +281,7 @@ class AudioStream:
             except Exception as e:
                 print(
                     "Error opening stream with parameters:"
-                    f" format={pyFormat}, channels={pyChannels}, rate={
-                        best_rate
-                    }, output_device_index={pyOutput_device_index}"
+                    f" format={pyFormat}, channels={pyChannels}, rate={best_rate}, output_device_index={pyOutput_device_index}"
                     f"Error message: {e}"
                 )
 
@@ -299,20 +297,12 @@ class AudioStream:
                     print(f"Device Index: {i}")
                     print(f"  Name: {device_info['name']}")
                     print(
-                        f"  Sample Rate (Default): {
-                            device_info['defaultSampleRate']
-                        } Hz"
+                        f"  Sample Rate (Default): {device_info['defaultSampleRate']} Hz"
                     )
-                    print(f"  Max Input Channels: {
-                          device_info['maxInputChannels']}")
-                    print(f"  Max Output Channels: {
-                          device_info['maxOutputChannels']}")
+                    print(f"  Max Input Channels: {device_info['maxInputChannels']}")
+                    print(f"  Max Output Channels: {device_info['maxOutputChannels']}")
                     print(
-                        f"  Host API: {
-                            self.pyaudio_instance.get_host_api_info_by_index(
-                                device_info['hostApi']
-                            )['name']
-                        }"
+                        f"  Host API: {self.pyaudio_instance.get_host_api_info_by_index(device_info['hostApi'])['name']}"
                     )
                     print("\n")
 
@@ -426,11 +416,9 @@ class AudioBufferManager:
             # Log if format is unknown
             if audio_format not in format_bytes:
                 print(
-                    f"Warning: Unknown audio format {
-                        audio_format} (0x{audio_format:x})"
+                    f"Warning: Unknown audio format {audio_format} (0x{audio_format:x})"
                 )
-                print(f"Available formats: {[hex(k)
-                      for k in format_bytes.keys()]}")
+                print(f"Available formats: {[hex(k) for k in format_bytes.keys()]}")
                 format_bytes[audio_format] = 4  # Default to 4 bytes
 
             # Calculate bytes per frame

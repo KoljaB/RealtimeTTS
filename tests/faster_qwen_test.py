@@ -16,16 +16,25 @@ import os
 import time
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.WARN)
+
+COLOR_BLUE   = "\033[94m"
+COLOR_GREEN  = "\033[92m"
+COLOR_YELLOW = "\033[93m"
+COLOR_CYAN   = "\033[96m"
+COLOR_RED    = "\033[91m"
+COLOR_BOLD   = "\033[1m"
+COLOR_RESET  = "\033[0m"
 
 from RealtimeTTS import TextToAudioStream
 from RealtimeTTS import FasterQwenEngine, FasterQwenVoice
 
 # --- CONFIGURATION ---
-REFERENCE_AUDIO = "ref_audio.wav" 
-REFERENCE_TEXT = "In 2013 when the Earth's rotation came to a halt the world called on one man who could make a difference. When it happened again the world called on him once more. Now the one man who made a difference five times before is about to make a difference again. Only this time it's different. Doug Speedman Scorcher six Global Meltdown."
+REFERENCE_AUDIO = "ears_emotional_speaker11/emo_contentment_sentences.wav"
+REFERENCE_TEXT = "I really enjoyed dinner tonight, it was quite nice. Everything is working out just fine. I'm good either way."
 TARGET_LANGUAGE = "English"
-TARGET_EMOTION = "Speak with a very excited and enthusiastic voice."
+TARGET_EMOTION = None  # "Speak with a very excited and enthusiastic voice."
+REFERENCE_PT = "ref_audio.pt"
 
 
 def dummy_generator():
@@ -51,25 +60,26 @@ if __name__ == "__main__":
         ref_audio=REFERENCE_AUDIO,
         ref_text=REFERENCE_TEXT,
         language=TARGET_LANGUAGE,
-        instruct=TARGET_EMOTION
+        instruct=TARGET_EMOTION,
+        speaker_pt=REFERENCE_PT
     )
 
-    print("Loading FasterQwenEngine (this might take a few seconds on the first run)...")
+    print("Loading FasterQwenEngine (takes a few seconds, or even minutes, esp if on the first run)...")
     # Initialize the engine (0.6B model is great for tests due to speed and lower VRAM)
     engine = FasterQwenEngine(
         model_name="Qwen/Qwen3-TTS-12Hz-0.6B-Base",
         device="cuda",
         voice=my_voice,
-        chunk_size=8,        # 8 steps ≈ 667ms audio chunks. Lower = faster TTFA but more overhead
+        chunk_size=4,        # 8 steps ≈ 667ms audio chunks. Lower = faster TTFA but more overhead
         xvec_only=True,      # True = cleaner language switching & lower latency (Speaker embedding only)
-        # debug=True           # Enable debug to see the TTFA metrics print out
+        debug=True           # Enable debug to see the TTFA metrics print out
     )
 
     print(f"Using voice clone reference: {REFERENCE_AUDIO}")
     print("Starting playback stream...")
     
     start_time = time.time()
-
+    
     def on_audio_stream_start():
         delta = time.time() - start_time
         print(f"\n<TTFA - Time To First Audio> {delta:.3f}s")
@@ -80,8 +90,17 @@ if __name__ == "__main__":
         on_audio_stream_start=on_audio_stream_start,
     )
 
+    print(f"{COLOR_BLUE}START of playout.{COLOR_RESET}")
+
     # Feed the generator and play the audio
-    stream.feed(dummy_generator()).play(log_synthesized_text=True)
+    stream.feed(dummy_generator()).play(
+        log_synthesized_text=True,
+        comma_silence_duration=0.15,
+        sentence_silence_duration=0.3,
+        default_silence_duration=0.3,
+    )
+
+    print(f"{COLOR_BLUE}FINISH of playout.{COLOR_RESET}")
 
     # Cleanup
     engine.shutdown()
