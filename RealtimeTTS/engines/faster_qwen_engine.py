@@ -130,6 +130,7 @@ class FasterQwenEngine(BaseEngine):
         self.queue = Queue()
         self.current_voice = None
         self._model = None
+        self._is_warmed_up = False
 
         # Load the underlying model once
         if self.debug:
@@ -228,6 +229,9 @@ class FasterQwenEngine(BaseEngine):
         if not self.current_voice:
             return
 
+        if self._is_warmed_up:
+            return
+
         if self.debug:
             print(f"{COLOR_YELLOW}🛠️  [FasterQwenEngine] Capturing CUDA Graphs (one‑time warmup)...{COLOR_RESET}", end="", flush=True)
 
@@ -257,6 +261,9 @@ class FasterQwenEngine(BaseEngine):
         except Exception as e:
             if self.debug:
                 print(f"\n{COLOR_RED}❌ Warmup failed: {e}{COLOR_RESET}")
+
+        self._is_warmed_up = True
+
 
     def get_stream_info(self) -> Tuple[int, int, int]:
         """

@@ -32,7 +32,7 @@ https://github.com/KoljaB/RealtimeTTS/assets/7604638/87dcd9a5-3a4e-4f57-be45-837
 - **High-Quality Audio**
   - generates clear and natural-sounding speech
 - **Multiple TTS Engine Support**
-  - supports OpenAI TTS, Elevenlabs, Azure Speech Services, Coqui TTS, StyleTTS2, Piper, gTTS, Edge TTS, Parler TTS, Kokoro, CAMB AI, MiniMax and System TTS
+  - supports OpenAI TTS, Elevenlabs, Azure Speech Services, Coqui TTS, StyleTTS2, Piper, gTTS, Edge TTS, Parler TTS, Kokoro, Cartesia, Faster Qwen 3, NeuTTS, PocketTTS, Modelslab, CAMB AI, MiniMax and System TTS
 - **Multilingual**
 - **Robust and Reliable**:
   - ensures continuous operation through a fallback mechanism
