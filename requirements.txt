@@ -34,6 +34,9 @@ snac>=1.2.1
 # faster-qwen3-tts is for FasterQwenEngine
 faster-qwen3-tts>=0.2.4
 
+# camb-sdk is for CambEngine
+camb-sdk==1.5.8
+
 # fugashi is to support japanese language for KokoroEngine
 fugashi>=1.5.2
 jaconv>=0.5.0
