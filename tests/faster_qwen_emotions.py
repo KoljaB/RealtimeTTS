@@ -6,29 +6,29 @@ FasterQwen3-TTS test for RealtimeTTS.
 
 ## Prerequisites:
 - Python 3.11.9 (other 3.11 versions might work but this is the one I tested with)
-- CUDA toolkit
+- CUDA toolkit installed
 
-## Virtual environment with torch:
-    ```bash
-	py -3.11 -m venv test_env
-	call test_env\Scripts\activate.bat
-	python -m pip install --upgrade pip
-	pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128
-	python -c "import torch; print('CUDA:', torch.cuda.is_available())"
-    ```
+## Create virtual environment and install torch there:
+```bash
+    py -3.11 -m venv test_env
+    call test_env\Scripts\activate.bat
+    python -m pip install --upgrade pip
+    pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128
+    python -c "import torch; print('CUDA:', torch.cuda.is_available())"
+```
 
-## Install RealtimeTTS with the qwen extra:
-    ```bash
-	git clone https://github.com/KoljaB/RealtimeTTS.git
-	cd RealtimeTTS
-	pip install -e .[qwen]
-    ```
+## Install RealtimeTTS with the qwen extra dependency:
+```bash
+    git clone https://github.com/KoljaB/RealtimeTTS.git
+    cd RealtimeTTS
+    pip install -e .[qwen]
+```
 
 ## Start the test:
-    ```bash
+```bash
     cd tests
     python faster_qwen_emotions.py
-    ```
+```
 """
 
 import logging
