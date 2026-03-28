@@ -2,16 +2,33 @@
 """
 FasterQwen3-TTS test for RealtimeTTS.
 
-What this version does:
-- loads the engine without a voice first
-- prepares every emotion voice up front
-- extracts and caches one .pt file per emotion
-- warms up once before playback starts
-- switches voices between sentences during playback
-- uses a matching instruct string per emotion
+# How to setup
 
-Requirements:
-    pip install faster-qwen3-tts torch
+## Prerequisites:
+- Python 3.11.9 (other 3.11 versions might work but this is the one I tested with)
+- CUDA toolkit
+
+## Virtual environment with torch:
+    ```bash
+	py -3.11 -m venv test_env
+	call test_env\Scripts\activate.bat
+	python -m pip install --upgrade pip
+	pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128
+	python -c "import torch; print('CUDA:', torch.cuda.is_available())"
+    ```
+
+## Install RealtimeTTS with the qwen extra:
+    ```bash
+	git clone https://github.com/KoljaB/RealtimeTTS.git
+	cd RealtimeTTS
+	pip install -e .[qwen]
+    ```
+
+## Start the test:
+    ```bash
+    cd tests
+    python faster_qwen_emotions.py
+    ```
 """
 
 import logging
