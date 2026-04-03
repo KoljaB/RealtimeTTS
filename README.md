@@ -57,6 +57,8 @@ The documentation for **RealtimeTTS** is available in the following languages:
 - **[Japanese](https://koljab.github.io/RealtimeTTS/ja/)**
 - **[Hindi](https://koljab.github.io/RealtimeTTS/hi/)**
 - **[Korean](https://koljab.github.io/RealtimeTTS/ko/)**
+- **[Portuguese](https://koljab.github.io/RealtimeTTS/pt/)**
+- **[Russian](https://koljab.github.io/RealtimeTTS/ru/)**
 
 ---
 
