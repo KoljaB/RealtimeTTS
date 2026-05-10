@@ -12,11 +12,6 @@ fall back across multiple engines.
 The project supports a broad engine matrix: local system voices, cloud APIs,
 free service wrappers, local neural models, and voice-cloning stacks.
 
-## Project Status
-
-RealtimeTTS is community-driven. Focused pull requests are welcome, while
-maintainer availability for new features and support may be limited.
-
 ## Install
 
 For the fastest local smoke test, install the system engine:

@@ -1,4 +1,4 @@
-current_version = "0.7.0"
+current_version = "0.7.1"
 
 import setuptools
 import re

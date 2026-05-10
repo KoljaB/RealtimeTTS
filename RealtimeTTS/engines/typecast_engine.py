@@ -130,16 +130,19 @@ class TypecastEngine(BaseEngine):
         """
         return pyaudio.paInt16, 1, 44100
 
-    def synthesize(self, text: str) -> bool:
+    def synthesize(self, text: str, sentence_count: int = 0) -> bool:
         """
         Synthesizes text to audio using the typecast-python SDK and streams to queue.
 
         Args:
             text (str): Text to synthesize.
+            sentence_count (int): The count of sentences synthesized so far.
 
         Returns:
             bool: True on success, False on failure.
         """
+        super().synthesize(text, sentence_count)
+
         from typecast.models import TTSRequest, TTSModel, Output
 
         if not self.voice_id:
