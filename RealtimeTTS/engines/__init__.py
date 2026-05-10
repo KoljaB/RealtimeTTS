@@ -24,6 +24,11 @@ __all__ = [
     "FasterQwenEngine", "FasterQwenVoice",
     "OmniVoiceEngine", "OmniVoiceVoice",
     "TypecastEngine", "TypecastVoice",
+    "LuxTTSEngine", "LuxTTSVoice",
+    "ChatterboxEngine", "ChatterboxVoice",
+    "SoproTTSEngine", "SoproTTSVoice",
+    "SopranoEngine", "SopranoVoice",
+    "MossTTSEngine", "MossTTSVoice",
 ]
 
 
@@ -181,6 +186,41 @@ def _load_typecast_engine():
     globals()["TypecastVoice"] = TypecastVoice
     return TypecastEngine
 
+
+def _load_luxtts_engine():
+    from .luxtts_engine import LuxTTSEngine, LuxTTSVoice
+    globals()["LuxTTSEngine"] = LuxTTSEngine
+    globals()["LuxTTSVoice"] = LuxTTSVoice
+    return LuxTTSEngine
+
+
+def _load_chatterbox_engine():
+    from .chatterbox_engine import ChatterboxEngine, ChatterboxVoice
+    globals()["ChatterboxEngine"] = ChatterboxEngine
+    globals()["ChatterboxVoice"] = ChatterboxVoice
+    return ChatterboxEngine
+
+
+def _load_sopro_engine():
+    from .sopro_engine import SoproTTSEngine, SoproTTSVoice
+    globals()["SoproTTSEngine"] = SoproTTSEngine
+    globals()["SoproTTSVoice"] = SoproTTSVoice
+    return SoproTTSEngine
+
+
+def _load_soprano_engine():
+    from .soprano_engine import SopranoEngine, SopranoVoice
+    globals()["SopranoEngine"] = SopranoEngine
+    globals()["SopranoVoice"] = SopranoVoice
+    return SopranoEngine
+
+
+def _load_moss_tts_engine():
+    from .moss_tts_engine import MossTTSEngine, MossTTSVoice
+    globals()["MossTTSEngine"] = MossTTSEngine
+    globals()["MossTTSVoice"] = MossTTSVoice
+    return MossTTSEngine
+
 # Map attribute names to lazy loader functions.
 _lazy_imports = {
     "AzureEngine": _load_azure_engine,
@@ -227,6 +267,16 @@ _lazy_imports = {
     "OmniVoiceVoice": _load_omni_voice_engine,
     "TypecastEngine": _load_typecast_engine,
     "TypecastVoice": _load_typecast_engine,
+    "LuxTTSEngine": _load_luxtts_engine,
+    "LuxTTSVoice": _load_luxtts_engine,
+    "ChatterboxEngine": _load_chatterbox_engine,
+    "ChatterboxVoice": _load_chatterbox_engine,
+    "SoproTTSEngine": _load_sopro_engine,
+    "SoproTTSVoice": _load_sopro_engine,
+    "SopranoEngine": _load_soprano_engine,
+    "SopranoVoice": _load_soprano_engine,
+    "MossTTSEngine": _load_moss_tts_engine,
+    "MossTTSVoice": _load_moss_tts_engine,
 }
 
 

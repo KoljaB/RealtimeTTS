@@ -19,6 +19,9 @@ gtts>=2.5.4
 # openai is for OpenAIEngine
 openai>=2.29.0
 
+# requests is for MiniMaxEngine and ModelsLabEngine
+requests>=2.32.0
+
 # pyttsx3 is for SystemEngine
 pyttsx3>=2.99
 
@@ -43,12 +46,47 @@ omnivoice>=0.1.1
 # typecast-python is for TypecastEngine
 typecast-python>=0.2.0
 
+# chatterbox-tts is for ChatterboxEngine
+chatterbox-tts
+
+# neutts is for NeuTTSEngine
+neutts
+
+# pocket-tts is for PocketTTSEngine
+pocket-tts
+
+# soprano-tts is for SopranoEngine
+soprano-tts>=0.2.0
+
+# sopro is for SoproTTSEngine
+sopro>=1.5.0
+
+# Shared neural engine dependencies used by ZipVoice, LuxTTS, StyleTTS, Parler, PocketTTS, and MOSS-TTS
+torch
+torchaudio
+numpy
+soundfile>=0.13.1
+huggingface-hub>=0.36.0
+safetensors
+vocos
+librosa
+nltk
+munch
+PyYAML
+phonemizer
+transformers
+onnxruntime
+inflect
+lhotse
+piper_phonemize
+tensorboard
+
 # fugashi is to support japanese language for KokoroEngine
 fugashi>=1.5.2
 jaconv>=0.5.0
 mojimoji>=0.0.13
 pyopenjtalk>=0.4.1
-unidic-lite=>1.0.8
+unidic-lite>=1.0.8
 
 # pypinyin is to support chinese language for KokoroEngine
 pypinyin>=0.55.0

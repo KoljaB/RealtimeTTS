@@ -6,6 +6,7 @@ theme:
     - navigation.instant
     - navigation.top
     - navigation.tabs
+
 plugins:
   - i18n:
       default_language: en
@@ -13,108 +14,74 @@ plugins:
         - locale: en
           name: English
           build: true
-          default: true  # Added default: true for English
-        - locale: fr
-          name: Français
+          default: true
+        - locale: ar
+          name: Arabic
+          build: true
+        - locale: de
+          name: German
           build: true
         - locale: es
-          name: Español
-          build: true  
-        - locale: de  
-          name: Deutsch  
-          build: true  
-        - locale: it  
-          name: Italiano
-          build: true  
-        - locale: zh  
-          name: 中文
-          build: true  
-        - locale: ja  
-          name: 日本語  
-          build: true  
-        - locale: hi  
-          name: हिंदी  
-          build: true 
-        - locale: ko  
-          name: 한국어  
-          build: true  
-        - locale: pt  
-          name: Português
-          build: true 
-        - locale: ru  
-          name: Русский
-          build: true  
+          name: Spanish
+          build: true
+        - locale: fr
+          name: French
+          build: true
+        - locale: hi
+          name: Hindi
+          build: true
+        - locale: it
+          name: Italian
+          build: true
+        - locale: ja
+          name: Japanese
+          build: true
+        - locale: ko
+          name: Korean
+          build: true
+        - locale: pt
+          name: Portuguese
+          build: true
+        - locale: ru
+          name: Russian
+          build: true
+        - locale: zh
+          name: Chinese
+          build: true
 
 nav:
-  - Home: 
-    - English: en/index.md
-    - Français: fr/index.md
-    - Español: es/index.md  
-    - Deutsch: de/index.md  
-    - Italiano: it/index.md  
-    - 中文: zh/index.md  
-    - 日本語: ja/index.md  
-    - हिंदी: hi/index.md  
-    - 한국어: ko/index.md  
-    - Português: pt/index.md 
-    - Русский: ru/index.md  
-  - Installation: 
-    - English: en/installation.md
-    - Français: fr/installation.md
-    - Español: es/installation.md  
-    - Deutsch: de/installation.md  
-    - Italiano: it/installation.md  
-    - 中文: zh/installation.md  
-    - 日本語: ja/installation.md  
-    - हिंदी: hi/installation.md  
-    - 한국어: ko/installation.md  
-    - Português: pt/installation.md
-    - Русский: ru/installation.md 
-  - Usage: 
-    - English: en/usage.md
-    - Français: fr/usage.md
-    - Español: es/usage.md  
-    - Deutsch: de/usage.md  
-    - Italiano: it/usage.md  
-    - 中文: zh/usage.md  
-    - 日本語: ja/usage.md  
-    - हिंदी: hi/usage.md  
-    - 한국어: ko/usage.md  
-    - Português: pt/usage.md 
-    - Русский: ru/usage.md 
-  - API Reference: 
-    - English: en/api.md
-    - Français: fr/api.md
-    - Español: es/api.md  
-    - Deutsch: de/api.md  
-    - Italiano: it/api.md 
-    - 中文: zh/api.md  
-    - 日本語: ja/api.md  
-    - हिंदी: hi/api.md  
-    - 한국어: ko/api.md  
-    - Português: pt/api.md  
-    - Русский: ru/api.md  
-  - Contributing: 
-    - English: en/contributing.md
-    - Français: fr/contributing.md
-    - Español: es/contributing.md  
-    - Deutsch: de/contributing.md 
-    - Italiano: it/contributing.md  
-    - 中文: zh/contributing.md  
-    - 日本語: ja/contributing.md  
-    - हिंदी: hi/contributing.md  
-    - 한국어: ko/contributing.md  
-    - Português: pt/contributing.md
-    - Русский: ru/contributing.md  
-  - FAQ: 
-    - English: en/faq.md
-    - Français: fr/faq.md
-    - Español: es/faq.md  
-    - Deutsch: de/faq.md  
-    - Italiano: it/faq.md  
-    - 中文: zh/faq.md  
-    - 日本語: ja/faq.md  
-    - हिंदी: hi/faq.md  
-    - 한국어: ko/faq.md  
-    - Português: pt/faq.md  
-    - Русский: ru/faq.md  
+  - Home: index.md
+  - Quick Start: quick-start.md
+  - Installation: installation.md
+  - Engine Selection: engine-selection.md
+  - Engine Setups:
+      - System: engines/system.md
+      - gTTS: engines/gtts.md
+      - Edge: engines/edge.md
+      - OpenAI: engines/openai.md
+      - Azure: engines/azure.md
+      - ElevenLabs: engines/elevenlabs.md
+      - CAMB: engines/camb.md
+      - MiniMax: engines/minimax.md
+      - Cartesia: engines/cartesia.md
+      - Typecast: engines/typecast.md
+      - ModelsLab: engines/modelslab.md
+      - Coqui: engines/coqui.md
+      - Piper: engines/piper.md
+      - StyleTTS: engines/styletts.md
+      - Parler: engines/parler.md
+      - Kokoro: engines/kokoro.md
+      - Orpheus: engines/orpheus.md
+      - Faster Qwen: engines/faster-qwen.md
+      - OmniVoice: engines/omnivoice.md
+      - PocketTTS: engines/pockettts.md
+      - NeuTTS: engines/neutts.md
+      - ZipVoice: engines/zipvoice.md
+      - LuxTTS: engines/luxtts.md
+      - Chatterbox: engines/chatterbox.md
+      - SoproTTS: engines/sopro.md
+      - Soprano: engines/soprano.md
+      - MOSS-TTS: engines/moss-tts.md
+  - Feed And Playback: feed-and-playback.md
+  - LLM Streaming: llm-streaming.md
+  - Output And Files: output-and-files.md

@@ -1,5 +1,6 @@
 import sys
 import os
+import hashlib
 import torch
 import torchaudio
 import numpy as np
@@ -38,6 +39,8 @@ class ZipVoiceEngine(BaseEngine):
     This engine uses the ZipVoice model to synthesize speech based on a voice prompt.
     It caches extracted voice features to disk for faster subsequent runs.
     """
+    _CACHE_VERSION = 2
+
     def __init__(self,
                  zipvoice_root: str,
                  voice: ZipVoiceVoice,
@@ -109,6 +112,7 @@ class ZipVoiceEngine(BaseEngine):
         self.zipvoice_root = zipvoice_root.replace("\\", "/")
         if not os.path.isdir(self.zipvoice_root):
             raise NotADirectoryError(f"zipvoice_root is not a valid directory: {self.zipvoice_root}")
+        print(f"Adding '{self.zipvoice_root}' to sys.path for ZipVoice imports.")
         sys.path.insert(0, os.path.abspath(self.zipvoice_root))
 
         # 2. Import dependencies now that the path is set
@@ -171,7 +175,11 @@ class ZipVoiceEngine(BaseEngine):
             "emilia": EmiliaTokenizer, "libritts": LibriTTSTokenizer,
             "espeak": EspeakTokenizer, "simple": SimpleTokenizer
         }
-        self.tokenizer = tokenizer_map[tokenizer_type](token_file=token_file_path,**({"language": lang} if tokenizer_type == "espeak" else {}))
+
+        self.tokenizer = tokenizer_map[tokenizer_type](
+            token_file=token_file_path,
+            **({"language": language} if tokenizer_type == "espeak" else {})
+        )
         tokenizer_config = {"vocab_size": self.tokenizer.vocab_size, "pad_id": self.tokenizer.pad_id}
 
         model_ckpt_path = hf_hub_download(HUGGINGFACE_REPO, filename=PRETRAINED_MODEL_PATHS[self.model_name]) if checkpoint is None else checkpoint
@@ -200,6 +208,60 @@ class ZipVoiceEngine(BaseEngine):
         self._prepare_voice_prompt(self.voice)
         logging.info("ZipVoiceEngine initialized successfully.")
 
+    @staticmethod
+    def _file_sha256(path: str) -> str:
+        digest = hashlib.sha256()
+        with open(path, "rb") as handle:
+            for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+                digest.update(chunk)
+        return digest.hexdigest()
+
+    @staticmethod
+    def _safe_cache_stem(path: str) -> str:
+        stem = os.path.splitext(os.path.basename(path))[0]
+        safe_stem = "".join(
+            char if char.isalnum() or char in "._-" else "_"
+            for char in stem
+        ).strip("._")
+        return safe_stem or "prompt"
+
+    def _prompt_cache_metadata(self, voice: ZipVoiceVoice):
+        prompt_path = os.path.abspath(voice.prompt_wav_path)
+        prompt_stat = os.stat(prompt_path)
+        return {
+            "cache_version": self._CACHE_VERSION,
+            "prompt_path": os.path.normcase(prompt_path),
+            "prompt_size": prompt_stat.st_size,
+            "prompt_mtime_ns": getattr(
+                prompt_stat,
+                "st_mtime_ns",
+                int(prompt_stat.st_mtime * 1_000_000_000),
+            ),
+            "prompt_sha256": self._file_sha256(prompt_path),
+            "prompt_text": voice.prompt_text,
+            "target_rms": float(self.target_rms),
+            "feat_scale": float(self.feat_scale),
+            "sampling_rate": int(self.sampling_rate),
+        }
+
+    def _prompt_cache_path(self, cache_dir: str, voice: ZipVoiceVoice):
+        metadata = self._prompt_cache_metadata(voice)
+        identity_json = json.dumps(metadata, sort_keys=True, separators=(",", ":"))
+        identity_hash = hashlib.sha256(identity_json.encode("utf-8")).hexdigest()
+        cache_filename = "%s-%s.pt" % (
+            self._safe_cache_stem(voice.prompt_wav_path),
+            identity_hash[:16],
+        )
+        return os.path.join(cache_dir, cache_filename), metadata
+
+    @staticmethod
+    def _cache_metadata_matches(cached_data, expected_metadata) -> bool:
+        if not isinstance(cached_data, dict):
+            return False
+        if "features" not in cached_data or "lens" not in cached_data:
+            return False
+        return cached_data.get("metadata") == expected_metadata
+
     def _prepare_voice_prompt(self, voice: ZipVoiceVoice):
         """
         Extracts features from a voice prompt, using a cache if available.
@@ -208,16 +270,29 @@ class ZipVoiceEngine(BaseEngine):
         cache_dir = "zipvoice_voices"
         os.makedirs(cache_dir, exist_ok=True)
 
-        # Generate a unique filename for the cache from the prompt wav path
-        cache_filename = os.path.basename(voice.prompt_wav_path).replace('.wav', '.pt')
-        cache_path = os.path.join(cache_dir, cache_filename)
+        cache_path, cache_metadata = self._prompt_cache_path(cache_dir, voice)
+        legacy_cache_path = os.path.join(
+            cache_dir,
+            "%s.pt" % os.path.splitext(os.path.basename(voice.prompt_wav_path))[0],
+        )
+        if os.path.exists(legacy_cache_path) and legacy_cache_path != cache_path:
+            logging.info(
+                "Ignoring legacy ZipVoice prompt cache at %s; cache keys now "
+                "include prompt audio identity, transcript, target_rms, and feat_scale.",
+                legacy_cache_path,
+            )
 
         if os.path.exists(cache_path):
             logging.info(f"Loading cached prompt features from {cache_path}")
             cached_data = torch.load(cache_path, map_location=self.device)
-            self.current_prompt_features = cached_data['features']
-            self.current_prompt_features_lens = cached_data['lens']
-            return
+            if self._cache_metadata_matches(cached_data, cache_metadata):
+                self.current_prompt_features = cached_data['features']
+                self.current_prompt_features_lens = cached_data['lens']
+                return
+            logging.info(
+                "Ignoring stale ZipVoice prompt cache at %s; metadata did not match.",
+                cache_path,
+            )
 
         logging.info(f"No cache found for '{voice.prompt_wav_path}'. Extracting and caching new features.")
         prompt_wav, prompt_sampling_rate = torchaudio.load(voice.prompt_wav_path)
@@ -239,7 +314,11 @@ class ZipVoiceEngine(BaseEngine):
         self.current_prompt_features_lens = prompt_features_lens
 
         logging.info(f"Saving prompt features to {cache_path}")
-        data_to_cache = {'features': self.current_prompt_features, 'lens': self.current_prompt_features_lens}
+        data_to_cache = {
+            'features': self.current_prompt_features,
+            'lens': self.current_prompt_features_lens,
+            'metadata': cache_metadata,
+        }
         torch.save(data_to_cache, cache_path)
 
     def post_init(self):

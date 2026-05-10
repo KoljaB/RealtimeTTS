@@ -26,6 +26,11 @@ __all__ = [
     "FasterQwenEngine", "FasterQwenVoice",
     "OmniVoiceEngine", "OmniVoiceVoice",
     "TypecastEngine", "TypecastVoice",
+    "LuxTTSEngine", "LuxTTSVoice",
+    "ChatterboxEngine", "ChatterboxVoice",
+    "SoproTTSEngine", "SoproTTSVoice",
+    "SopranoEngine", "SopranoVoice",
+    "MossTTSEngine", "MossTTSVoice",
 ]
 
 
@@ -303,6 +308,72 @@ def _load_typecast_engine():
     globals()["TypecastVoice"] = TypecastVoice
     return TypecastEngine
 
+
+def _load_luxtts_engine():
+    try:
+        from .engines.luxtts_engine import LuxTTSEngine, LuxTTSVoice
+    except ImportError as e:
+        raise ImportError(
+            "Failed to load LuxTTSEngine and LuxTTSVoice. "
+            "Install LuxTTS from https://github.com/ysharma3501/LuxTTS "
+            "or pass lux_root to the local LuxTTS checkout."
+        ) from e
+    globals()["LuxTTSEngine"] = LuxTTSEngine
+    globals()["LuxTTSVoice"] = LuxTTSVoice
+    return LuxTTSEngine
+
+
+def _load_chatterbox_engine():
+    try:
+        from .engines.chatterbox_engine import ChatterboxEngine, ChatterboxVoice
+    except ImportError as e:
+        raise ImportError(
+            "Failed to load ChatterboxEngine and ChatterboxVoice. "
+            "Install Chatterbox Turbo with: pip install chatterbox-tts"
+        ) from e
+    globals()["ChatterboxEngine"] = ChatterboxEngine
+    globals()["ChatterboxVoice"] = ChatterboxVoice
+    return ChatterboxEngine
+
+
+def _load_sopro_engine():
+    try:
+        from .engines.sopro_engine import SoproTTSEngine, SoproTTSVoice
+    except ImportError as e:
+        raise ImportError(
+            "Failed to load SoproTTSEngine and SoproTTSVoice. "
+            "Install SoproTTS with: pip install sopro"
+        ) from e
+    globals()["SoproTTSEngine"] = SoproTTSEngine
+    globals()["SoproTTSVoice"] = SoproTTSVoice
+    return SoproTTSEngine
+
+
+def _load_soprano_engine():
+    try:
+        from .engines.soprano_engine import SopranoEngine, SopranoVoice
+    except ImportError as e:
+        raise ImportError(
+            "Failed to load SopranoEngine and SopranoVoice. "
+            "Install SopranoTTS with: pip install soprano-tts"
+        ) from e
+    globals()["SopranoEngine"] = SopranoEngine
+    globals()["SopranoVoice"] = SopranoVoice
+    return SopranoEngine
+
+
+def _load_moss_tts_engine():
+    try:
+        from .engines.moss_tts_engine import MossTTSEngine, MossTTSVoice
+    except ImportError as e:
+        raise ImportError(
+            "Failed to load MossTTSEngine and MossTTSVoice. "
+            "Install MOSS-TTS-Nano from https://github.com/OpenMOSS/MOSS-TTS-Nano"
+        ) from e
+    globals()["MossTTSEngine"] = MossTTSEngine
+    globals()["MossTTSVoice"] = MossTTSVoice
+    return MossTTSEngine
+
 # Mapping names to their lazy loader functions.
 _lazy_imports = {
     "SystemEngine": _load_system_engine,
@@ -347,6 +418,16 @@ _lazy_imports = {
     "OmniVoiceVoice": _load_omni_voice_engine,
     "TypecastEngine": _load_typecast_engine,
     "TypecastVoice": _load_typecast_engine,
+    "LuxTTSEngine": _load_luxtts_engine,
+    "LuxTTSVoice": _load_luxtts_engine,
+    "ChatterboxEngine": _load_chatterbox_engine,
+    "ChatterboxVoice": _load_chatterbox_engine,
+    "SoproTTSEngine": _load_sopro_engine,
+    "SoproTTSVoice": _load_sopro_engine,
+    "SopranoEngine": _load_soprano_engine,
+    "SopranoVoice": _load_soprano_engine,
+    "MossTTSEngine": _load_moss_tts_engine,
+    "MossTTSVoice": _load_moss_tts_engine,
 }
 
 
