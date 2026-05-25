@@ -1,13 +1,12 @@
 .gitignore
 _open_cmd.bat
-docs/
 examples/
 batch/
 test_env/
 tests_private/
 tests_hindi/
-docs/
 docs_private/
+roadmap/
 env_realtimetts/
 example_rvc/assets/
 package_backups/
@@ -139,6 +138,8 @@ celerybeat.pid
 # Environments
 .env
 .venv
+.venvs/
+.deps/
 env/
 myenv/
 venv/

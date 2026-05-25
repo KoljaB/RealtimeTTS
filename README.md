@@ -12,6 +12,18 @@ fall back across multiple engines.
 The project supports a broad engine matrix: local system voices, cloud APIs,
 free service wrappers, local neural models, and voice-cloning stacks.
 
+### Support RealtimeTTS
+
+If RealtimeTTS saved you time, one GitHub star is a simple way to help make it
+more stable.
+
+Stars improve visibility, and visibility brings more users, more real-world
+testing, more bug reports, more fixes, and better releases for everyone.
+
+## Demo
+
+https://github.com/KoljaB/RealtimeTTS/assets/7604638/87dcd9a5-3a4e-4f57-be45-837fc63237e7
+
 ## Install
 
 For the fastest local smoke test, install the system engine:

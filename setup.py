@@ -1,4 +1,4 @@
-current_version = "0.7.1"
+current_version = "0.7.2"
 
 import setuptools
 import re
@@ -69,8 +69,6 @@ def parse_requirements(filename):
 
 
 requirements = parse_requirements("requirements.txt")
-
-print("Requirements:", requirements)
 
 # Define all requirements
 all_requirements = list(requirements.values())

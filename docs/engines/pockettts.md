@@ -43,6 +43,15 @@ engine = PocketTTSEngine(voice=voice)
 - Voice states are cached by voice name and prompt path.
 - Output is mono 16-bit PCM at the model sample rate, falling back to 24000 Hz.
 
+## Runtime Notes
+
+`PocketTTSEngine` keeps Pocket model work on a persistent synthesis worker and
+patches Pocket's short-text streaming path to decode serially. This avoids a
+Windows/Torch CPU memory-retention issue observed when repeated short
+generations create fresh synthesis and decoder threads. The public
+`TextToAudioStream` API remains unchanged; the worker is an internal engine
+detail and is stopped by `shutdown()`.
+
 ## Troubleshooting
 
 - `pocket-tts is not installed`: install `pocket-tts` in the active environment.
