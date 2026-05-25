@@ -1,4 +1,6 @@
 import numpy as np
+import sys
+import types
 
 from RealtimeTTS.engines.pocket_engine import PocketTTSEngine, PocketTTSVoice
 
@@ -46,3 +48,41 @@ def test_pocket_engine_shutdown_stops_worker(monkeypatch):
 
     assert not worker.is_alive()
     assert engine.model is None
+
+
+def test_pocket_engine_loads_model_on_requested_device(monkeypatch):
+    loaded_models = []
+
+    class FakeModel:
+        sample_rate = 24000
+
+        def __init__(self):
+            self.moved_to = None
+
+        def to(self, device):
+            self.moved_to = device
+            return self
+
+    class FakeTTSModel:
+        @classmethod
+        def load_model(cls, **kwargs):
+            model = FakeModel()
+            loaded_models.append((kwargs, model))
+            return model
+
+    fake_pocket_tts = types.SimpleNamespace(TTSModel=FakeTTSModel)
+    monkeypatch.setitem(sys.modules, "pocket_tts", fake_pocket_tts)
+    monkeypatch.setattr(PocketTTSEngine, "set_voice", lambda self, voice: None)
+
+    engine = PocketTTSEngine(
+        voice="alba",
+        model_config="custom.yaml",
+        device="cuda",
+    )
+    try:
+        kwargs, model = loaded_models[0]
+        assert kwargs == {"config": "custom.yaml"}
+        assert model.moved_to == "cuda"
+        assert engine.sample_rate == 24000
+    finally:
+        engine.shutdown()

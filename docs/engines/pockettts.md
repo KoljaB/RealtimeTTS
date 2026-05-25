@@ -33,13 +33,40 @@ voice = PocketTTSVoice(name="custom", audio_prompt_path="reference.wav")
 engine = PocketTTSEngine(voice=voice)
 ```
 
+## CPU and GPU
+
+PocketTTS is CPU-oriented, and `PocketTTSEngine` runs on CPU by default:
+
+```python
+engine = PocketTTSEngine(voice="alba")
+```
+
+This is equivalent to:
+
+```python
+engine = PocketTTSEngine(voice="alba", device="cpu")
+```
+
+To try CUDA, install a CUDA-enabled PyTorch build first, then pass a CUDA device:
+
+```python
+engine = PocketTTSEngine(voice="alba", device="cuda")
+```
+
+You can also use a concrete device such as `device="cuda:0"`. If CUDA is not
+available in the active PyTorch install, initialization fails from PyTorch; use
+`device="cpu"` in that environment. Voice states are created after the model is
+moved to the selected device, so built-in voices and cloned voices use the same
+device.
+
 ## Source Notes
 
 - Built-in source voices are `alba`, `marius`, `javert`, `jean`, `fantine`,
   `cosette`, `eponine`, and `azelma`.
 - `PocketTTSVoice(name, audio_prompt_path=None)` treats a built-in name without
   a prompt as a built-in voice.
-- The model is loaded with `TTSModel.load_model()`.
+- The model is loaded with `TTSModel.load_model()` and then moved to the
+  selected Torch device.
 - Voice states are cached by voice name and prompt path.
 - Output is mono 16-bit PCM at the model sample rate, falling back to 24000 Hz.
 

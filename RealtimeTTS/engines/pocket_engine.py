@@ -170,6 +170,7 @@ class PocketTTSEngine(BaseEngine):
         max_tokens: int = 50,
         frames_after_eos: Optional[int] = None,
         model_config: Optional[str] = None,
+        device: str = "cpu",
         voice_cache_dir: Optional[str] = None,
         cache_voice_states: bool = True,
         debug: bool = False
@@ -188,6 +189,7 @@ class PocketTTSEngine(BaseEngine):
             streaming: Whether to use Pocket TTS' streaming generator
             max_tokens: Maximum generation tokens passed to Pocket TTS
             frames_after_eos: Optional trailing frames after EOS for Pocket TTS
+            device: Torch device for the Pocket TTS model, for example "cpu" or "cuda"
             debug: Enable debug output
         """
         super().__init__()
@@ -206,6 +208,7 @@ class PocketTTSEngine(BaseEngine):
         self.max_tokens = max_tokens
         self.frames_after_eos = frames_after_eos
         self.model_config = model_config
+        self.device = device
         self.voice_cache_dir = Path(voice_cache_dir) if voice_cache_dir else None
         self.cache_voice_states = cache_voice_states
 
@@ -275,10 +278,15 @@ class PocketTTSEngine(BaseEngine):
                 self.model = TTSModel.load_model(config=str(model_config))
             else:
                 self.model = TTSModel.load_model()
+            if self.device:
+                self.model.to(self.device)
             self.sample_rate = self.model.sample_rate
 
             if self.debug:
-                print(f"[PocketTTSEngine] Model loaded. Sample rate: {self.sample_rate}")
+                print(
+                    f"[PocketTTSEngine] Model loaded on {self.device}. "
+                    f"Sample rate: {self.sample_rate}"
+                )
 
         except ImportError:
             raise ImportError(
