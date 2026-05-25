@@ -53,7 +53,7 @@ chatterbox-tts
 neutts
 
 # pocket-tts is for PocketTTSEngine
-pocket-tts
+pocket-tts>=2.1.0
 
 # soprano-tts is for SopranoEngine
 soprano-tts>=0.2.0
