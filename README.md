@@ -135,7 +135,7 @@ see [docs/output-and-files.md](docs/output-and-files.md).
 | [`OrpheusEngine`](docs/engines/orpheus.md) | Local/API-style | `realtimetts[orpheus]` | Orpheus model workflows. |
 | [`FasterQwenEngine`](docs/engines/faster-qwen.md) | Local neural | `realtimetts[qwen]` | Qwen voice cloning. |
 | [`OmniVoiceEngine`](docs/engines/omnivoice.md) | Local neural | `realtimetts[omnivoice]` | Multilingual voice cloning. |
-| [`PocketTTSEngine`](docs/engines/pockettts.md) | Local lightweight | `realtimetts[pockettts]` | CPU-oriented voice cloning. |
+| [`PocketTTSEngine`](docs/engines/pockettts.md) / `PocketTTSGpuEngine` | Local lightweight | `realtimetts[pockettts]`, `realtimetts[pockettts-gpu]` plus GPU fork | CPU-oriented voice cloning, optional CUDA fork path. |
 | [`NeuTTSEngine`](docs/engines/neutts.md) | Local neural | `realtimetts[neutts]`, optional `neutts-gguf` | Reference-audio voice cloning. |
 | [`ZipVoiceEngine`](docs/engines/zipvoice.md) | Local neural | `realtimetts[zipvoice]`, external checkout | ZipVoice cloning/server demos. |
 | [`LuxTTSEngine`](docs/engines/luxtts.md) | Local neural | `realtimetts[luxtts]` | LuxTTS voice cloning. |

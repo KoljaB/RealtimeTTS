@@ -22,7 +22,6 @@ try:
 except ImportError:
     print("Could not import the PyAudio C module 'pyaudio._portaudio'.")
     raise
-import stream2sentence as s2s
 import numpy as np
 import threading
 import traceback
@@ -31,6 +30,19 @@ import pyaudio
 import queue
 import time
 import wave
+
+_s2s = None
+
+
+def _get_stream2sentence():
+    """Import stream2sentence only when sentence splitting is actually used."""
+    global _s2s
+    if _s2s is None:
+        import stream2sentence as s2s
+
+        _s2s = s2s
+    return _s2s
+
 
 class TextToAudioStream:
     def __init__(
@@ -180,9 +192,6 @@ class TextToAudioStream:
         self.active_voice = None
 
         self._create_iterators()
-
-        logging.info(f"Initializing tokenizer {tokenizer} " f"for language {language}")
-        s2s.init_tokenizer(tokenizer, language)
 
         # Initialize the play_thread attribute
         # (used for playing audio in a separate thread)
@@ -626,6 +635,7 @@ class TextToAudioStream:
                     self.player.on_audio_chunk = self._on_audio_chunk
 
                 # Generate sentences from the characters
+                s2s = _get_stream2sentence()
                 generate_sentences = s2s.generate_sentences(
                     self.thread_safe_char_iter,
                     context_size=context_size,

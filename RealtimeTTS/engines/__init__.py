@@ -16,6 +16,7 @@ __all__ = [
     "OrpheusEngine", "OrpheusVoice",
     "ZipVoiceEngine", "ZipVoiceVoice",
     "PocketTTSEngine", "PocketTTSVoice",
+    "PocketTTSGpuEngine", "PocketTTSGpuVoice",
     "NeuTTSEngine", "NeuTTSVoice",
     "CambEngine", "CambVoice",
     "ModelsLabEngine", "ModelsLabVoice",
@@ -152,6 +153,13 @@ def _load_pocket_engine():
     return PocketTTSEngine
 
 
+def _load_pocket_gpu_engine():
+    from .pocket_gpu_engine import PocketTTSGpuEngine, PocketTTSGpuVoice
+    globals()["PocketTTSGpuEngine"] = PocketTTSGpuEngine
+    globals()["PocketTTSGpuVoice"] = PocketTTSGpuVoice
+    return PocketTTSGpuEngine
+
+
 def _load_neutts_engine():
     from .neutts_engine import NeuTTSEngine, NeuTTSVoice
     globals()["NeuTTSEngine"] = NeuTTSEngine
@@ -251,6 +259,8 @@ _lazy_imports = {
     "ZipVoiceVoice": _load_zipvoice_engine,
     "PocketTTSEngine": _load_pocket_engine,
     "PocketTTSVoice": _load_pocket_engine,
+    "PocketTTSGpuEngine": _load_pocket_gpu_engine,
+    "PocketTTSGpuVoice": _load_pocket_gpu_engine,
     "NeuTTSEngine": _load_neutts_engine,
     "NeuTTSVoice": _load_neutts_engine,
     "CambEngine": _load_camb_engine,

@@ -1,4 +1,4 @@
-current_version = "0.7.2"
+current_version = "0.7.3"
 
 import setuptools
 import re
@@ -105,6 +105,12 @@ pockettts_requirements = [
     requirements.get("pocket-tts", "pocket-tts"),
     requirements.get("torch", "torch"),
 ]
+pockettts_gpu_requirements = [
+    requirements.get("torch", "torch"),
+    requirements.get("scipy", "scipy"),
+    requirements.get("safetensors", "safetensors"),
+    requirements.get("huggingface-hub", "huggingface-hub"),
+]
 zipvoice_requirements = [
     requirements.get("torch", "torch"),
     requirements.get("torchaudio", "torchaudio"),
@@ -177,6 +183,7 @@ all_engine_requirements = (
     + soprano_requirements
     + neutts_requirements
     + pockettts_requirements
+    + pockettts_gpu_requirements
     + zipvoice_requirements
     + luxtts_requirements
     + styletts_requirements
@@ -211,6 +218,8 @@ extras_require = {
     "neutts-gguf": base_requirements + ["neutts[llama,onnx]"],
     "pockettts": base_requirements + pockettts_requirements,
     "pocket": base_requirements + pockettts_requirements,
+    "pockettts-gpu": base_requirements + pockettts_gpu_requirements,
+    "pocket-gpu": base_requirements + pockettts_gpu_requirements,
     "styletts": base_requirements + styletts_requirements,
     "style": base_requirements + styletts_requirements,
     "parler": base_requirements + parler_requirements,

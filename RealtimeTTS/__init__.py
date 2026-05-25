@@ -19,6 +19,7 @@ __all__ = [
     "OrpheusEngine", "OrpheusVoice",
     "ZipVoiceEngine", "ZipVoiceVoice",
     "PocketTTSEngine", "PocketTTSVoice",
+    "PocketTTSGpuEngine", "PocketTTSGpuVoice",
     "NeuTTSEngine", "NeuTTSVoice",
     "CambEngine", "CambVoice",
     "MiniMaxEngine", "MiniMaxVoice",
@@ -218,6 +219,20 @@ def _load_pocket_engine():
     return PocketTTSEngine
 
 
+def _load_pocket_gpu_engine():
+    try:
+        from .engines.pocket_gpu_engine import PocketTTSGpuEngine, PocketTTSGpuVoice
+    except ImportError as e:
+        raise ImportError(
+            "Failed to load PocketTTSGpuEngine and PocketTTSGpuVoice. "
+            "Install a CUDA-enabled PyTorch build, then the pinned CUDA fork:\n"
+            "pip install git+https://github.com/Deveraux-Parker/kutai100temp.git@6beddc19c480da9ced9733ba0bb2f199f6e22ab4#subdirectory=pocket-tts-gpu"
+        ) from e
+    globals()["PocketTTSGpuEngine"] = PocketTTSGpuEngine
+    globals()["PocketTTSGpuVoice"] = PocketTTSGpuVoice
+    return PocketTTSGpuEngine
+
+
 def _load_neutts_engine():
     try:
         from .engines.neutts_engine import NeuTTSEngine, NeuTTSVoice
@@ -404,6 +419,8 @@ _lazy_imports = {
     "ZipVoiceVoice": _load_zipvoice_engine,
     "PocketTTSEngine": _load_pocket_engine,
     "PocketTTSVoice": _load_pocket_engine,
+    "PocketTTSGpuEngine": _load_pocket_gpu_engine,
+    "PocketTTSGpuVoice": _load_pocket_gpu_engine,
     "NeuTTSEngine": _load_neutts_engine,
     "NeuTTSVoice": _load_neutts_engine,
     "CambEngine": _load_camb_engine,
