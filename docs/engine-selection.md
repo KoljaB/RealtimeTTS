@@ -15,7 +15,7 @@ Each current concrete engine source now has a focused page under `docs/engines/`
 | Free simple service, no API key | `GTTSEngine` or `EdgeEngine` |
 | Commercial cloud API | `OpenAIEngine`, `AzureEngine`, `ElevenlabsEngine`, `CartesiaEngine`, `MiniMaxEngine`, `CambEngine`, or `ModelsLabEngine` |
 | Word timings | `AzureEngine`; `KokoroEngine` for supported English voices |
-| Local neural voice cloning | `CoquiEngine`, `ZipVoiceEngine`, `OmniVoiceEngine`, `FasterQwenEngine`, `LuxTTSEngine`, `ChatterboxEngine`, `SoproTTSEngine`, `PocketTTSEngine`, `NeuTTSEngine`, or `MossTTSEngine` |
+| Local neural voice cloning | `CoquiEngine`, `ZipVoiceEngine`, `OmniVoiceEngine`, `FasterQwenEngine`, `LuxTTSEngine`, `ChatterboxEngine`, `SoproTTSEngine`, `PocketTTSEngine`, `PocketTTSGpuEngine`, `NeuTTSEngine`, or `MossTTSEngine` |
 | Reliability fallback | Pass a list of compatible engines to `TextToAudioStream` |
 
 ## Engine Matrix
@@ -40,7 +40,7 @@ Each current concrete engine source now has a focused page under `docs/engines/`
 | [`OrpheusEngine`](engines/orpheus.md) | Local/API-style | `realtimetts[orpheus]` | OpenAI-compatible endpoint or local model stack | LM Studio path documented from Zaphod notes. |
 | [`FasterQwenEngine`](engines/faster-qwen.md) | Local neural | `realtimetts[qwen]` | Faster Qwen3 stack, reference audio | Voice cloning and emotion examples exist. |
 | [`OmniVoiceEngine`](engines/omnivoice.md) | Local neural | `realtimetts[omnivoice]` | OmniVoice stack, reference audio/text | Multilingual voice cloning. |
-| [`PocketTTSEngine`](engines/pockettts.md) | Local lightweight | `realtimetts[pockettts]` | `pocket-tts` package | CPU-oriented voice cloning path. |
+| [`PocketTTSEngine`](engines/pockettts.md) / `PocketTTSGpuEngine` | Local lightweight | `realtimetts[pockettts]`, or `realtimetts[pockettts-gpu]` plus CUDA PyTorch and the pinned GPU fork | `pocket-tts` package or CUDA fork | CPU-oriented voice cloning path plus optional CUDA fork engine. |
 | [`NeuTTSEngine`](engines/neutts.md) | Local neural | `realtimetts[neutts]`, optional `neutts-gguf` | `neutts[llama,onnx]` for GGUF streaming | Voice cloning with reference audio. |
 | [`ZipVoiceEngine`](engines/zipvoice.md) | Local neural | `realtimetts[zipvoice]` plus checkout | ZipVoice checkout/assets or Docker example | Use distill with at least 3 steps for fast quality work. |
 | [`LuxTTSEngine`](engines/luxtts.md) | Local neural | `realtimetts[luxtts]` | LuxTTS stack and model assets | Full-waveform local voice cloning. |

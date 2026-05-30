@@ -1,4 +1,4 @@
-current_version = "0.7.1"
+current_version = "0.7.3"
 
 import setuptools
 import re
@@ -70,8 +70,6 @@ def parse_requirements(filename):
 
 requirements = parse_requirements("requirements.txt")
 
-print("Requirements:", requirements)
-
 # Define all requirements
 all_requirements = list(requirements.values())
 
@@ -106,6 +104,12 @@ neutts_requirements = [requirements.get("neutts", "neutts")]
 pockettts_requirements = [
     requirements.get("pocket-tts", "pocket-tts"),
     requirements.get("torch", "torch"),
+]
+pockettts_gpu_requirements = [
+    requirements.get("torch", "torch"),
+    requirements.get("scipy", "scipy"),
+    requirements.get("safetensors", "safetensors"),
+    requirements.get("huggingface-hub", "huggingface-hub"),
 ]
 zipvoice_requirements = [
     requirements.get("torch", "torch"),
@@ -179,6 +183,7 @@ all_engine_requirements = (
     + soprano_requirements
     + neutts_requirements
     + pockettts_requirements
+    + pockettts_gpu_requirements
     + zipvoice_requirements
     + luxtts_requirements
     + styletts_requirements
@@ -213,6 +218,8 @@ extras_require = {
     "neutts-gguf": base_requirements + ["neutts[llama,onnx]"],
     "pockettts": base_requirements + pockettts_requirements,
     "pocket": base_requirements + pockettts_requirements,
+    "pockettts-gpu": base_requirements + pockettts_gpu_requirements,
+    "pocket-gpu": base_requirements + pockettts_gpu_requirements,
     "styletts": base_requirements + styletts_requirements,
     "style": base_requirements + styletts_requirements,
     "parler": base_requirements + parler_requirements,
@@ -220,8 +227,8 @@ extras_require = {
     "moss-tts": base_requirements + moss_requirements,
     "piper": base_requirements,
     "qwen": base_requirements + qwen_requirements,
-    "jp": base_requirements +["mecab-python3>=1.0.6", "unidic-lite>=1.0.8", "cutlet", "fugashi>=1.4.0", "jaconv>=0.4.0", "mojimoji>=0.0.13", "pyopenjtalk>=0.4.0"],
-    "zh": base_requirements +["pypinyin>=0.53.0", "ordered_set>=4.1.0", "jieba>=0.42.1", "cn2an>=0.5.23"],
+    "jp": base_requirements +["mecab-python3>=1.0.12", "unidic-lite>=1.0.8", "cutlet", "fugashi>=1.5.2", "jaconv>=0.5.0", "mojimoji>=0.0.13", "pyopenjtalk>=0.4.1"],
+    "zh": base_requirements +["pypinyin>=0.55.0", "ordered_set>=4.1.0", "jieba>=0.42.1", "cn2an>=0.5.24"],
     "ko": base_requirements +["hangul_romanize"],
 }
 

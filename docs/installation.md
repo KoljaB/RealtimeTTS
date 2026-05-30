@@ -35,7 +35,7 @@ check that your Python version has a compatible wheel.
 
 ## Current Extras
 
-These extras are present in `setup.py` after the first packaging alignment pass:
+These extras are present in `setup.py`:
 
 | Extra | Intended use |
 | --- | --- |
@@ -62,6 +62,7 @@ These extras are present in `setup.py` after the first packaging alignment pass:
 | `soprano` | Soprano TTS package. |
 | `neutts`, `neutts-gguf` | NeuTTS package and optional GGUF/ONNX extras. |
 | `pockettts`, `pocket` | PocketTTS package. |
+| `pockettts-gpu`, `pocket-gpu` | Shared dependencies for `PocketTTSGpuEngine`; install a CUDA PyTorch build and the pinned PocketTTS GPU fork separately. |
 | `styletts`, `style` | StyleTTS Python dependencies; still needs a StyleTTS checkout/assets. |
 | `parler` | PyPI-resolvable Parler support dependencies; install the upstream Parler package separately. |
 | `moss`, `moss-tts` | PyPI-resolvable MOSS runtime dependencies; install MOSS-TTS-Nano/model assets separately. |
@@ -103,7 +104,7 @@ local checkout, model files, or Docker example.
 | [`OrpheusEngine`](engines/orpheus.md) | `pip install "realtimetts[orpheus]"` | Requires an OpenAI-compatible completions endpoint such as a local LM Studio server. |
 | [`FasterQwenEngine`](engines/faster-qwen.md) | `pip install "realtimetts[qwen]"` | Needs reference audio/text or a speaker embedding; CUDA is the expected fast path. |
 | [`OmniVoiceEngine`](engines/omnivoice.md) | `pip install "realtimetts[omnivoice]"` | Requires reference audio and exact reference text. |
-| [`PocketTTSEngine`](engines/pockettts.md) | `pip install "realtimetts[pockettts]"` | Optional prompt WAV for voice cloning; CPU-oriented. |
+| [`PocketTTSEngine`](engines/pockettts.md) / `PocketTTSGpuEngine` | `pip install "realtimetts[pockettts]"`; for GPU use `pip install "realtimetts[pockettts-gpu]"`, install CUDA PyTorch, then install the pinned PocketTTS GPU fork. | Optional prompt WAV for voice cloning; CPU-oriented default, separate CUDA fork engine. |
 | [`NeuTTSEngine`](engines/neutts.md) | `pip install "realtimetts[neutts]"`; use `realtimetts[neutts-gguf]` for NeuTTS optional extras. | Use `neutts[llama,onnx]` and GGUF for low-latency streaming. |
 | [`ZipVoiceEngine`](engines/zipvoice.md) | `pip install "realtimetts[zipvoice]"` plus a ZipVoice checkout passed as `zipvoice_root`. | Needs prompt WAV and exact transcript; use distill with at least 3 steps for fast quality work. |
 | [`LuxTTSEngine`](engines/luxtts.md) | `pip install "realtimetts[luxtts]"` or install LuxTTS separately. | Pass `lux_root` if using a local LuxTTS checkout; requires prompt WAV/text. |
@@ -142,10 +143,10 @@ Some engines need tools or assets outside Python packages.
 | CUDA, PyTorch, torchaudio, CUDNN | Local neural engines | Exact requirements vary by engine and model. |
 | NLTK `punkt` and `punkt_tab` data | Sentence splitting around many neural engine tests | Several Zaphod venvs needed local tokenizer data to avoid blocked online lookups. |
 
-## Known Packaging Mismatches
+## Packaging Notes
 
-Do not treat the current extras as final release documentation yet. The Stage 0
-inventory found mismatches that should be fixed or documented before release:
+Some engines need setup outside the Python extras, and a few compatibility notes
+are worth checking before choosing an engine:
 
 - `ModelsLabEngine` is exported from `RealtimeTTS.engines`, but not from the
   root `RealtimeTTS` lazy export table.

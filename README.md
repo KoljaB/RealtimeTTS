@@ -12,6 +12,18 @@ fall back across multiple engines.
 The project supports a broad engine matrix: local system voices, cloud APIs,
 free service wrappers, local neural models, and voice-cloning stacks.
 
+### Support RealtimeTTS
+
+If RealtimeTTS saved you time, one GitHub star is a simple way to help make it
+more stable.
+
+Stars improve visibility, and visibility brings more users, more real-world
+testing, more bug reports, more fixes, and better releases for everyone.
+
+## Demo
+
+https://github.com/KoljaB/RealtimeTTS/assets/7604638/87dcd9a5-3a4e-4f57-be45-837fc63237e7
+
 ## Install
 
 For the fastest local smoke test, install the system engine:
@@ -123,7 +135,7 @@ see [docs/output-and-files.md](docs/output-and-files.md).
 | [`OrpheusEngine`](docs/engines/orpheus.md) | Local/API-style | `realtimetts[orpheus]` | Orpheus model workflows. |
 | [`FasterQwenEngine`](docs/engines/faster-qwen.md) | Local neural | `realtimetts[qwen]` | Qwen voice cloning. |
 | [`OmniVoiceEngine`](docs/engines/omnivoice.md) | Local neural | `realtimetts[omnivoice]` | Multilingual voice cloning. |
-| [`PocketTTSEngine`](docs/engines/pockettts.md) | Local lightweight | `realtimetts[pockettts]` | CPU-oriented voice cloning. |
+| [`PocketTTSEngine`](docs/engines/pockettts.md) / `PocketTTSGpuEngine` | Local lightweight | `realtimetts[pockettts]`, `realtimetts[pockettts-gpu]` plus GPU fork | CPU-oriented voice cloning, optional CUDA fork path. |
 | [`NeuTTSEngine`](docs/engines/neutts.md) | Local neural | `realtimetts[neutts]`, optional `neutts-gguf` | Reference-audio voice cloning. |
 | [`ZipVoiceEngine`](docs/engines/zipvoice.md) | Local neural | `realtimetts[zipvoice]`, external checkout | ZipVoice cloning/server demos. |
 | [`LuxTTSEngine`](docs/engines/luxtts.md) | Local neural | `realtimetts[luxtts]` | LuxTTS voice cloning. |
