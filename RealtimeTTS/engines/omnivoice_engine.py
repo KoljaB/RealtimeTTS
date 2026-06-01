@@ -271,7 +271,10 @@ class OmniVoiceEngine(BaseEngine):
                 generate_end = time.perf_counter()
 
             # The audio tensor shape is typically [1, samples] or [samples]
-            waveform = audio[0].cpu().numpy()
+            if hasattr(audio[0], 'cpu'):
+                waveform = audio[0].cpu().numpy()
+            else:
+                waveform = audio[0]
             if waveform.ndim > 1:
                 waveform = waveform[0]  # Ensure mono
 
