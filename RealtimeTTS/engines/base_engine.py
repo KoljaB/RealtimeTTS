@@ -40,6 +40,8 @@ class BaseInitMeta(ABCMeta):
 
 # Define a base class for engines with the custom meta class.
 class BaseEngine(ABC, metaclass=BaseInitMeta):
+    _SILENCE_TRIM_WINDOW_MS = 5
+
     def __init__(self):
         self.engine_name = "unknown"
 
@@ -64,6 +66,8 @@ class BaseEngine(ABC, metaclass=BaseInitMeta):
 
         self.stop_synthesis_event = mp.Event()
 
+        self._trim_silence_start_pending = None
+
         self.reset_audio_duration()
 
     def reset_audio_duration(self):
@@ -80,7 +84,9 @@ class BaseEngine(ABC, metaclass=BaseInitMeta):
         audio = audio.copy()
 
         fade_samples = int(sample_rate * fade_duration_ms / 1000)
-        if fade_samples == 0 or len(audio) < fade_samples:
+        if fade_samples <= 0 or len(audio) == 0:
+            return audio
+        if len(audio) < fade_samples:
             fade_samples = len(audio)
         fade_in = np.linspace(0.0, 1.0, fade_samples)
         audio[:fade_samples] *= fade_in
@@ -94,11 +100,45 @@ class BaseEngine(ABC, metaclass=BaseInitMeta):
         audio = audio.copy()
 
         fade_samples = int(sample_rate * fade_duration_ms / 1000)
-        if fade_samples == 0 or len(audio) < fade_samples:
+        if fade_samples <= 0 or len(audio) == 0:
+            return audio
+        if len(audio) < fade_samples:
             fade_samples = len(audio)
         fade_out = np.linspace(1.0, 0.0, fade_samples)
         audio[-fade_samples:] *= fade_out
         return audio
+
+    def _silence_trim_window_samples(self, sample_rate: int) -> int:
+        return max(
+            1,
+            int(round(sample_rate * self._SILENCE_TRIM_WINDOW_MS / 1000)),
+        )
+
+    def _window_is_non_silent(
+        self,
+        amplitudes: np.ndarray,
+        silence_threshold: float,
+    ) -> bool:
+        if amplitudes.size == 0:
+            return False
+        return float(np.mean(amplitudes)) > silence_threshold
+
+    def _find_non_silent_start(
+        self,
+        audio_data: np.ndarray,
+        sample_rate: int,
+        silence_threshold: float,
+    ) -> int:
+        amplitudes = np.abs(np.asarray(audio_data).reshape(-1))
+        if amplitudes.size == 0:
+            return 0
+
+        window_samples = self._silence_trim_window_samples(sample_rate)
+        for start in range(0, int(amplitudes.size), window_samples):
+            window = amplitudes[start:start + window_samples]
+            if self._window_is_non_silent(window, silence_threshold):
+                return start
+        return int(amplitudes.size)
 
     def trim_silence_start(
         self,
@@ -121,11 +161,13 @@ class BaseEngine(ABC, metaclass=BaseInitMeta):
         sample_rate = self.verify_sample_rate(sample_rate)
         trimmed = False
         audio_data = audio_data.copy()
-        non_silent = np.where(np.abs(audio_data) > silence_threshold)[0]
-        if len(non_silent) > 0:
-            start_index = non_silent[0]
-            if start_index > 0:
-                trimmed = True
+        start_index = self._find_non_silent_start(
+            audio_data,
+            sample_rate,
+            silence_threshold,
+        )
+        if start_index > 0:
+            trimmed = True
             audio_data = audio_data[start_index:]
 
         extra_samples = int(extra_ms * sample_rate / 1000)
@@ -201,12 +243,17 @@ class BaseEngine(ABC, metaclass=BaseInitMeta):
         """
         sample_rate = self.verify_sample_rate(sample_rate)
 
-        audio_data = self.trim_silence_start(
-            audio_data, sample_rate, silence_threshold, extra_start_ms, fade_in_ms
-        )
-        audio_data = self.trim_silence_end(
-            audio_data, sample_rate, silence_threshold, extra_end_ms, fade_out_ms
-        )
+        start_pending = getattr(self, "_trim_silence_start_pending", None)
+        if start_pending is not False:
+            audio_data = self.trim_silence_start(
+                audio_data, sample_rate, silence_threshold, extra_start_ms, fade_in_ms
+            )
+            if start_pending is not None and len(audio_data) > 0:
+                self._trim_silence_start_pending = False
+        if extra_end_ms > 0 or fade_out_ms > 0:
+            audio_data = self.trim_silence_end(
+                audio_data, sample_rate, silence_threshold, extra_end_ms, fade_out_ms
+            )
         return audio_data
 
 
@@ -236,6 +283,7 @@ class BaseEngine(ABC, metaclass=BaseInitMeta):
             bool: True if successful, False otherwise.
         """
         self.stop_synthesis_event.clear()
+        self._trim_silence_start_pending = True
 
     def get_voices(self):
         """

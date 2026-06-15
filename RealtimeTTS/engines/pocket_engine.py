@@ -507,6 +507,16 @@ class PocketTTSEngine(BaseEngine):
                     print("[PocketTTSEngine] Streaming synthesis stopped")
                 return True
             audio_float32 = self._to_numpy_audio(audio_chunk)
+            if self.trim_silence:
+                audio_float32 = self._trim_silence(
+                    audio_float32,
+                    sample_rate=self.sample_rate,
+                    silence_threshold=self.silence_threshold,
+                    extra_start_ms=self.extra_start_ms,
+                    extra_end_ms=self.extra_end_ms,
+                    fade_in_ms=self.fade_in_ms,
+                    fade_out_ms=self.fade_out_ms,
+                )
             queued_bytes = self._queue_audio(audio_float32)
             if queued_bytes:
                 chunk_count += 1
