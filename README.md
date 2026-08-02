@@ -140,6 +140,7 @@ see [docs/output-and-files.md](docs/output-and-files.md).
 | [`ZipVoiceEngine`](docs/engines/zipvoice.md) | Local neural | `realtimetts[zipvoice]`, external checkout | ZipVoice cloning/server demos. |
 | [`LuxTTSEngine`](docs/engines/luxtts.md) | Local neural | `realtimetts[luxtts]` | LuxTTS voice cloning. |
 | [`ChatterboxEngine`](docs/engines/chatterbox.md) | Local neural | `realtimetts[chatterbox]` | Chatterbox prompt-audio voices. |
+| [`InflectEngine`](docs/engines/inflect.md) | Local lightweight | `realtimetts[inflect]` | Very fast fixed English voice on CUDA or CPU. |
 | [`SoproTTSEngine`](docs/engines/sopro.md) | Local neural | `realtimetts[sopro]` | Sopro reference-audio voices. |
 | [`SopranoEngine`](docs/engines/soprano.md) | Local neural | `realtimetts[soprano]` | Soprano local synthesis. |
 | [`MossTTSEngine`](docs/engines/moss-tts.md) | Local neural | `realtimetts[moss]`, runtime assets | MOSS-TTS experiments. |

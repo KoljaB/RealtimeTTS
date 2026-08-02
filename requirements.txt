@@ -61,7 +61,7 @@ soprano-tts>=0.2.0
 # sopro is for SoproTTSEngine
 sopro>=1.5.0
 
-# Shared neural engine dependencies used by ZipVoice, LuxTTS, StyleTTS, Parler, PocketTTS, and MOSS-TTS
+# Shared neural engine dependencies used by ZipVoice, LuxTTS, StyleTTS, Parler, PocketTTS, MOSS-TTS, and Inflect
 torch
 torchaudio
 numpy
@@ -74,8 +74,12 @@ nltk
 munch
 PyYAML
 phonemizer
+espeakng-loader>=0.2.4
+num2words>=0.5.14
+Unidecode>=1.3.8
 transformers
 onnxruntime
+# PyPI `inflect` is a LuxTTS text dependency, not the InflectEngine model.
 inflect
 lhotse
 piper_phonemize

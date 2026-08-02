@@ -4,7 +4,7 @@ This module defines a base framework for speech synthesis engines. It includes:
 - A BaseEngine abstract class (using a custom metaclass) that sets up default properties and common audio processing methods (such as applying fade-ins/outs and trimming silence) along with abstract methods for voice management and synthesis.
 """
 
-import torch.multiprocessing as mp
+import multiprocessing as mp
 from abc import ABCMeta, ABC
 from typing import Union
 import numpy as np
@@ -45,6 +45,10 @@ class BaseEngine(ABC, metaclass=BaseInitMeta):
 
         # Indicates if the engine can handle generators.
         self.can_consume_generators = False
+
+        # Engines with an expensive first sentence-splitter import can opt in
+        # to loading it when TextToAudioStream is constructed.
+        self.preload_sentence_tokenizer = False
 
         # Queue to manage audio chunks for the engine.
         self.queue = queue.Queue()

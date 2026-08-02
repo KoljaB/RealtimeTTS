@@ -15,6 +15,7 @@ Each current concrete engine source now has a focused page under `docs/engines/`
 | Free simple service, no API key | `GTTSEngine` or `EdgeEngine` |
 | Commercial cloud API | `OpenAIEngine`, `AzureEngine`, `ElevenlabsEngine`, `CartesiaEngine`, `MiniMaxEngine`, `CambEngine`, or `ModelsLabEngine` |
 | Word timings | `AzureEngine`; `KokoroEngine` for supported English voices |
+| Lowest-latency fixed local English voice | `InflectEngine` |
 | Local neural voice cloning | `CoquiEngine`, `ZipVoiceEngine`, `OmniVoiceEngine`, `FasterQwenEngine`, `LuxTTSEngine`, `ChatterboxEngine`, `SoproTTSEngine`, `PocketTTSEngine`, `PocketTTSGpuEngine`, `NeuTTSEngine`, or `MossTTSEngine` |
 | Reliability fallback | Pass a list of compatible engines to `TextToAudioStream` |
 
@@ -45,6 +46,7 @@ Each current concrete engine source now has a focused page under `docs/engines/`
 | [`ZipVoiceEngine`](engines/zipvoice.md) | Local neural | `realtimetts[zipvoice]` plus checkout | ZipVoice checkout/assets or Docker example | Use distill with at least 3 steps for fast quality work. |
 | [`LuxTTSEngine`](engines/luxtts.md) | Local neural | `realtimetts[luxtts]` | LuxTTS stack and model assets | Full-waveform local voice cloning. |
 | [`ChatterboxEngine`](engines/chatterbox.md) | Local neural | `realtimetts[chatterbox]` | `chatterbox-tts`, reference WAV | Full-waveform prompt-audio workflow. |
+| [`InflectEngine`](engines/inflect.md) | Local lightweight | `realtimetts[inflect]` | Pinned Micro-v2 model, eSpeak-ng | Fixed English male voice; PyTorch CUDA or ONNX CPU, 24 kHz PCM. |
 | [`SoproTTSEngine`](engines/sopro.md) | Local neural | `realtimetts[sopro]` | Sopro package, optional HF cache | Native streaming reference-audio workflow. |
 | [`SopranoEngine`](engines/soprano.md) | Local neural | `realtimetts[soprano]` | Soprano package/model assets | Single-voice English streaming. |
 | [`MossTTSEngine`](engines/moss-tts.md) | Local neural | `realtimetts[moss]` plus runtime assets | MOSS-TTS-Nano assets, CUDA/CUDNN depending on backend | Nano ONNX/torch paths documented; Realtime variant blocked. |

@@ -29,6 +29,7 @@ __all__ = [
     "TypecastEngine", "TypecastVoice",
     "LuxTTSEngine", "LuxTTSVoice",
     "ChatterboxEngine", "ChatterboxVoice",
+    "InflectEngine", "InflectVoice",
     "SoproTTSEngine", "SoproTTSVoice",
     "SopranoEngine", "SopranoVoice",
     "MossTTSEngine", "MossTTSVoice",
@@ -351,6 +352,19 @@ def _load_chatterbox_engine():
     return ChatterboxEngine
 
 
+def _load_inflect_engine():
+    try:
+        from .engines.inflect_engine import InflectEngine, InflectVoice
+    except ImportError as e:
+        raise ImportError(
+            "Failed to load InflectEngine and InflectVoice. "
+            "Install Inflect dependencies with: pip install realtimetts[inflect]"
+        ) from e
+    globals()["InflectEngine"] = InflectEngine
+    globals()["InflectVoice"] = InflectVoice
+    return InflectEngine
+
+
 def _load_sopro_engine():
     try:
         from .engines.sopro_engine import SoproTTSEngine, SoproTTSVoice
@@ -439,6 +453,8 @@ _lazy_imports = {
     "LuxTTSVoice": _load_luxtts_engine,
     "ChatterboxEngine": _load_chatterbox_engine,
     "ChatterboxVoice": _load_chatterbox_engine,
+    "InflectEngine": _load_inflect_engine,
+    "InflectVoice": _load_inflect_engine,
     "SoproTTSEngine": _load_sopro_engine,
     "SoproTTSVoice": _load_sopro_engine,
     "SopranoEngine": _load_soprano_engine,
