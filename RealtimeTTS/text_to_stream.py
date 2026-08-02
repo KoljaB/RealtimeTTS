@@ -230,6 +230,14 @@ class TextToAudioStream:
         # Extract stream information (format, channels, rate) from the engine
         format, channels, rate = self.engine.get_stream_info()
 
+        # An engine can opt in when stream2sentence's one-time import would
+        # otherwise dominate its first-response latency.
+        if (
+            not self.engine.can_consume_generators
+            and self.engine.preload_sentence_tokenizer
+        ):
+            _get_stream2sentence()
+
         # Check if the engine doesn't support consuming generators directly
         config = AudioConfiguration(
             format,

@@ -79,6 +79,7 @@ nav:
       - ZipVoice: engines/zipvoice.md
       - LuxTTS: engines/luxtts.md
       - Chatterbox: engines/chatterbox.md
+      - Inflect: engines/inflect.md
       - SoproTTS: engines/sopro.md
       - Soprano: engines/soprano.md
       - MOSS-TTS: engines/moss-tts.md

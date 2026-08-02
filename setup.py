@@ -1,4 +1,4 @@
-current_version = "0.7.3"
+current_version = "0.7.4"
 
 import setuptools
 import re
@@ -37,6 +37,9 @@ Available engine options include:
 - **omnivoice**: Omnivoice TTS integration
 - **luxtts**: LuxTTS integration
 - **chatterbox**: Chatterbox Turbo integration
+- **inflect**: Inflect-Micro-v2 local TTS integration
+- **inflect-pytorch**: Inflect-Micro-v2 PyTorch backend only
+- **inflect-onnx**: Inflect-Micro-v2 ONNX backend only
 - **sopro**: SoproTTS integration
 - **soprano**: SopranoTTS integration
 - **neutts**: NeuTTS integration
@@ -98,6 +101,27 @@ qwen_requirements = [requirements.get("faster-qwen3-tts", "faster-qwen3-tts")]
 orpheus_requirements = [requirements.get("snac", "snac")]
 omnivoice_requirements = [requirements.get("omnivoice", "omnivoice")]
 chatterbox_requirements = [requirements.get("chatterbox-tts", "chatterbox-tts")]
+inflect_common_requirements = [
+    "numpy>=1.26,<3",
+    "soundfile>=0.13",
+    "huggingface-hub>=0.36",
+    "phonemizer>=3.3",
+    "espeakng-loader>=0.2.4",
+    "num2words>=0.5.14",
+    "Unidecode>=1.3.8",
+]
+inflect_pytorch_requirements = inflect_common_requirements + [
+    "torch>=2.6",
+    "scipy>=1.13",
+]
+inflect_onnx_requirements = inflect_common_requirements + [
+    "onnxruntime>=1.18,<2",
+]
+inflect_requirements = inflect_common_requirements + [
+    "torch>=2.6",
+    "scipy>=1.13",
+    "onnxruntime>=1.18,<2",
+]
 sopro_requirements = [requirements.get("sopro", "sopro")]
 soprano_requirements = [requirements.get("soprano-tts", "soprano-tts")]
 neutts_requirements = [requirements.get("neutts", "neutts")]
@@ -179,6 +203,7 @@ all_engine_requirements = (
     + orpheus_requirements
     + omnivoice_requirements
     + chatterbox_requirements
+    + inflect_requirements
     + sopro_requirements
     + soprano_requirements
     + neutts_requirements
@@ -212,6 +237,9 @@ extras_require = {
     "luxtts": base_requirements + luxtts_requirements,
     "zipvoice": base_requirements + zipvoice_requirements,
     "chatterbox": base_requirements + chatterbox_requirements,
+    "inflect": base_requirements + inflect_requirements,
+    "inflect-pytorch": base_requirements + inflect_pytorch_requirements,
+    "inflect-onnx": base_requirements + inflect_onnx_requirements,
     "sopro": base_requirements + sopro_requirements,
     "soprano": base_requirements + soprano_requirements,
     "neutts": base_requirements + neutts_requirements,
@@ -247,6 +275,7 @@ setuptools.setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
+    license_files=["LICENSE", "LICENSING_ADDENDUM.md"],
     python_requires=">=3.9, <3.15",
     install_requires=base_requirements,
     extras_require=extras_require,

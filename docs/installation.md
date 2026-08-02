@@ -58,6 +58,8 @@ These extras are present in `setup.py`:
 | `luxtts` | LuxTTS-related Git dependencies and local stack packages. |
 | `zipvoice` | Shared ZipVoice Python dependencies; still needs a ZipVoice checkout. |
 | `chatterbox` | Chatterbox TTS package. |
+| `inflect` | Inflect-Micro-v2 PyTorch and ONNX runtimes. |
+| `inflect-pytorch`, `inflect-onnx` | Backend-specific Inflect dependencies; the ONNX engine path itself does not use Torch. |
 | `sopro` | Sopro package. |
 | `soprano` | Soprano TTS package. |
 | `neutts`, `neutts-gguf` | NeuTTS package and optional GGUF/ONNX extras. |
@@ -109,6 +111,7 @@ local checkout, model files, or Docker example.
 | [`ZipVoiceEngine`](engines/zipvoice.md) | `pip install "realtimetts[zipvoice]"` plus a ZipVoice checkout passed as `zipvoice_root`. | Needs prompt WAV and exact transcript; use distill with at least 3 steps for fast quality work. |
 | [`LuxTTSEngine`](engines/luxtts.md) | `pip install "realtimetts[luxtts]"` or install LuxTTS separately. | Pass `lux_root` if using a local LuxTTS checkout; requires prompt WAV/text. |
 | [`ChatterboxEngine`](engines/chatterbox.md) | `pip install "realtimetts[chatterbox]"` | Uses `chatterbox-tts`; prompt WAV should be longer than 5 seconds. |
+| [`InflectEngine`](engines/inflect.md) | `pip install "realtimetts[inflect]"` | Downloads a pinned Micro-v2 snapshot; PyTorch CUDA is the fast GPU path and ONNX is the fast CPU path. |
 | [`SoproTTSEngine`](engines/sopro.md) | `pip install "realtimetts[sopro]"` | Uses `sopro`; optional Hugging Face cache/token and reference WAV. |
 | [`SopranoEngine`](engines/soprano.md) | `pip install "realtimetts[soprano]"` | Uses `soprano-tts`; single-voice English, no cloning. |
 | [`MossTTSEngine`](engines/moss-tts.md) | `pip install "realtimetts[moss]"` or install MOSS-TTS-Nano separately. | Needs MOSS model/runtime assets; ONNX and torch backends have different dependencies. |

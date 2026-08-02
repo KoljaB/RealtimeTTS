@@ -27,6 +27,7 @@ __all__ = [
     "TypecastEngine", "TypecastVoice",
     "LuxTTSEngine", "LuxTTSVoice",
     "ChatterboxEngine", "ChatterboxVoice",
+    "InflectEngine", "InflectVoice",
     "SoproTTSEngine", "SoproTTSVoice",
     "SopranoEngine", "SopranoVoice",
     "MossTTSEngine", "MossTTSVoice",
@@ -209,6 +210,13 @@ def _load_chatterbox_engine():
     return ChatterboxEngine
 
 
+def _load_inflect_engine():
+    from .inflect_engine import InflectEngine, InflectVoice
+    globals()["InflectEngine"] = InflectEngine
+    globals()["InflectVoice"] = InflectVoice
+    return InflectEngine
+
+
 def _load_sopro_engine():
     from .sopro_engine import SoproTTSEngine, SoproTTSVoice
     globals()["SoproTTSEngine"] = SoproTTSEngine
@@ -281,6 +289,8 @@ _lazy_imports = {
     "LuxTTSVoice": _load_luxtts_engine,
     "ChatterboxEngine": _load_chatterbox_engine,
     "ChatterboxVoice": _load_chatterbox_engine,
+    "InflectEngine": _load_inflect_engine,
+    "InflectVoice": _load_inflect_engine,
     "SoproTTSEngine": _load_sopro_engine,
     "SoproTTSVoice": _load_sopro_engine,
     "SopranoEngine": _load_soprano_engine,
