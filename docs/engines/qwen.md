@@ -6,11 +6,79 @@ RealtimeTTS queue, and supports cached x-vector and full ICL voice cloning.
 The optional HTTP server wraps that same in-process engine without adding a
 second model process.
 
+## Why Qwen is recommended
+
+On supported Windows and Linux systems with an NVIDIA GPU, `QwenEngine` is the
+current preferred RealtimeTTS engine for demanding conversational applications.
+It is the strongest all-round local option when quality, latency, multilingual
+speech, voice cloning, and interruption behavior matter together:
+
+- Qwen3-TTS 0.6B Base provides high-quality multilingual synthesis.
+- Both cached x-vector voices and full ICL cloning from reference audio are
+  supported.
+- The native backend streams 24 kHz PCM frames before the utterance is complete.
+- `stop()` reaches the native generation loop, discards stale PCM, and leaves
+  the resident model context reusable for the next request.
+- The same implementation can run in-process or as the authenticated
+  OpenAI-compatible HTTP/WebSocket server.
+
+## Quick start
+
+```python
+from RealtimeTTS import QwenEngine, QwenVoice, TextToAudioStream
+
+
+voice = QwenVoice(
+    name="narrator",
+    ref_audio="reference.wav",
+    ref_text="The exact words spoken in reference.wav.",
+    language="english",
+)
+
+engine = QwenEngine(voice=voice)
+try:
+    stream = TextToAudioStream(engine)
+    stream.feed("Native Qwen speech starts streaming as soon as frames arrive.")
+    stream.play()
+finally:
+    engine.shutdown()
+```
+
+Defaults are Qwen3-TTS 12 Hz 0.6B Base, Q8_0, one persistent native context,
+and 24 kHz mono signed 16-bit output.
+
+## Measured latency boundaries
+
+In 10 warm Linux runs on a tuned RTX 4090 setup, the measured timeline was:
+
+| Boundary | Time from request start | Meaning |
+| --- | ---: | --- |
+| Native engine TTFT | 36.4 ms | qwentts.cpp yields its first native audio frame. |
+| First RealtimeTTS audio token / PCM chunk | 70.9 ms | RealtimeTTS has accumulated startup audio for another 34.5 ms and publishes its first chunk. |
+| Predicted audible onset | 80.9 ms | The first published chunk contains about 10 ms of leading silence before speech becomes audible. |
+
+In short: roughly 35 ms engine TTFT, another 35 ms before the first RealtimeTTS
+audio chunk, then 10 ms of silence inside that chunk. These are successive
+points on one timeline, not three definitions of engine TTFT.
+
+Total synthesis averaged 719.8 ms, RTF was 0.1080, peak TTS VRAM was 2,692 MiB,
+and no clipped-burst candidates were detected. Without the current accumulation
+and trimming behavior, output arrived at 36.4 ms but contained 70 ms of leading
+silence, delaying predicted audible onset to 106.4 ms. The current path trades
+about 34.5 ms of RealtimeTTS transport latency for speech that becomes audible
+about 25.5 ms sooner. These numbers are orientation measurements rather than a
+service-level guarantee. Text segmentation, x-vector versus ICL mode, sampling
+parameters, startup buffering, GPU contention, transport, and playback can all
+increase end-to-end time. Use the benchmark in this guide on the actual target
+system.
+
 Leading-silence trimming is enabled by default. It finds the first audible
 5 ms window, keeps 15 ms of pre-roll before it, and applies a 20 ms fade at the
 new boundary. The engine accumulates at least 160 ms of real audio before
 publishing the first chunk, preventing immediate-play underruns after making
-the first native frame shorter. Later native chunks are published immediately.
+the first native frame shorter. That 160 ms is audio duration, not wall-clock
+waiting time; the GPU generates it faster than real time. Later native chunks
+are published immediately.
 Short utterances are flushed in full even when they never reach 160 ms. Use
 `QwenEngine(trim_silence=False)` to preserve the native PCM, set
 `startup_buffer_ms=0` to disable startup accumulation, or tune
@@ -313,31 +381,6 @@ On Windows, use `fresh-venv\Scripts\python.exe`. Then install the matching
 RealtimeTTS wheel from the same wheelhouse and exercise model loading, streaming,
 cancellation, x-vector cloning, ICL cloning, and repeated requests on the
 target machine. A shared-library load check alone is not release validation.
-
-## Quick start
-
-```python
-from RealtimeTTS import QwenEngine, QwenVoice, TextToAudioStream
-
-
-voice = QwenVoice(
-    name="narrator",
-    ref_audio="reference.wav",
-    ref_text="The exact words spoken in reference.wav.",
-    language="english",
-)
-
-engine = QwenEngine(voice=voice)
-try:
-    stream = TextToAudioStream(engine)
-    stream.feed("Native Qwen speech starts streaming as soon as frames arrive.")
-    stream.play()
-finally:
-    engine.shutdown()
-```
-
-Defaults are Qwen3-TTS 12 Hz 0.6B Base, Q8_0, one persistent native context,
-and 24 kHz mono signed 16-bit output.
 
 ## What streams, and when
 
@@ -688,6 +731,6 @@ x86-64 and Linux x86-64 wheels in the `qwentts-cpp-python` project. In fresh
 virtual environments on both target operating systems, verify `doctor`, model
 loading, x-vector, ICL, repeated requests, cancellation/reuse, and valid 24 kHz
 mono output without a repository checkout or system CUDA Toolkit. The current
-dev8 candidate deliberately uses the validated platform matrix above; a stable
+dev9 candidate deliberately uses the validated platform matrix above; a stable
 release still requires final native package versioning and acceptance for both
 platforms. Rebuild both artifacts rather than renaming test wheels.

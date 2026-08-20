@@ -24,6 +24,29 @@ testing, more bug reports, more fixes, and better releases for everyone.
 
 https://github.com/KoljaB/RealtimeTTS/assets/7604638/87dcd9a5-3a4e-4f57-be45-837fc63237e7
 
+## Recommended Engine: QwenEngine
+
+For supported Windows and Linux systems with an NVIDIA GPU, **QwenEngine is
+currently the recommended and preferred RealtimeTTS engine for high-quality,
+low-latency conversational speech**. It offers multilingual Qwen3-TTS quality,
+x-vector and ICL voice cloning, native 24 kHz PCM streaming, fast cancellation,
+and the same engine either in-process or behind the production Qwen server.
+
+In 10 warm Linux runs on our tuned RTX 4090 setup, the timeline was: about
+**35 ms engine TTFT**, another **35 ms until RealtimeTTS emits its first PCM
+chunk**, and about **10 ms of silence inside that chunk**. Predicted audible
+onset was **80.9 ms** and RTF was **0.108**. These are orientation figures;
+measure the complete path on your target system.
+
+```bash
+python -m pip install --only-binary=qwentts-cpp-python "realtimetts[qwen]"
+python -m qwentts_cpp doctor
+```
+
+See the [QwenEngine guide](docs/engines/qwen.md) for setup and details.
+[`InflectEngine`](docs/engines/inflect.md) is the documented lightweight
+alternative for one fixed English voice on CUDA or ONNX CPU.
+
 ## Install
 
 For the fastest local smoke test, install the system engine:
@@ -145,6 +168,8 @@ see [docs/output-and-files.md](docs/output-and-files.md).
 
 | Engine | Type | Install/status note | Best first use |
 | --- | --- | --- | --- |
+| **[`QwenEngine`](docs/engines/qwen.md) (recommended)** | Local native neural / HTTP server | `realtimetts[qwen]` or `realtimetts[qwen-server]` with a matching native wheel | High-quality multilingual realtime speech, voice cloning, and fast cancellation. |
+| [`InflectEngine`](docs/engines/inflect.md) | Local lightweight | `realtimetts[inflect]` | Fast fixed English voice through PyTorch CUDA or ONNX CPU. |
 | [`SystemEngine`](docs/engines/system.md) | Local | `realtimetts[system]` | First local audio smoke test. |
 | [`GTTSEngine`](docs/engines/gtts.md) | Free service | `realtimetts[gtts]` | Simple network-backed speech. |
 | [`EdgeEngine`](docs/engines/edge.md) | Free service | `realtimetts[edge]`, needs `mpv` | Free streamed voices. |
@@ -162,14 +187,12 @@ see [docs/output-and-files.md](docs/output-and-files.md).
 | [`ParlerEngine`](docs/engines/parler.md) | Local neural | `realtimetts[parler]` | GPU local model experiments. |
 | [`KokoroEngine`](docs/engines/kokoro.md) | Local neural | `realtimetts[kokoro]` | Local voices and timing support. |
 | [`OrpheusEngine`](docs/engines/orpheus.md) | Local/API-style | `realtimetts[orpheus]` | Orpheus model workflows. |
-| [`QwenEngine`](docs/engines/qwen.md) | Local native neural / HTTP server | `realtimetts[qwen]` or `realtimetts[qwen-server]` after matching native-wheel release | Q8 Qwen voice cloning through qwentts.cpp. |
 | [`OmniVoiceEngine`](docs/engines/omnivoice.md) | Local neural | `realtimetts[omnivoice]` | Multilingual voice cloning. |
 | [`PocketTTSEngine`](docs/engines/pockettts.md) / `PocketTTSGpuEngine` | Local lightweight | `realtimetts[pockettts]`, `realtimetts[pockettts-gpu]` plus GPU fork | CPU-oriented voice cloning, optional CUDA fork path. |
 | [`NeuTTSEngine`](docs/engines/neutts.md) | Local neural | `realtimetts[neutts]`, optional `neutts-gguf` | Reference-audio voice cloning. |
 | [`ZipVoiceEngine`](docs/engines/zipvoice.md) | Local neural | `realtimetts[zipvoice]`, external checkout | ZipVoice cloning/server demos. |
 | [`LuxTTSEngine`](docs/engines/luxtts.md) | Local neural | `realtimetts[luxtts]` | LuxTTS voice cloning. |
 | [`ChatterboxEngine`](docs/engines/chatterbox.md) | Local neural | `realtimetts[chatterbox]` | Chatterbox prompt-audio voices. |
-| [`InflectEngine`](docs/engines/inflect.md) | Local lightweight | `realtimetts[inflect]` | Fixed English voice through PyTorch CUDA or ONNX CPU. |
 | [`SoproTTSEngine`](docs/engines/sopro.md) | Local neural | `realtimetts[sopro]` | Sopro reference-audio voices. |
 | [`SopranoEngine`](docs/engines/soprano.md) | Local neural | `realtimetts[soprano]` | Soprano local synthesis. |
 | [`MossTTSEngine`](docs/engines/moss-tts.md) | Local neural | `realtimetts[moss]`, runtime assets | MOSS-TTS experiments. |
