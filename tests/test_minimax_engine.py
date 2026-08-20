@@ -23,16 +23,29 @@ def _import_minimax_engine():
     mock_mp = MagicMock()
     mock_mp.Event.return_value = MagicMock()
 
-    saved_modules = {}
+    module_names = [
+        "torch",
+        "torch.multiprocessing",
+        "pyaudio",
+        "RealtimeTTS",
+        "RealtimeTTS.engines",
+        "RealtimeTTS.engines.base_engine",
+        "RealtimeTTS.engines.minimax_engine",
+    ]
+    saved_modules = {name: sys.modules.get(name) for name in module_names}
 
     # Save and mock required modules
-    for mod_name in ["torch", "torch.multiprocessing"]:
-        saved_modules[mod_name] = sys.modules.get(mod_name)
-
     mock_torch = MagicMock()
     mock_torch.multiprocessing = mock_mp
     sys.modules["torch"] = mock_torch
     sys.modules["torch.multiprocessing"] = mock_mp
+
+    # MiniMax only needs PyAudio at runtime.  Keep collection independent from
+    # the optional playback wheel while restoring the real module afterwards.
+    if saved_modules["pyaudio"] is None:
+        pyaudio_stub = types.ModuleType("pyaudio")
+        pyaudio_stub.paCustomFormat = 8
+        sys.modules["pyaudio"] = pyaudio_stub
 
     # Create a minimal base_engine module
     import numpy as np
@@ -56,7 +69,8 @@ def _import_minimax_engine():
             self.stop_synthesis_event = MagicMock()
             self.audio_duration = 0
 
-        def synthesize(self, text):
+        def synthesize(self, text, sentence_count=0):
+            del sentence_count
             self.stop_synthesis_event.clear()
 
         def shutdown(self):
@@ -68,12 +82,6 @@ def _import_minimax_engine():
     # Temporarily set module
     engines_pkg = types.ModuleType("RealtimeTTS.engines")
     pkg = types.ModuleType("RealtimeTTS")
-
-    saved_modules["RealtimeTTS"] = sys.modules.get("RealtimeTTS")
-    saved_modules["RealtimeTTS.engines"] = sys.modules.get("RealtimeTTS.engines")
-    saved_modules["RealtimeTTS.engines.base_engine"] = sys.modules.get(
-        "RealtimeTTS.engines.base_engine"
-    )
 
     pkg.engines = engines_pkg
     engines_pkg.base_engine = base_engine_mod
@@ -94,16 +102,19 @@ def _import_minimax_engine():
     )
     mod = importlib.util.module_from_spec(spec)
     sys.modules["RealtimeTTS.engines.minimax_engine"] = mod
-    spec.loader.exec_module(mod)
+    try:
+        spec.loader.exec_module(mod)
+    finally:
+        for name, saved in saved_modules.items():
+            if saved is None:
+                sys.modules.pop(name, None)
+            else:
+                sys.modules[name] = saved
 
-    # Wire up module references for @patch to resolve
-    engines_pkg.minimax_engine = mod
-    pkg.engines = engines_pkg
-
-    return mod.MiniMaxEngine, mod.MiniMaxVoice
+    return mod.MiniMaxEngine, mod.MiniMaxVoice, mod
 
 
-MiniMaxEngine, MiniMaxVoice = _import_minimax_engine()
+MiniMaxEngine, MiniMaxVoice, _MINIMAX_MODULE = _import_minimax_engine()
 
 
 # --- Fixtures ---
@@ -189,10 +200,8 @@ class TestMiniMaxEngineInit:
 class TestMiniMaxStreamInfo:
     def test_get_stream_info_format(self, engine):
         """Test stream info returns custom format for MP3."""
-        import pyaudio
-
         fmt, channels, sample_rate = engine.get_stream_info()
-        assert fmt == pyaudio.paCustomFormat
+        assert fmt == _MINIMAX_MODULE.pyaudio.paCustomFormat
 
     def test_get_stream_info_channels(self, engine):
         """Test stream info returns mono."""
@@ -328,7 +337,7 @@ class TestMiniMaxSynthesize:
         }
         return mock_resp
 
-    @patch("RealtimeTTS.engines.minimax_engine.requests.post")
+    @patch.object(_MINIMAX_MODULE.requests, "post")
     def test_synthesize_success(self, mock_post, engine):
         """Test successful synthesis."""
         audio_hex = "ff" * 100
@@ -341,7 +350,7 @@ class TestMiniMaxSynthesize:
         audio_data = engine.queue.get()
         assert len(audio_data) == 100
 
-    @patch("RealtimeTTS.engines.minimax_engine.requests.post")
+    @patch.object(_MINIMAX_MODULE.requests, "post")
     def test_synthesize_sends_correct_payload(self, mock_post, engine):
         """Test that synthesize sends the correct API payload."""
         mock_post.return_value = self._make_success_response()
@@ -360,7 +369,7 @@ class TestMiniMaxSynthesize:
         assert payload["voice_setting"]["pitch"] == 0
         assert payload["audio_setting"]["format"] == "mp3"
 
-    @patch("RealtimeTTS.engines.minimax_engine.requests.post")
+    @patch.object(_MINIMAX_MODULE.requests, "post")
     def test_synthesize_sends_auth_header(self, mock_post, engine):
         """Test that synthesize includes authorization header."""
         mock_post.return_value = self._make_success_response()
@@ -372,7 +381,7 @@ class TestMiniMaxSynthesize:
         assert headers["Authorization"] == "Bearer test-api-key-123"
         assert headers["Content-Type"] == "application/json"
 
-    @patch("RealtimeTTS.engines.minimax_engine.requests.post")
+    @patch.object(_MINIMAX_MODULE.requests, "post")
     def test_synthesize_api_error(self, mock_post, engine):
         """Test handling of API error response."""
         mock_post.return_value = self._make_error_response(1000, "Invalid API key")
@@ -382,7 +391,7 @@ class TestMiniMaxSynthesize:
         assert result is False
         assert engine.queue.empty()
 
-    @patch("RealtimeTTS.engines.minimax_engine.requests.post")
+    @patch.object(_MINIMAX_MODULE.requests, "post")
     def test_synthesize_empty_audio(self, mock_post, engine):
         """Test handling of empty audio response."""
         mock_post.return_value = self._make_success_response("")
@@ -392,7 +401,7 @@ class TestMiniMaxSynthesize:
         assert result is False
         assert engine.queue.empty()
 
-    @patch("RealtimeTTS.engines.minimax_engine.requests.post")
+    @patch.object(_MINIMAX_MODULE.requests, "post")
     def test_synthesize_request_exception(self, mock_post, engine):
         """Test handling of network request failure."""
         import requests as req
@@ -404,7 +413,7 @@ class TestMiniMaxSynthesize:
         assert result is False
         assert engine.queue.empty()
 
-    @patch("RealtimeTTS.engines.minimax_engine.requests.post")
+    @patch.object(_MINIMAX_MODULE.requests, "post")
     def test_synthesize_invalid_hex(self, mock_post, engine):
         """Test handling of invalid hex audio data."""
         mock_resp = MagicMock()
@@ -419,7 +428,7 @@ class TestMiniMaxSynthesize:
 
         assert result is False
 
-    @patch("RealtimeTTS.engines.minimax_engine.requests.post")
+    @patch.object(_MINIMAX_MODULE.requests, "post")
     def test_synthesize_stop_event(self, mock_post, engine):
         """Test that synthesis respects stop event."""
         mock_post.return_value = self._make_success_response("ff" * 50)
@@ -429,7 +438,7 @@ class TestMiniMaxSynthesize:
 
         assert result is False
 
-    @patch("RealtimeTTS.engines.minimax_engine.requests.post")
+    @patch.object(_MINIMAX_MODULE.requests, "post")
     def test_synthesize_with_turbo_model(self, mock_post, engine):
         """Test synthesis with turbo model."""
         engine.model = "speech-2.8-turbo"
@@ -441,7 +450,7 @@ class TestMiniMaxSynthesize:
         payload = mock_post.call_args.kwargs.get("json") or mock_post.call_args[1].get("json")
         assert payload["model"] == "speech-2.8-turbo"
 
-    @patch("RealtimeTTS.engines.minimax_engine.requests.post")
+    @patch.object(_MINIMAX_MODULE.requests, "post")
     def test_synthesize_custom_voice_params(self, mock_post, engine):
         """Test synthesis with custom voice parameters."""
         engine.speed = 1.5
@@ -456,7 +465,7 @@ class TestMiniMaxSynthesize:
         assert payload["voice_setting"]["vol"] == 0.8
         assert payload["voice_setting"]["pitch"] == -3
 
-    @patch("RealtimeTTS.engines.minimax_engine.requests.post")
+    @patch.object(_MINIMAX_MODULE.requests, "post")
     def test_synthesize_http_error(self, mock_post, engine):
         """Test handling of HTTP error status."""
         import requests as req
@@ -469,7 +478,7 @@ class TestMiniMaxSynthesize:
 
         assert result is False
 
-    @patch("RealtimeTTS.engines.minimax_engine.requests.post")
+    @patch.object(_MINIMAX_MODULE.requests, "post")
     def test_synthesize_timeout(self, mock_post, engine):
         """Test handling of request timeout."""
         import requests as req

@@ -43,8 +43,8 @@ Lorsque vous initialisez la classe `TextToAudioStream`, vous disposez de diverse
 ###`(tokenizer`(chaîne)
 - **Type**: Chaîne
 - **Obligatoire**: Non
-- **Par défaut**: nltk
-- **Description** : Tokenizer à utiliser pour le fractionnement des phrases (actuellement « nltk » et « stroza » sont pris en charge).
+- **Par défaut**: nltk+rule-based
+- **Description** : Tokenizer de consensus combinant NLTK et les règles locales. Stanza reste optionnel via `RealtimeTTS[stanza]`.
 
 ###`language(chaîne)
 - **Type**: Chaîne
@@ -138,8 +138,8 @@ Ces méthodes sont responsables de l'exécution de la synthèse texte-audio et d
 - **Description** : Fonction de rappel qui est appelée lorsqu'un seul morceau audio est prêt.
 
 ###### ```(str)
-- **Par défaut**:`"nltk"`
-- **Description** : Tokenizer à utiliser pour le fractionnement des phrases. Prend actuellement en charge « nltk » et « stroza ».
+- **Par défaut**: hérité du flux (`"nltk+rule-based"` sauf configuration contraire)
+- **Description** : Le mode de consensus NLTK est installé sans Stanza ; ajoutez `RealtimeTTS[stanza]` uniquement pour le mode Stanza.
 
 ###### `_sentences` (appelable)
 - **Par défaut**: `None`

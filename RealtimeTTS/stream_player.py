@@ -18,16 +18,11 @@ Designed for flexible, real-time audio playback and streaming, with error handli
 
 from pydub import AudioSegment
 
-try:
-    import pyaudio._portaudio as pa
-except ImportError:
-    print("Could not import the PyAudio C module 'pyaudio._portaudio'.")
-    raise
+from ._audio_backend import pa, pyaudio
 import numpy as np
 import subprocess
 import threading
 import resampy
-import pyaudio
 import logging
 import shutil
 import queue
@@ -488,7 +483,7 @@ class StreamPlayer:
         self.on_audio_chunk = on_audio_chunk
         self.on_word_spoken = on_word_spoken
         self.first_chunk_played = False
-        self.muted = muted
+        self.muted = muted or config.muted
         self.seconds_played = 0
         self.volume = 1.0  # Default volume at 100%
 

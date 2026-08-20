@@ -62,14 +62,14 @@ engine base class, not an installable engine.
 | `MiniMaxEngine` | `minimax_engine.py` | root, engines | `minimax`, `all` | `tests/minimax_test.py`, `tests/test_minimax_engine.py`, `tests/test_minimax_integration.py` | Strongest pytest coverage among cloud engines. |
 | `CartesiaEngine` | `cartesia_engine.py` | root, engines | `cartesia`, `all` | `tests/cartesia_test.py` | Uses `cartesia==2.0.9`. |
 | `TypecastEngine` | `typecast_engine.py` | root, engines | `typecast`, `all` | none focused found | Uses `TYPECAST_API_KEY` and optional `TYPECAST_VOICE_ID`; source arrived from upstream master during release rebase. |
-| `FasterQwenEngine` | `faster_qwen_engine.py` | root, engines | `qwen`, `all` | `tests/faster_qwen_test.py`, `tests/faster_qwen_emotions.py` | Extra name is `qwen`, not `faster-qwen`. |
+| `QwenEngine` | `qwen_engine.py` | root, engines | `qwen`, `all` | `tests/test_qwen_engine.py` | Native qwentts.cpp backend; matching binary wheel and NVIDIA driver are required. |
 | `OmniVoiceEngine` | `omnivoice_engine.py` | root, engines | `omnivoice`, `all` | `tests/omnivoice_test.py`, `tests/omnivoice_emotions.py` | Voice cloning and inline voice examples need docs. |
 | `LuxTTSEngine` | `luxtts_engine.py` | root, engines | `luxtts`, `all` | none focused found | Local checkout/model setup needs verification. |
 | `ChatterboxEngine` | `chatterbox_engine.py` | root, engines | `chatterbox`, `all` | none focused found | Extra now uses `chatterbox-tts`; prompt WAV length caveats remain. |
 | `SoproTTSEngine` | `sopro_engine.py` | root, engines | `sopro`, `all` | none focused found | Uses Hugging Face cache environment variables when configured. |
 | `SopranoEngine` | `soprano_engine.py` | root, engines | `soprano`, `all` | none focused found | Local neural engine without a focused test found. |
 | `MossTTSEngine` | `moss_tts_engine.py` | root, engines | `moss`, `moss-tts`, `all` | none focused found | Extra keeps PyPI-resolvable runtime deps; MOSS-TTS-Nano package/assets, CUDA/CUDNN, and model assets still need care. |
-| `ModelsLabEngine` | `modelslab_engine.py` | engines only | `modelslab`, `all` | `tests/modelslab_test.py` | README and tests reference it, but root `RealtimeTTS` does not export it. |
+| `ModelsLabEngine` | `modelslab_engine.py` | root and engines | `modelslab`, `all` | `tests/modelslab_test.py` | Lazily exported from both package entry points. |
 
 ## Setup Extras Inventory
 
@@ -83,8 +83,8 @@ Observed `setup.py` extras:
 
 Packaging mismatches to preserve as follow-ups, not docs assumptions:
 
-- `ModelsLabEngine` is exported from `RealtimeTTS.engines`, but not from the
-  root `RealtimeTTS` lazy export table.
+- `ModelsLabEngine` is lazily exported from both `RealtimeTTS` and
+  `RealtimeTTS.engines`.
 - `PiperEngine` still needs an external Piper executable and voice model; setup
   extras cannot install those assets.
 - `StyleTTSEngine`, `ZipVoiceEngine`, and some MOSS workflows still need local

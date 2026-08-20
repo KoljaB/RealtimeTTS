@@ -16,17 +16,12 @@ from .threadsafe_generators import CharIterator, AccumulatingThreadSafeGenerator
 from .stream_player import StreamPlayer, AudioConfiguration
 from typing import Union, Iterator, List
 from .engines import BaseEngine
+from ._audio_backend import pa, pyaudio
 import re
-try:
-    import pyaudio._portaudio as pa
-except ImportError:
-    print("Could not import the PyAudio C module 'pyaudio._portaudio'.")
-    raise
 import numpy as np
 import threading
 import traceback
 import logging
-import pyaudio
 import queue
 import time
 import wave
@@ -57,7 +52,7 @@ class TextToAudioStream:
         on_word=None,
         output_device_index=None,
         mpv_audio_device=None,
-        tokenizer: str = "nltk",
+        tokenizer: str = "nltk+rule-based",
         language: str = "en",
         muted: bool = False,
         frames_per_buffer: int = pa.paFramesPerBufferUnspecified,
@@ -126,10 +121,12 @@ class TextToAudioStream:
             tokenizer (str, optional):
                 Specifies the tokenizer used to split input text into sentences
                 or smaller chunks for synthesis. Supported options are:
-                - "nltk": Uses the Natural Language Toolkit (NLTK) tokenizer.
-                - "stanza": Uses the Stanza library for advanced sentence
-                  splitting.
-                Defaults to "nltk".
+                - "nltk+rule-based": Combines NLTK with stream2sentence's
+                  local boundary rules. This is the default.
+                - "rule-based": Uses only stream2sentence's built-in tokenizer.
+                - "nltk": Uses only the Natural Language Toolkit tokenizer.
+                - "stanza": Uses the optional Stanza tokenizer.
+                Defaults to "nltk+rule-based".
                 
             language (str, optional):
                 Language code (e.g., "en" for English, "de" for German) used for
@@ -492,7 +489,7 @@ class TextToAudioStream:
         on_sentence_synthesized=None,
         before_sentence_synthesized=None,
         on_audio_chunk=None,
-        tokenizer: str = "nltk",
+        tokenizer: str = "",
         tokenize_sentences=None,
         language: str = "en",
         context_size: int = 12,
@@ -526,7 +523,7 @@ class TextToAudioStream:
         - on_sentence_synthesized: Callback function that gets called after hen a single sentence fragment was synthesized.
         - before_sentence_synthesized: Callback function that gets called before a single sentence fragment gets synthesized.
         - on_audio_chunk: Callback function that gets called when a single audio chunk is ready.
-        - tokenizer: Tokenizer to use for sentence splitting (currently "nltk" and "stanza" are supported).
+        - tokenizer: Tokenizer to use for sentence splitting. Leave empty to use the stream setting ("nltk+rule-based" by default). Stanza remains optional and requires the `RealtimeTTS[stanza]` extra.
         - tokenize_sentences (Callable): A function that tokenizes sentences from the input text. You can write your own lightweight tokenizer here if you are unhappy with nltk and stanza. Defaults to None. Takes text as string and should return splitted sentences as list of strings.
         - language: Language to use for sentence splitting.
         - context_size: The number of characters used to establish context for sentence boundary detection. A larger context improves the accuracy of detecting sentence boundaries. Default is 12 characters.

@@ -32,7 +32,8 @@ For the fastest local smoke test, install the system engine:
 pip install "realtimetts[system]"
 ```
 
-On Linux, install PortAudio headers before installing PyAudio:
+The `system` and other traditional engine extras use PyAudio. On Linux, install
+PortAudio headers before those extras:
 
 ```bash
 sudo apt-get update
@@ -43,6 +44,32 @@ On macOS:
 
 ```bash
 brew install portaudio
+```
+
+The native `qwen` and Inflect extras use the established PyAudio/PortAudio
+playback path. Windows has prebuilt PyAudio wheels for Python 3.10–3.13. On
+Linux and macOS, install PortAudio first using the commands above. The Qwen
+native wheel itself does not require a local CUDA Toolkit.
+
+Install `realtimetts[qwen-server]` to expose the same native engine through
+an OpenAI-compatible HTTP API. The server provides `/v1/audio/speech`, dynamic
+voice registration, persistent voice latents, and watchdog-ready request/stall
+metrics on `/health`; it is headless and does not install PyAudio/PortAudio.
+The server defaults to loopback (`127.0.0.1`). LAN exposure requires a
+deliberate `--allow-lan` bind plus a built-in API key, or a trusted reverse
+proxy that terminates TLS and enforces authentication. CORS defaults to
+explicit localhost origins and rejects wildcard `*`; CORS is not an access
+control boundary. See [the Qwen guide](docs/engines/qwen.md#http-server) for
+deployment, protocol, licensing, and asset boundaries.
+
+Sentence splitting defaults to stream2sentence's `nltk+rule-based` consensus
+mode. The normal install, including `realtimetts[qwen]`, installs
+`stream2sentence[nltk]` but not Stanza or PyTorch. Add Stanza only when wanted:
+
+```bash
+pip install "realtimetts[stanza]"
+# or
+pip install "realtimetts[qwen,stanza]"
 ```
 
 For cloud engines, local neural engines, CUDA, `mpv`, and current packaging
@@ -126,21 +153,21 @@ see [docs/output-and-files.md](docs/output-and-files.md).
 | [`MiniMaxEngine`](docs/engines/minimax.md) | Cloud API | `realtimetts[minimax]` | MiniMax cloud voices. |
 | [`CartesiaEngine`](docs/engines/cartesia.md) | Cloud API | `realtimetts[cartesia]` | Cartesia API voices. |
 | [`TypecastEngine`](docs/engines/typecast.md) | Cloud API | `realtimetts[typecast]` | Typecast API voices. |
-| [`ModelsLabEngine`](docs/engines/modelslab.md) | Cloud API | `realtimetts[modelslab]`, root export pending | ModelsLab API voices. |
+| [`ModelsLabEngine`](docs/engines/modelslab.md) | Cloud API | `realtimetts[modelslab]` | ModelsLab API voices. |
 | [`CoquiEngine`](docs/engines/coqui.md) | Local neural | `realtimetts[coqui]` | Local XTTS voice cloning. |
 | [`PiperEngine`](docs/engines/piper.md) | Local executable | `realtimetts[piper]`, external Piper setup | Fast local executable TTS. |
 | [`StyleTTSEngine`](docs/engines/styletts.md) | Local neural | `realtimetts[styletts]`, local checkout/assets | StyleTTS experiments. |
 | [`ParlerEngine`](docs/engines/parler.md) | Local neural | `realtimetts[parler]` | GPU local model experiments. |
 | [`KokoroEngine`](docs/engines/kokoro.md) | Local neural | `realtimetts[kokoro]` | Local voices and timing support. |
 | [`OrpheusEngine`](docs/engines/orpheus.md) | Local/API-style | `realtimetts[orpheus]` | Orpheus model workflows. |
-| [`FasterQwenEngine`](docs/engines/faster-qwen.md) | Local neural | `realtimetts[qwen]` | Qwen voice cloning. |
+| [`QwenEngine`](docs/engines/qwen.md) | Local native neural / HTTP server | `realtimetts[qwen]` or `realtimetts[qwen-server]` after matching native-wheel release | Q8 Qwen voice cloning through qwentts.cpp. |
 | [`OmniVoiceEngine`](docs/engines/omnivoice.md) | Local neural | `realtimetts[omnivoice]` | Multilingual voice cloning. |
 | [`PocketTTSEngine`](docs/engines/pockettts.md) / `PocketTTSGpuEngine` | Local lightweight | `realtimetts[pockettts]`, `realtimetts[pockettts-gpu]` plus GPU fork | CPU-oriented voice cloning, optional CUDA fork path. |
 | [`NeuTTSEngine`](docs/engines/neutts.md) | Local neural | `realtimetts[neutts]`, optional `neutts-gguf` | Reference-audio voice cloning. |
 | [`ZipVoiceEngine`](docs/engines/zipvoice.md) | Local neural | `realtimetts[zipvoice]`, external checkout | ZipVoice cloning/server demos. |
 | [`LuxTTSEngine`](docs/engines/luxtts.md) | Local neural | `realtimetts[luxtts]` | LuxTTS voice cloning. |
 | [`ChatterboxEngine`](docs/engines/chatterbox.md) | Local neural | `realtimetts[chatterbox]` | Chatterbox prompt-audio voices. |
-| [`InflectEngine`](docs/engines/inflect.md) | Local lightweight | `realtimetts[inflect]` | Very fast fixed English voice on CUDA or CPU. |
+| [`InflectEngine`](docs/engines/inflect.md) | Local lightweight | `realtimetts[inflect]` | Fixed English voice through PyTorch CUDA or ONNX CPU. |
 | [`SoproTTSEngine`](docs/engines/sopro.md) | Local neural | `realtimetts[sopro]` | Sopro reference-audio voices. |
 | [`SopranoEngine`](docs/engines/soprano.md) | Local neural | `realtimetts[soprano]` | Soprano local synthesis. |
 | [`MossTTSEngine`](docs/engines/moss-tts.md) | Local neural | `realtimetts[moss]`, runtime assets | MOSS-TTS experiments. |
@@ -198,6 +225,12 @@ RealtimeTTS source code is MIT licensed. Engine providers, model weights, voice
 data, datasets, generated audio, and third-party services can have separate
 terms. Read [LICENSING_ADDENDUM.md](LICENSING_ADDENDUM.md) and the relevant
 provider or model licenses before commercial use.
+
+For the native Qwen/Inflect paths, `qwentts.cpp` and `qwentts-cpp-python` are
+MIT-licensed; Qwen 0.6B Base/tokenizer and Inflect Micro-v2/ONNX are
+Apache-2.0. Model weights, voice latents, and reference audio are not bundled,
+and users are responsible for the rights to every voice or recording they
+provide.
 
 Audio samples derived from the EARS dataset by Meta are licensed under CC BY-NC
 4.0. See the original dataset terms for details.

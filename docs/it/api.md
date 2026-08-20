@@ -43,8 +43,8 @@ Quando si inizializza la classe `TextToAudioStream`, sono disponibili diverse op
 #### `tokenizer` (string)
 - **Tipo**: Stringa
 - **Obbligatorio**: No
-- **Predefinito**: nltk
-- **Descrizione**: Tokenizer da utilizzare per la divisione delle frasi (attualmente sono supportati "nltk" e "stanza").
+- **Predefinito**: nltk+rule-based
+- **Descrizione**: Tokenizer di consenso che combina NLTK e regole locali. Stanza resta opzionale tramite `RealtimeTTS[stanza]`.
 
 #### `language` (string)
 - **Tipo**: Stringa
@@ -139,8 +139,8 @@ Questi metodi sono responsabili dell'esecuzione della sintesi testo-audio e dell
 - **Descrizione**: Funzione di callback che viene chiamata quando un singolo chunk audio è pronto.
 
 ###### `tokenizer` (str)
-- **Predefinito**: `"nltk"`
-- **Descrizione**: Tokenizer da utilizzare per la divisione delle frasi. Attualmente supporta "nltk" e "stanza".
+- **Predefinito**: ereditato dallo stream (`"nltk+rule-based"` se non configurato diversamente)
+- **Descrizione**: Il consenso NLTK viene installato senza Stanza; aggiungi `RealtimeTTS[stanza]` solo per la modalità Stanza.
 
 ###### `tokenize_sentences` (callable)
 - **Predefinito**: `None`

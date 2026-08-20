@@ -1,3 +1,6 @@
+include LICENSE
+include LICENSING_ADDENDUM.md
+include CHANGELOG.md
 include requirements.txt
 include README.md
 prune tests

@@ -43,8 +43,8 @@ Bei der Initialisierung der TextToAudioStream-Klasse haben Sie verschiedene Mög
 ### `tokenizer` (string)
 - Typ: `String`
 - Erforderlich: Nein
-- Standard: `nltk`
-- Beschreibung: Tokenizer für die Satztrennung (derzeit werden "nltk" und "stanza" unterstützt).
+- Standard: `nltk+rule-based`
+- Beschreibung: Konsens-Tokenizer aus NLTK und lokalen Grenzregeln. Stanza bleibt über `RealtimeTTS[stanza]` optional.
 
 ### `language` (string)
 - Typ: `String`
@@ -138,8 +138,8 @@ Diese Methoden sind für die Ausführung der Text-zu-Audio-Synthese und das Absp
 - **Beschreibung**: Callback-Funktion, die aufgerufen wird, wenn ein einzelner Audio-Chunk bereit ist.
 
 ##### tokenizer (str)
-- **Default**: "nltk"
-- **Beschreibung**: Tokenizer für die Satztrennung. Unterstützt derzeit "nltk" und "stanza".
+- **Default**: vom Stream übernommen (`"nltk+rule-based"`, sofern nicht anders konfiguriert)
+- **Beschreibung**: Tokenizer für die Satztrennung. Der NLTK-Konsensmodus wird ohne Stanza installiert; Stanza gibt es separat über `RealtimeTTS[stanza]`.
 
 ##### tokenize_sentences (callable)
 - **Default**: None

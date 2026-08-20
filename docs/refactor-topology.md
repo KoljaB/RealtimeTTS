@@ -62,7 +62,7 @@ docs/
     camb.md
     minimax.md
     cartesia.md
-    faster-qwen.md
+qwen.md
     omnivoice.md
     modelslab.md
     pockettts.md
@@ -116,7 +116,7 @@ nav:
           - Parler: engines/parler.md
           - Kokoro: engines/kokoro.md
           - Orpheus: engines/orpheus.md
-          - Faster Qwen: engines/faster-qwen.md
+- Qwen: engines/qwen.md
           - OmniVoice: engines/omnivoice.md
           - PocketTTS: engines/pockettts.md
           - NeuTTS: engines/neutts.md

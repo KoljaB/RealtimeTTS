@@ -27,11 +27,25 @@ def _import_minimax_engine():
     mock_mp = MagicMock()
     mock_mp.Event.return_value = MagicMock()
 
-    if "torch" not in sys.modules or isinstance(sys.modules["torch"], MagicMock):
-        mock_torch = MagicMock()
-        mock_torch.multiprocessing = mock_mp
-        sys.modules["torch"] = mock_torch
-        sys.modules["torch.multiprocessing"] = mock_mp
+    module_names = [
+        "torch",
+        "torch.multiprocessing",
+        "pyaudio",
+        "RealtimeTTS",
+        "RealtimeTTS.engines",
+        "RealtimeTTS.engines.base_engine",
+        "RealtimeTTS.engines.minimax_engine",
+    ]
+    saved_modules = {name: sys.modules.get(name) for name in module_names}
+
+    mock_torch = MagicMock()
+    mock_torch.multiprocessing = mock_mp
+    sys.modules["torch"] = mock_torch
+    sys.modules["torch.multiprocessing"] = mock_mp
+    if saved_modules["pyaudio"] is None:
+        pyaudio_stub = types.ModuleType("pyaudio")
+        pyaudio_stub.paCustomFormat = 8
+        sys.modules["pyaudio"] = pyaudio_stub
 
     base_engine_mod = types.ModuleType("RealtimeTTS.engines.base_engine")
 
@@ -47,7 +61,8 @@ def _import_minimax_engine():
             self.stop_synthesis_event.is_set.return_value = False
             self.audio_duration = 0
 
-        def synthesize(self, text):
+        def synthesize(self, text, sentence_count=0):
+            del sentence_count
             self.stop_synthesis_event.clear()
 
         def shutdown(self):
@@ -60,7 +75,7 @@ def _import_minimax_engine():
     pkg.engines = engines_pkg
     engines_pkg.base_engine = base_engine_mod
 
-    sys.modules.setdefault("RealtimeTTS", pkg)
+    sys.modules["RealtimeTTS"] = pkg
     sys.modules["RealtimeTTS.engines"] = engines_pkg
     sys.modules["RealtimeTTS.engines.base_engine"] = base_engine_mod
 
@@ -76,13 +91,21 @@ def _import_minimax_engine():
     )
     mod = importlib.util.module_from_spec(spec)
     sys.modules["RealtimeTTS.engines.minimax_engine"] = mod
-    spec.loader.exec_module(mod)
-    engines_pkg.minimax_engine = mod
+    try:
+        spec.loader.exec_module(mod)
+    finally:
+        for name, saved in saved_modules.items():
+            if saved is None:
+                sys.modules.pop(name, None)
+            else:
+                sys.modules[name] = saved
 
     return mod.MiniMaxEngine
 
 
-MiniMaxEngine = _import_minimax_engine()
+MiniMaxEngine = (
+    _import_minimax_engine() if os.environ.get("MINIMAX_API_KEY") else None
+)
 
 
 @pytest.fixture

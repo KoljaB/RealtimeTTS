@@ -43,8 +43,8 @@ When you initialize the `TextToAudioStream` class, you have various options to c
 #### `tokenizer` (string)
 - **Type**: String
 - **Required**: No
-- **Default**: nltk
-- **Description**: Tokenizer to use for sentence splitting (currently "nltk" and "stanza" are supported).
+- **Default**: nltk+rule-based
+- **Description**: Consensus tokenizer combining NLTK with local boundary rules. Stanza remains optional through the `RealtimeTTS[stanza]` extra.
 
 #### `language` (string)
 - **Type**: String
@@ -139,8 +139,8 @@ These methods are responsible for executing the text-to-audio synthesis and play
 - **Description**: Callback function that gets called when a single audio chunk is ready.
 
 ###### `tokenizer` (str)
-- **Default**: `"nltk"`
-- **Description**: Tokenizer to use for sentence splitting. Currently supports "nltk" and "stanza".
+- **Default**: inherited from the stream (`"nltk+rule-based"` unless configured otherwise)
+- **Description**: Tokenizer to use for sentence splitting. The default NLTK consensus mode is installed without Stanza; add `RealtimeTTS[stanza]` only for the Stanza mode.
 
 ###### `tokenize_sentences` (callable)
 - **Default**: `None`

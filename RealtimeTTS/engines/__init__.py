@@ -22,7 +22,7 @@ __all__ = [
     "ModelsLabEngine", "ModelsLabVoice",
     "MiniMaxEngine", "MiniMaxVoice",
     "CartesiaEngine", "CartesiaVoice",
-    "FasterQwenEngine", "FasterQwenVoice",
+    "QwenEngine", "QwenVoice", "QwenEngineError",
     "OmniVoiceEngine", "OmniVoiceVoice",
     "TypecastEngine", "TypecastVoice",
     "LuxTTSEngine", "LuxTTSVoice",
@@ -175,11 +175,22 @@ def _load_cartesia_engine():
     return CartesiaEngine
 
 
-def _load_fasterqwen_engine():
-    from .faster_qwen_engine import FasterQwenEngine, FasterQwenVoice
-    globals()["FasterQwenEngine"] = FasterQwenEngine
-    globals()["FasterQwenVoice"] = FasterQwenVoice
-    return FasterQwenEngine
+def _load_qwen_engine():
+    from .qwen_engine import QwenEngine, QwenEngineError, QwenVoice
+    globals()["QwenEngine"] = QwenEngine
+    globals()["QwenVoice"] = QwenVoice
+    globals()["QwenEngineError"] = QwenEngineError
+    return QwenEngine
+
+
+def _load_qwen_voice():
+    _load_qwen_engine()
+    return globals()["QwenVoice"]
+
+
+def _load_qwen_error():
+    _load_qwen_engine()
+    return globals()["QwenEngineError"]
 
 
 def _load_omni_voice_engine():
@@ -279,8 +290,9 @@ _lazy_imports = {
     "MiniMaxVoice": _load_minimax_engine,
     "CartesiaEngine": _load_cartesia_engine,
     "CartesiaVoice": _load_cartesia_engine,
-    "FasterQwenEngine": _load_fasterqwen_engine,
-    "FasterQwenVoice": _load_fasterqwen_engine,
+    "QwenEngine": _load_qwen_engine,
+    "QwenVoice": _load_qwen_voice,
+    "QwenEngineError": _load_qwen_error,
     "OmniVoiceEngine": _load_omni_voice_engine,
     "OmniVoiceVoice": _load_omni_voice_engine,
     "TypecastEngine": _load_typecast_engine,
@@ -302,5 +314,6 @@ _lazy_imports = {
 
 def __getattr__(name):
     if name in _lazy_imports:
-        return _lazy_imports[name]()
+        _lazy_imports[name]()
+        return globals()[name]
     raise AttributeError(f"module {__name__} has no attribute {name}")

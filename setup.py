@@ -1,10 +1,19 @@
-current_version = "0.7.4"
+import re
+from pathlib import Path
 
 import setuptools
-import re
+
+_ROOT = Path(__file__).resolve().parent
+_version_text = (Path(__file__).resolve().parent / "RealtimeTTS" / "_version.py").read_text(
+    encoding="utf-8"
+)
+_version_match = re.search(r'^__version__ = "([^"]+)"$', _version_text, re.MULTILINE)
+if _version_match is None:
+    raise RuntimeError("Could not determine RealtimeTTS package version")
+current_version = _version_match.group(1)
 
 # Read the contents of README.md
-with open("README.md", "r", encoding="utf-8") as fh:
+with (_ROOT / "README.md").open("r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 long_description = """
@@ -33,7 +42,8 @@ Available engine options include:
 - **cartesia**: Cartesia API integration
 - **modelslab**: ModelsLab API integration
 - **orpheus**: Orpheus TTS support
-- **qwen**: Faster Qwen3 TTS integration
+- **qwen**: Native qwentts.cpp Qwen3 TTS integration
+- **qwen-server**: OpenAI-compatible native Qwen3 TTS HTTP server
 - **omnivoice**: Omnivoice TTS integration
 - **luxtts**: LuxTTS integration
 - **chatterbox**: Chatterbox Turbo integration
@@ -50,6 +60,8 @@ Available engine options include:
 - **styletts**: StyleTTS integration
 - **piper**: Piper executable engine support
 - **typecast**: Typecast API integration
+- **nltk**: Default NLTK plus rule-based sentence tokenizer (included by default)
+- **stanza**: Add the optional Stanza sentence tokenizer
 - **minimal**: Core package only (for custom engine development)
 
 You can install multiple engines by separating them with commas. For example:
@@ -61,12 +73,12 @@ You can install multiple engines by separating them with commas. For example:
 # Read requirements.txt and parse it
 def parse_requirements(filename):
     requirements = {}
-    with open(filename, "r", encoding="utf-8") as f:
+    with (_ROOT / filename).open("r", encoding="utf-8") as f:
         for line in f:
             line = line.strip()
             if line and not line.startswith("#"):
                 # Split by any version operator: =, >, <, ~, or !
-                package = re.split(r'[=><~!]', line)[0].strip()
+                package = re.split(r'[=><~!]', line)[0].strip().split("[", 1)[0]
                 requirements[package] = line
     return requirements
 
@@ -78,11 +90,17 @@ all_requirements = list(requirements.values())
 
 # Define base requirements (using .get() to prevent KeyErrors if missing from requirements.txt)
 base_requirements =[
-    requirements.get("stream2sentence", "stream2sentence"),
+    requirements.get("stream2sentence", "stream2sentence[nltk]>=1.0.3"),
     requirements.get("pydub", "pydub"),
-    requirements.get("pyaudio", "pyaudio"),
+    requirements.get(
+        "audioop-lts",
+        'audioop-lts>=0.2.2; python_version >= "3.13"',
+    ),
     requirements.get("resampy", "resampy"),
 ]
+stanza_tokenizer_requirements = ["stream2sentence[stanza]>=1.0.3"]
+pyaudio_requirements = [requirements.get("pyaudio", "pyaudio>=0.2.14")]
+standard_requirements = base_requirements + pyaudio_requirements
 
 # Define subsets of requirements for each engine safely
 system_requirements = [requirements.get("pyttsx3", "pyttsx3")]
@@ -97,7 +115,20 @@ camb_requirements = [requirements.get("camb-sdk", "camb-sdk")]
 requests_requirements = [requirements.get("requests", "requests")]
 cartesia_requirements = [requirements.get("cartesia", "cartesia")]
 typecast_requirements = [requirements.get("typecast-python", "typecast-python")]
-qwen_requirements = [requirements.get("faster-qwen3-tts", "faster-qwen3-tts")]
+qwen_common_requirements = [
+    requirements.get(
+        "qwentts-cpp-python",
+        "qwentts-cpp-python[cuda12]==0.4.0.dev1",
+    ),
+    requirements.get("numpy", "numpy"),
+    requirements.get("soundfile", "soundfile>=0.13.1"),
+]
+qwen_requirements = qwen_common_requirements + pyaudio_requirements
+qwen_server_requirements = [
+    requirements.get("fastapi", "fastapi>=0.115,<1"),
+    requirements.get("uvicorn", "uvicorn>=0.34,<1"),
+    requirements.get("fasttext-predict", "fasttext-predict>=0.9.2.4"),
+]
 orpheus_requirements = [requirements.get("snac", "snac")]
 omnivoice_requirements = [requirements.get("omnivoice", "omnivoice")]
 chatterbox_requirements = [requirements.get("chatterbox-tts", "chatterbox-tts")]
@@ -200,6 +231,7 @@ all_engine_requirements = (
     + cartesia_requirements
     + typecast_requirements
     + qwen_requirements
+    + qwen_server_requirements
     + orpheus_requirements
     + omnivoice_requirements
     + chatterbox_requirements
@@ -218,46 +250,52 @@ all_engine_requirements = (
 
 extras_require = {
     "minimal": base_requirements,
-    "all": base_requirements + all_engine_requirements,
-    "system": base_requirements + system_requirements,
-    "azure": base_requirements + azure_requirements,
-    "elevenlabs": base_requirements + elevenlabs_requirements,
-    "openai": base_requirements + openai_requirements,
-    "gtts": base_requirements + gtts_requirements,
-    "coqui": base_requirements + coqui_requirements,
-    "edge": base_requirements + edge_requirements,
-    "kokoro": base_requirements + kokoro_requirements,
-    "camb": base_requirements + camb_requirements,
-    "minimax": base_requirements + requests_requirements,
-    "modelslab": base_requirements + requests_requirements,
-    "cartesia": base_requirements + cartesia_requirements,
-    "typecast": base_requirements + typecast_requirements,
-    "orpheus": base_requirements + orpheus_requirements,
-    "omnivoice": base_requirements + omnivoice_requirements,
-    "luxtts": base_requirements + luxtts_requirements,
-    "zipvoice": base_requirements + zipvoice_requirements,
-    "chatterbox": base_requirements + chatterbox_requirements,
-    "inflect": base_requirements + inflect_requirements,
-    "inflect-pytorch": base_requirements + inflect_pytorch_requirements,
-    "inflect-onnx": base_requirements + inflect_onnx_requirements,
-    "sopro": base_requirements + sopro_requirements,
-    "soprano": base_requirements + soprano_requirements,
-    "neutts": base_requirements + neutts_requirements,
-    "neutts-gguf": base_requirements + ["neutts[llama,onnx]"],
-    "pockettts": base_requirements + pockettts_requirements,
-    "pocket": base_requirements + pockettts_requirements,
-    "pockettts-gpu": base_requirements + pockettts_gpu_requirements,
-    "pocket-gpu": base_requirements + pockettts_gpu_requirements,
-    "styletts": base_requirements + styletts_requirements,
-    "style": base_requirements + styletts_requirements,
-    "parler": base_requirements + parler_requirements,
-    "moss": base_requirements + moss_requirements,
-    "moss-tts": base_requirements + moss_requirements,
-    "piper": base_requirements,
+    "playback": standard_requirements,
+    "all": standard_requirements + stanza_tokenizer_requirements + all_engine_requirements,
+    "nltk": base_requirements,
+    "stanza": base_requirements + stanza_tokenizer_requirements,
+    "system": standard_requirements + system_requirements,
+    "azure": standard_requirements + azure_requirements,
+    "elevenlabs": standard_requirements + elevenlabs_requirements,
+    "openai": standard_requirements + openai_requirements,
+    "gtts": standard_requirements + gtts_requirements,
+    "coqui": standard_requirements + coqui_requirements,
+    "edge": standard_requirements + edge_requirements,
+    "kokoro": standard_requirements + kokoro_requirements,
+    "camb": standard_requirements + camb_requirements,
+    "minimax": standard_requirements + requests_requirements,
+    "modelslab": standard_requirements + requests_requirements,
+    "cartesia": standard_requirements + cartesia_requirements,
+    "typecast": standard_requirements + typecast_requirements,
+    "orpheus": standard_requirements + orpheus_requirements,
+    "omnivoice": standard_requirements + omnivoice_requirements,
+    "luxtts": standard_requirements + luxtts_requirements,
+    "zipvoice": standard_requirements + zipvoice_requirements,
+    "chatterbox": standard_requirements + chatterbox_requirements,
+    "inflect": standard_requirements + inflect_requirements,
+    "inflect-pytorch": standard_requirements + inflect_pytorch_requirements,
+    "inflect-onnx": standard_requirements + inflect_onnx_requirements,
+    "sopro": standard_requirements + sopro_requirements,
+    "soprano": standard_requirements + soprano_requirements,
+    "neutts": standard_requirements + neutts_requirements,
+    "neutts-gguf": standard_requirements + ["neutts[llama,onnx]"],
+    "pockettts": standard_requirements + pockettts_requirements,
+    "pocket": standard_requirements + pockettts_requirements,
+    "pockettts-gpu": standard_requirements + pockettts_gpu_requirements,
+    "pocket-gpu": standard_requirements + pockettts_gpu_requirements,
+    "styletts": standard_requirements + styletts_requirements,
+    "style": standard_requirements + styletts_requirements,
+    "parler": standard_requirements + parler_requirements,
+    "moss": standard_requirements + moss_requirements,
+    "moss-tts": standard_requirements + moss_requirements,
+    "piper": standard_requirements,
+    # Qwen uses PyAudio for the in-process playback path. The server extra is
+    # headless and therefore intentionally leaves PyAudio out.
     "qwen": base_requirements + qwen_requirements,
-    "jp": base_requirements +["mecab-python3>=1.0.12", "unidic-lite>=1.0.8", "cutlet", "fugashi>=1.5.2", "jaconv>=0.5.0", "mojimoji>=0.0.13", "pyopenjtalk>=0.4.1"],
-    "zh": base_requirements +["pypinyin>=0.55.0", "ordered_set>=4.1.0", "jieba>=0.42.1", "cn2an>=0.5.24"],
-    "ko": base_requirements +["hangul_romanize"],
+    "qwen-server": base_requirements + qwen_common_requirements + qwen_server_requirements,
+    "jp": standard_requirements +["mecab-python3>=1.0.12", "unidic-lite>=1.0.8", "cutlet", "fugashi>=1.5.2", "jaconv>=0.5.0", "mojimoji>=0.0.13", "pyopenjtalk>=0.4.1"],
+    "zh": standard_requirements +["pypinyin>=0.55.0", "ordered_set>=4.1.0", "jieba>=0.42.1", "cn2an>=0.5.24"],
+    "ko": standard_requirements +["hangul_romanize"],
 }
 
 setuptools.setup(
@@ -281,5 +319,10 @@ setuptools.setup(
     extras_require=extras_require,
     package_data={"RealtimeTTS": ["engines/*.json"]},
     include_package_data=True,
+    entry_points={
+        "console_scripts": [
+            "realtimetts-qwen-server=RealtimeTTS.qwen_server:main",
+        ],
+    },
     keywords="real-time, text-to-speech, TTS, streaming, audio, voice, synthesis, sentence-segmentation, low-latency, character-streaming, dynamic feedback, audio-output, text-input, TTS-engine, audio-playback, stream-player, sentence-fragment, audio-feedback, interactive, python",
 )

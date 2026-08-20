@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  focused-unit-tests:
+    name: Focused unit tests (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+      - name: Install focused test dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes portaudio19-dev
+          python -m pip install --upgrade pip
+          python -m pip install pytest numpy requests fastapi httpx soundfile
+          python -m pip install -e .
+          python -m pip install pyaudio
+      - name: Run focused unit tests
+        run: >-
+          python -m pytest -q
+          tests/test_audio_backend.py
+          tests/test_base_engine_silence_trim.py
+          tests/test_inflect_engine.py
+          tests/test_language_router.py
+          tests/test_minimax_engine.py
+          tests/test_qwen_engine.py
+          tests/test_qwen_server.py
+          tests/test_release_metadata.py
+          tests/test_sentence_splitter_preload.py
+          tests/test_sentence_tokenizer_defaults.py
+
+  package-artifacts:
+    name: Build and validate package artifacts
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install packaging tools
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install build twine
+      - name: Build sdist and wheel
+        run: python -m build --sdist --wheel
+      - name: Validate distribution metadata
+        run: python -m twine check --strict dist/*
+      - name: Smoke-test wheel in a clean environment
+        run: python tools/clean_install_smoke.py dist

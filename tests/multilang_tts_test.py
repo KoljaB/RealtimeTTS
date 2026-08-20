@@ -74,7 +74,14 @@ if __name__ == "__main__":
         filename = f"synthesis_{language}_" + engine.engine_name
 
         tokenizer = (
-            tokenizer = "stanza" if language in ["zh", "es", "de", "fr", "it", "ja", "ko", "ar", "hi", "pt", "ru", "id", "tr", "vi", "bn", "pl", "nl", "uk", "be", "ur", "mr", "te", "ta", "gu", "cs", "hu", "ml", "kn", "ne", "th"] else None
+            "stanza"
+            if language
+            in [
+                "zh", "es", "de", "fr", "it", "ja", "ko", "ar", "hi", "pt",
+                "ru", "id", "tr", "vi", "bn", "pl", "nl", "uk", "be", "ur",
+                "mr", "te", "ta", "gu", "cs", "hu", "ml", "kn", "ne", "th",
+            ]
+            else None
         )
         stream.play(
             minimum_sentence_length=2,

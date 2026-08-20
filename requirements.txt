@@ -1,5 +1,5 @@
 # stream2sentence is the core of RealtimeTTS - it quickly converts streamed text into sentences for real-time synthesis
-stream2sentence>=0.3.2
+stream2sentence[nltk]>=1.0.3
 
 # azure-cognitiveservices-speech is for AzureEngine
 azure-cognitiveservices-speech>=1.50.0
@@ -34,8 +34,13 @@ kokoro>=0.9.4
 # snac is for OrpheusEngine
 snac>=1.2.1
 
-# faster-qwen3-tts is for FasterQwenEngine
-faster-qwen3-tts>=0.2.6
+# qwentts-cpp-python is the native in-process backend for QwenEngine
+qwentts-cpp-python[cuda12]==0.4.0.dev1
+
+# HTTP serving dependencies for the optional native Qwen server
+fastapi>=0.115,<1
+uvicorn[standard]>=0.34,<1
+fasttext-predict>=0.9.2.4
 
 # camb-sdk is for CambEngine
 camb-sdk>=1.5.11
@@ -103,6 +108,9 @@ pyaudio>=0.2.14
 
 # pydub is used to convert chunks from mp3 to pcm (for openai tts)
 pydub>=0.25.1
+
+# audioop was removed from Python 3.13; pydub still imports its API
+audioop-lts>=0.2.2; python_version >= "3.13"
 
 # resampy is used to resample from the tts to the target device sample rate
 resampy==0.4.3

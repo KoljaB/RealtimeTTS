@@ -1,9 +1,9 @@
 # RealtimeTTS/__init__.py
 
-from .text_to_stream import TextToAudioStream
-from .engines import BaseEngine, TimingInfo
+from ._version import __version__
 
 __all__ = [
+    "__version__",
     "TextToAudioStream", "BaseEngine", "TimingInfo",
     "SystemEngine", "SystemVoice",
     "AzureEngine", "AzureVoice",
@@ -22,9 +22,10 @@ __all__ = [
     "PocketTTSGpuEngine", "PocketTTSGpuVoice",
     "NeuTTSEngine", "NeuTTSVoice",
     "CambEngine", "CambVoice",
+    "ModelsLabEngine", "ModelsLabVoice",
     "MiniMaxEngine", "MiniMaxVoice",
     "CartesiaEngine", "CartesiaVoice",
-    "FasterQwenEngine", "FasterQwenVoice",
+    "QwenEngine", "QwenVoice", "QwenEngineError",
     "OmniVoiceEngine", "OmniVoiceVoice",
     "TypecastEngine", "TypecastVoice",
     "LuxTTSEngine", "LuxTTSVoice",
@@ -34,6 +35,29 @@ __all__ = [
     "SopranoEngine", "SopranoVoice",
     "MossTTSEngine", "MossTTSVoice",
 ]
+
+
+def _load_text_to_audio_stream():
+    from .text_to_stream import TextToAudioStream
+
+    globals()["TextToAudioStream"] = TextToAudioStream
+    return TextToAudioStream
+
+
+def _load_base_engine():
+    from .engines import BaseEngine, TimingInfo
+
+    globals()["BaseEngine"] = BaseEngine
+    globals()["TimingInfo"] = TimingInfo
+    return BaseEngine
+
+
+def _load_timing_info():
+    from .engines import BaseEngine, TimingInfo
+
+    globals()["BaseEngine"] = BaseEngine
+    globals()["TimingInfo"] = TimingInfo
+    return TimingInfo
 
 
 # Lazy loader functions for each engine group.
@@ -260,6 +284,19 @@ def _load_camb_engine():
     return CambEngine
 
 
+def _load_modelslab_engine():
+    try:
+        from .engines.modelslab_engine import ModelsLabEngine, ModelsLabVoice
+    except ImportError as e:
+        raise ImportError(
+            "Failed to load ModelsLabEngine and ModelsLabVoice. "
+            "Please install with:\npip install \"realtimetts[modelslab]\""
+        ) from e
+    globals()["ModelsLabEngine"] = ModelsLabEngine
+    globals()["ModelsLabVoice"] = ModelsLabVoice
+    return ModelsLabEngine
+
+
 def _load_minimax_engine():
     try:
         from .engines.minimax_engine import MiniMaxEngine, MiniMaxVoice
@@ -286,17 +323,28 @@ def _load_cartesia_engine():
     return CartesiaEngine
 
 
-def _load_fasterqwen_engine():
+def _load_qwen_engine():
     try:
-        from .engines.faster_qwen_engine import FasterQwenEngine, FasterQwenVoice
+        from .engines.qwen_engine import QwenEngine, QwenEngineError, QwenVoice
     except ImportError as e:
         raise ImportError(
-            "Failed to load FasterQwenEngine. "
-            "See README for installation instructions."
+            "Failed to load QwenEngine. Install it with:\n"
+            "pip install \"realtimetts[qwen]\""
         ) from e
-    globals()["FasterQwenEngine"] = FasterQwenEngine
-    globals()["FasterQwenVoice"] = FasterQwenVoice
-    return FasterQwenEngine
+    globals()["QwenEngine"] = QwenEngine
+    globals()["QwenVoice"] = QwenVoice
+    globals()["QwenEngineError"] = QwenEngineError
+    return QwenEngine
+
+
+def _load_qwen_voice():
+    _load_qwen_engine()
+    return globals()["QwenVoice"]
+
+
+def _load_qwen_error():
+    _load_qwen_engine()
+    return globals()["QwenEngineError"]
 
 
 def _load_omni_voice_engine():
@@ -405,6 +453,9 @@ def _load_moss_tts_engine():
 
 # Mapping names to their lazy loader functions.
 _lazy_imports = {
+    "TextToAudioStream": _load_text_to_audio_stream,
+    "BaseEngine": _load_base_engine,
+    "TimingInfo": _load_timing_info,
     "SystemEngine": _load_system_engine,
     "SystemVoice": _load_system_engine,
     "AzureEngine": _load_azure_engine,
@@ -439,12 +490,15 @@ _lazy_imports = {
     "NeuTTSVoice": _load_neutts_engine,
     "CambEngine": _load_camb_engine,
     "CambVoice": _load_camb_engine,
+    "ModelsLabEngine": _load_modelslab_engine,
+    "ModelsLabVoice": _load_modelslab_engine,
     "MiniMaxEngine": _load_minimax_engine,
     "MiniMaxVoice": _load_minimax_engine,
     "CartesiaEngine": _load_cartesia_engine,
     "CartesiaVoice": _load_cartesia_engine,
-    "FasterQwenEngine": _load_fasterqwen_engine,
-    "FasterQwenVoice": _load_fasterqwen_engine,
+    "QwenEngine": _load_qwen_engine,
+    "QwenVoice": _load_qwen_voice,
+    "QwenEngineError": _load_qwen_error,
     "OmniVoiceEngine": _load_omni_voice_engine,
     "OmniVoiceVoice": _load_omni_voice_engine,
     "TypecastEngine": _load_typecast_engine,
@@ -466,5 +520,6 @@ _lazy_imports = {
 
 def __getattr__(name):
     if name in _lazy_imports:
-        return _lazy_imports[name]()
+        _lazy_imports[name]()
+        return globals()[name]
     raise AttributeError(f"module {__name__} has no attribute {name}")

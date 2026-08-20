@@ -42,8 +42,8 @@ Quando você inicializa a classe `TextToAudioStream`, você tem várias opções
 #### `tokenizer` (string)
 - **Tipo**: String
 - **Obrigatório**: Não
-- **Padrão**: nltk
-- **Descrição**: Tokenizador a ser usado para divisão de sentenças (currently "nltk" and "stanza" are supported).
+- **Padrão**: nltk+rule-based
+- **Descrição**: Tokenizador de consenso que combina NLTK e regras locais. Stanza permanece opcional via `RealtimeTTS[stanza]`.
 
 #### `language` (string)
 - **Tipo**: String
@@ -138,8 +138,8 @@ Esses métodos são responsáveis por executar a síntese de texto para áudio e
 - **Descrição**: Função de callback que é chamada quando um único pedaço de áudio está pronto.
 
 ###### `tokenizer` (str)
-- **Padrão**: `"nltk"`
-- **Descrição**: Tokenizer a ser usado para a divisão de sentenças. Atualmente suporta "nltk" e "stanza".
+- **Padrão**: herdado do stream (`"nltk+rule-based"` salvo configuração diferente)
+- **Descrição**: O consenso NLTK é instalado sem Stanza; adicione `RealtimeTTS[stanza]` apenas para o modo Stanza.
 
 ###### `tokenize_sentences` (callable)
 - **Padrão**: `None`

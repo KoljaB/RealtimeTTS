@@ -27,10 +27,11 @@ The first engine construction downloads a pinned model snapshot from Hugging
 Face. Pass `cache_dir` to choose the cache location or `model_dir` to use an
 already downloaded snapshot.
 
-The Inflect ONNX engine path does not import or use PyTorch. A normal
-RealtimeTTS installation can nevertheless install PyTorch transitively because
-its standard `stream2sentence` dependency includes Stanza. Deployments that
-must exclude Torch need to control those base dependencies separately.
+The Inflect ONNX engine path does not import or use PyTorch. RealtimeTTS's
+default `stream2sentence[nltk]` dependency also remains Torch-free; Stanza and
+its PyTorch dependency are opt-in through `realtimetts[stanza]`. A shared
+environment may still contain an unrelated Torch installation, so explicitly
+select `backend="onnx"` when the deployment must stay on ONNX Runtime.
 
 ## Minimal Use
 

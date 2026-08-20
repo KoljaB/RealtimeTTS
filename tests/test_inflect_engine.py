@@ -236,7 +236,7 @@ def test_engine_instances_share_the_global_synthesis_lock(engine_factory):
 
 
 def test_pytorch_rng_state_is_restored(engine_factory, fake_runtime):
-    import torch
+    torch = pytest.importorskip("torch")
 
     engine = engine_factory()
     fake_runtime.on_synthesize = lambda: torch.manual_seed(999)
@@ -290,7 +290,7 @@ def test_warmup_calls_runtime_without_queueing(
 def test_pytorch_rng_state_is_restored_after_model_load(
     monkeypatch, tmp_path, fake_runtime
 ):
-    import torch
+    torch = pytest.importorskip("torch")
 
     monkeypatch.setattr(InflectEngine, "_validate_runtime_files", lambda self: None)
 
@@ -338,7 +338,7 @@ def test_fixed_voice_and_parameters(engine_factory):
 
 
 def test_auto_backend_prefers_cuda_pytorch(monkeypatch):
-    import torch
+    torch = pytest.importorskip("torch")
 
     monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
     assert InflectEngine._resolve_backend_and_device("auto", "auto") == (
@@ -348,7 +348,7 @@ def test_auto_backend_prefers_cuda_pytorch(monkeypatch):
 
 
 def test_auto_backend_ignores_transitive_torch_for_onnx_extra(monkeypatch):
-    import torch
+    torch = pytest.importorskip("torch")
 
     monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
     monkeypatch.setattr(
@@ -362,7 +362,7 @@ def test_auto_backend_ignores_transitive_torch_for_onnx_extra(monkeypatch):
 
 
 def test_auto_backend_prefers_onnx_on_cpu(monkeypatch):
-    import torch
+    torch = pytest.importorskip("torch")
 
     monkeypatch.setattr(torch.cuda, "is_available", lambda: False)
     monkeypatch.setattr(
@@ -376,7 +376,7 @@ def test_auto_backend_prefers_onnx_on_cpu(monkeypatch):
 
 
 def test_auto_backend_uses_pytorch_cpu_when_onnx_is_not_installed(monkeypatch):
-    import torch
+    torch = pytest.importorskip("torch")
 
     monkeypatch.setattr(torch.cuda, "is_available", lambda: False)
     monkeypatch.setattr(
