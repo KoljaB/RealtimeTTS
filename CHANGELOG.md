@@ -28,7 +28,8 @@
 - Hardened streaming silence trimming and short-utterance startup behavior.
 - Added deterministic cancellation, bounded concurrency, and graceful shutdown
   behavior to the Qwen server.
+- Fixed WebSocket cancellation after the `end` event so active PCM synthesis
+  stops promptly and emits the terminal `cancelled` event.
 
-The final release date and stable native-wheel compatibility matrix still
-require Windows and Linux acceptance and final versioning of both coordinated
-packages.
+The `0.7.4.dev9` candidate still requires Windows and Linux acceptance and
+final versioning of both coordinated packages before stable release.

@@ -23,7 +23,7 @@ def _version_from_source() -> str:
 
 
 def test_release_version_is_single_source_and_current_candidate():
-    assert _version_from_source() == "0.7.4.dev8"
+    assert _version_from_source() == "0.7.4.dev9"
 
     setup_text = (ROOT / "setup.py").read_text(encoding="utf-8")
     assert "_version.py" in setup_text

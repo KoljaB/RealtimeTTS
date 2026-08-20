@@ -210,7 +210,7 @@ def test_server_version_prefers_source_checkout_over_installed_metadata(monkeypa
         "version",
         lambda _name: "0.7.4.dev7",
     )
-    assert qwen_server_module._server_version() == "0.7.4.dev8"
+    assert qwen_server_module._server_version() == "0.7.4.dev9"
 
 
 def test_api_key_cors_and_lan_bind_defaults_are_restrictive(tmp_path, monkeypatch):
