@@ -92,12 +92,12 @@ Qwen support is a coordinated release of two packages: `RealtimeTTS` and
 `qwentts-cpp-python` version in the range declared by the matching RealtimeTTS
 release. Do not combine this engine with the older 0.3.x native package.
 
-For the current `0.7.4.dev9` TestPyPI candidate, the validated CUDA 12.8
+For RealtimeTTS 0.7.4, the validated CUDA 12.8
 (`1cu128`) wheel differs by platform: Windows x86-64 uses
 `qwentts-cpp-python==0.4.0.dev1`, while Linux x86-64 uses
 `qwentts-cpp-python==0.4.0.dev0`. The Qwen extras declare native requirements
 only for those Windows and Linux targets; other operating systems are not a
-supported candidate target and must not be treated as a working Qwen install.
+supported release target and must not be treated as a working Qwen install.
 
 When the matching release is on PyPI, install the normal CUDA wheel with:
 
@@ -148,14 +148,14 @@ python -m pip install \
 python -m pip install \
   --index-url https://pypi.org/simple \
   --find-links https://test.pypi.org/simple/realtimetts/ \
-  "realtimetts[qwen-server]==0.7.4.dev9"
+  "realtimetts[qwen-server]==0.7.4"
 python -m qwentts_cpp doctor
 python -m pip check
 ```
 
-The coordinated validation pair is RealtimeTTS `0.7.4.dev9` with the
-platform-specific native candidate listed above. Treat the pair as supported
-only when that platform's wheel is present on TestPyPI and passes
+The coordinated release pair is RealtimeTTS `0.7.4` with the platform-specific
+native package listed above. Treat the pair as supported only when that
+platform's wheel is installed and passes
 `python -m qwentts_cpp doctor`; do not substitute the older `0.4.0.dev0`
 Windows `1cu125` artifact, or use the Linux `0.4.0.dev0` pin on Windows.
 
@@ -201,8 +201,8 @@ Qwen extra installable on Python 3.9.
 
 | Platform | Status/requirement |
 | --- | --- |
-| Windows 10/11 x86-64 | Current `0.7.4.dev9` candidate: `0.4.0.dev1`, `1cu128`, `py3-none-win_amd64`; AVX2/FMA/F16C/BMI2 CPU; NVIDIA GPU with compute capability 7.5 or newer; CUDA-12-compatible driver. This is the primary Windows release target. |
-| Linux x86-64 | Current `0.7.4.dev9` candidate: `0.4.0.dev0`, `1cu128`, `py3-none-manylinux_2_35_x86_64`; glibc 2.35 or newer (Ubuntu 22.04/24.04); AVX2/FMA/F16C/BMI2 CPU; NVIDIA GPU with compute capability 7.5 or newer. This is the primary Linux release target. |
+| Windows 10/11 x86-64 | RealtimeTTS 0.7.4: `0.4.0.dev1`, `1cu128`, `py3-none-win_amd64`; AVX2/FMA/F16C/BMI2 CPU; NVIDIA GPU with compute capability 7.5 or newer; CUDA-12-compatible driver. This is the primary Windows release target. |
+| Linux x86-64 | RealtimeTTS 0.7.4: `0.4.0.dev0`, `1cu128`, `py3-none-manylinux_2_35_x86_64`; glibc 2.35 or newer (Ubuntu 22.04/24.04); AVX2/FMA/F16C/BMI2 CPU; NVIDIA GPU with compute capability 7.5 or newer. This is the primary Linux release target. |
 | Linux AArch64 | `py3-none-manylinux_2_35_aarch64` when a matching artifact is published; secondary/target-dependent, not guaranteed by every RealtimeTTS release. |
 | Linux CPU | A locally built `manylinux` wheel is possible, but CPU realtime performance is not a supported release guarantee. |
 | macOS / Apple Silicon | No supported prebuilt wheel. `qwentts.cpp` itself has a Metal backend, but the Python wheel helper has no `metal` backend and its macOS library-copy list does not include `libggml-metal.dylib`; the route below is an unverified CPU-only experiment. |

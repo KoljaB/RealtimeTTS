@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.7.4 (release candidate)
+## 0.7.4
 
 ### Added
 
@@ -20,7 +20,7 @@
   PyAudio/PortAudio.
 - Selected the validated native Qwen candidate per platform: Windows uses
   `qwentts-cpp-python` `0.4.0.dev1` (`1cu128`), while Linux uses `0.4.0.dev0`
-  (`1cu128`). Unsupported platforms are not declared as candidate targets.
+  (`1cu128`). Unsupported platforms are not declared as release targets.
 
 ### Fixed
 
@@ -30,6 +30,3 @@
   behavior to the Qwen server.
 - Fixed WebSocket cancellation after the `end` event so active PCM synthesis
   stops promptly and emits the terminal `cancelled` event.
-
-The `0.7.4.dev9` candidate still requires Windows and Linux acceptance and
-final versioning of both coordinated packages before stable release.

@@ -101,7 +101,7 @@ These extras are present in `setup.py`:
 | `parler` | PyPI-resolvable Parler support dependencies; install the upstream Parler package separately. |
 | `moss`, `moss-tts` | PyPI-resolvable MOSS runtime dependencies; install MOSS-TTS-Nano/model assets separately. |
 | `piper` | Core RealtimeTTS dependencies; Piper binary/model assets remain external. |
-| `qwen` | Native in-process qwentts.cpp backend with PyAudio playback (the `0.7.4.dev9` candidate selects Windows `0.4.0.dev1` or Linux `0.4.0.dev0`). |
+| `qwen` | Native in-process qwentts.cpp backend with PyAudio playback (RealtimeTTS 0.7.4 selects Windows `0.4.0.dev1` or Linux `0.4.0.dev0`). |
 | `qwen-server` | OpenAI-compatible HTTP server for the native Qwen backend (same platform-specific native wheel pins, without PyAudio). |
 | `inflect`, `inflect-pytorch`, `inflect-onnx` | Inflect-Micro-v2 with PyAudio playback; choose both backends, PyTorch only, or ONNX only. |
 | `jp`, `zh`, `ko` | Extra language support packages for Kokoro. |
@@ -263,7 +263,7 @@ python -m pip install \
 python -m pip install \
   --index-url https://pypi.org/simple \
   --find-links https://test.pypi.org/simple/realtimetts/ \
-  "realtimetts[qwen-server]==0.7.4.dev9"
+  "realtimetts[qwen-server]==0.7.4"
 python -m qwentts_cpp doctor
 python -m pip check
 ```
