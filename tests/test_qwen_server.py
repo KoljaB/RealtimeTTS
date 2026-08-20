@@ -1,3 +1,4 @@
+import asyncio
 import base64
 import io
 import json
@@ -410,6 +411,157 @@ def test_websocket_cancel_emits_cancelled_terminal_event(tmp_path, monkeypatch):
                     "request_id": fragment_ready["request_id"],
                 }
                 engine.release.set()
+    finally:
+        engine.release.set()
+        server.shutdown()
+
+
+def test_websocket_cancel_after_end_interrupts_active_audio(tmp_path, monkeypatch):
+    async def one_fragment(source, **_kwargs):
+        async for chunk in source:
+            if chunk.strip():
+                yield chunk
+
+    monkeypatch.setattr(qwen_server_module, "generate_sentences_async", one_fragment)
+    _persist_voice(tmp_path)
+    engine = LateChunkEngine()
+    server = _server(tmp_path, engine, synthesis_timeout_seconds=3.0)
+    try:
+        with TestClient(create_app(server)) as client:
+            with client.websocket_connect("/v1/audio/speech-stream") as websocket:
+                websocket.send_json(
+                    {
+                        "type": "config",
+                        "session_id": "session-after-end-cancel",
+                        "voice": "mira",
+                        "language": "en",
+                        "response_format": "pcm",
+                    }
+                )
+                websocket.send_json({"type": "text", "text": "audible"})
+                websocket.send_json({"type": "end"})
+
+                fragment_ready = websocket.receive_json()
+                assert fragment_ready["type"] == "fragment_ready"
+                first_pcm = websocket.receive_json()
+                assert first_pcm["type"] == "first_pcm_ready"
+                assert websocket.receive_bytes() == engine.silent
+
+                started = time.monotonic()
+                websocket.send_json({"type": "cancel"})
+                terminal = websocket.receive_json()
+                elapsed = time.monotonic() - started
+
+                assert terminal == {
+                    "type": "cancelled",
+                    "session_id": "session-after-end-cancel",
+                    "request_id": fragment_ready["request_id"],
+                }
+                assert elapsed < 0.5
+                assert engine.stopped
+                engine.release.set()
+    finally:
+        engine.release.set()
+        server.shutdown()
+
+
+def test_websocket_pcm_sender_drops_chunk_when_cancel_wins_ready_race():
+    class CancelOnReadyWebSocket:
+        def __init__(self, cancelled):
+            self.cancelled = cancelled
+            self.events = []
+            self.chunks = []
+
+        async def send_json(self, event):
+            self.events.append(event)
+            self.cancelled.set()
+
+        async def send_bytes(self, chunk):
+            self.chunks.append(chunk)
+
+    async def exercise():
+        cancelled = asyncio.Event()
+        websocket = CancelOnReadyWebSocket(cancelled)
+        state = qwen_server_module.SynthesisState(
+            "pcm",
+            request_id="ready-race",
+            output_queue_chunks=4,
+            deadline=time.monotonic() + 2.0,
+        )
+        state.output.put(b"queued PCM")
+        await qwen_server_module._send_stream_pcm(
+            websocket,
+            state,
+            synthesis_started=time.monotonic(),
+            first_fragment_timings={"first_fragment_chars": 10},
+            session_id="ready-race-session",
+            cancelled=cancelled,
+        )
+        return websocket
+
+    websocket = asyncio.run(exercise())
+    assert websocket.events[0]["type"] == "first_pcm_ready"
+    assert websocket.chunks == []
+
+
+def test_websocket_cancel_during_first_fragment_routing_starts_no_worker(
+    tmp_path, monkeypatch
+):
+    async def one_fragment(source, **_kwargs):
+        async for chunk in source:
+            if chunk.strip():
+                yield chunk
+
+    class UncertainDetector:
+        def detect(self, _text):
+            return LanguageDetection(
+                language="english",
+                label="de",
+                confidence=0.50,
+                latency_ms=0.0,
+                used_fallback=True,
+                candidate_language="german",
+                runner_up_label="en",
+                runner_up_confidence=0.50,
+                confidence_margin=0.0,
+            )
+
+    monkeypatch.setattr(qwen_server_module, "generate_sentences_async", one_fragment)
+    _persist_voice(tmp_path)
+    engine = BlockingEngine()
+    router = QwenLanguageRouter(UncertainDetector())
+    server = _server(
+        tmp_path,
+        engine,
+        language_router=router,
+        synthesis_timeout_seconds=3.0,
+    )
+    try:
+        with TestClient(create_app(server)) as client:
+            with client.websocket_connect("/v1/audio/speech-stream") as websocket:
+                websocket.send_json(
+                    {
+                        "type": "config",
+                        "session_id": "session-routing-cancel",
+                        "voice": "mira",
+                        "language": "Auto",
+                        "response_format": "pcm",
+                    }
+                )
+                websocket.send_json({"type": "text", "text": "short fragment"})
+                fragment_ready = websocket.receive_json()
+                assert fragment_ready["type"] == "fragment_ready"
+
+                websocket.send_json({"type": "cancel"})
+                terminal = websocket.receive_json()
+
+                assert terminal == {
+                    "type": "cancelled",
+                    "session_id": "session-routing-cancel",
+                    "request_id": fragment_ready["request_id"],
+                }
+                assert not engine.entered.is_set()
+                assert client.get("/health").json()["requests_total"] == 0
     finally:
         engine.release.set()
         server.shutdown()

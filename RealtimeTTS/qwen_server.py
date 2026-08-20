@@ -769,9 +769,7 @@ class QwenHttpServer:
             state.error_message = message
             state.error_status = int(status)
         state.abort_error = True
-        state.cancelled.set()
-        if state.engine_active():
-            self.engine.stop()
+        self.cancel(state)
 
     def _timeout_state(self, state: SynthesisState) -> None:
         with state._lifecycle_lock:
@@ -1092,6 +1090,21 @@ class QwenHttpServer:
 
     def cancel(self, state: SynthesisState) -> None:
         state.cancelled.set()
+        if state.response_format != "wav":
+            # Discard buffered PCM and wake a WebSocket/HTTP consumer that is
+            # blocked in Queue.get(). The capture queue observes cancelled and
+            # will not publish new chunks after this point.
+            while True:
+                try:
+                    state.output.get_nowait()
+                except queue_module.Empty:
+                    try:
+                        state.output.put_nowait(_STREAM_END)
+                    except queue_module.Full:
+                        # One producer put may have raced with cancellation.
+                        # Drain it and retry; subsequent puts see cancelled.
+                        continue
+                    break
         if state.engine_active():
             self.engine.stop()
 
@@ -1187,20 +1200,21 @@ async def _send_stream_pcm(
     synthesis_started: float,
     first_fragment_timings: Optional[Mapping[str, Any]],
     session_id: str,
+    cancelled: asyncio.Event,
 ) -> None:
     first_chunk = True
-    while True:
+    while not cancelled.is_set() and not state.cancelled.is_set():
         try:
             chunk = await asyncio.to_thread(state.output.get, True, 0.1)
         except queue_module.Empty:
-            if state.cancelled.is_set():
+            if cancelled.is_set() or state.cancelled.is_set():
                 break
             if time.monotonic() >= state.deadline:
                 raise ApiError(504, "timeout_error", "synthesis timed out")
             continue
         if chunk is _STREAM_END:
             break
-        if state.cancelled.is_set():
+        if cancelled.is_set() or state.cancelled.is_set():
             break
         if first_chunk and first_fragment_timings is not None:
             first_chunk = False
@@ -1218,7 +1232,7 @@ async def _send_stream_pcm(
                     "timings": timings,
                 }
             )
-        if state.cancelled.is_set():
+        if cancelled.is_set() or state.cancelled.is_set():
             break
         await websocket.send_bytes(bytes(chunk))
     if state.error_type is not None and (
@@ -1393,11 +1407,12 @@ def create_app(server: QwenHttpServer) -> Any:
         session_id = _new_client_id(websocket.headers.get("x-session-id"))
         items: asyncio.Queue[Any] = asyncio.Queue()
         cancelled = asyncio.Event()
+        input_ended = asyncio.Event()
         config_ready: asyncio.Future[SpeechOptions] = (
             asyncio.get_running_loop().create_future()
         )
         current_state: list[Optional[SynthesisState]] = [None]
-        cancelled_states: set[int] = set()
+        cancelled_states: set[SynthesisState] = set()
         cancel_requested = asyncio.Event()
         receiver_error: list[Optional[BaseException]] = [None]
         last_request_id: list[Optional[str]] = [None]
@@ -1411,10 +1426,18 @@ def create_app(server: QwenHttpServer) -> Any:
 
         def cancel_current() -> None:
             state = current_state[0]
-            if state is None or id(state) in cancelled_states:
+            if state is None or state in cancelled_states:
                 return
-            cancelled_states.add(id(state))
+            cancelled_states.add(state)
             server.cancel(state)
+
+        async def finish_input() -> None:
+            if input_ended.is_set():
+                return
+            input_ended.set()
+            stream_ended.set()
+            text_updated.set()
+            await items.put(_TEXT_END)
 
         async def receive_text() -> None:
             nonlocal session_id, text_version, total_text_bytes
@@ -1439,6 +1462,12 @@ def create_app(server: QwenHttpServer) -> Any:
                     event = await _websocket_json(websocket)
                     event_type = event.get("type")
                     if event_type == "text":
+                        if input_ended.is_set():
+                            raise ApiError(
+                                400,
+                                "invalid_request_error",
+                                "text events must precede the end event",
+                            )
                         text = event.get("text")
                         if not isinstance(text, str):
                             raise ApiError(
@@ -1462,16 +1491,19 @@ def create_app(server: QwenHttpServer) -> Any:
                             text_updated.set()
                             await items.put(text)
                     elif event_type == "end":
-                        stream_ended.set()
-                        text_updated.set()
-                        await items.put(_TEXT_END)
-                        return
+                        if input_ended.is_set():
+                            raise ApiError(
+                                400,
+                                "invalid_request_error",
+                                "stream already ended",
+                            )
+                        await finish_input()
+                        # End closes the text channel, not the control channel.
+                        # Continue receiving so playback can still be cancelled.
                     elif event_type == "cancel":
                         cancel_requested.set()
                         cancelled.set()
-                        stream_ended.set()
-                        text_updated.set()
-                        await items.put(_TEXT_END)
+                        await finish_input()
                         cancel_current()
                         return
                     else:
@@ -1480,21 +1512,20 @@ def create_app(server: QwenHttpServer) -> Any:
                             "invalid_request_error",
                             f"unknown stream event type: {event_type!r}",
                         )
+            except asyncio.CancelledError:
+                raise
             except WebSocketDisconnect as exc:
                 cancelled.set()
                 receiver_error[0] = exc
-                stream_ended.set()
-                text_updated.set()
+                await finish_input()
                 cancel_current()
-                await items.put(_TEXT_END)
                 if not config_ready.done():
                     config_ready.set_exception(exc)
             except BaseException as exc:
+                cancelled.set()
                 receiver_error[0] = exc
-                stream_ended.set()
-                text_updated.set()
+                await finish_input()
                 cancel_current()
-                await items.put(_TEXT_END)
                 if not config_ready.done():
                     config_ready.set_exception(exc)
 
@@ -1634,18 +1665,31 @@ def create_app(server: QwenHttpServer) -> Any:
                     request = replace(
                         request, language=locked_language or options.language
                     )
+                # A cancel can arrive while fragment metadata or language
+                # routing awaits. Never start a worker after that cancel won.
+                if cancelled.is_set():
+                    break
                 synthesis_started = time.monotonic()
                 state = server.start_synthesis(request, request_id=fragment_request_id)
                 current_state[0] = state
+                if cancelled.is_set():
+                    server.cancel(state)
                 await _send_stream_pcm(
                     websocket,
                     state,
                     synthesis_started=synthesis_started,
                     first_fragment_timings=first_fragment_timings,
                     session_id=session_id,
+                    cancelled=cancelled,
                 )
                 current_state[0] = None
-            await receiver
+            # Terminal commit point: after all synthesis/PCM has completed,
+            # stop accepting controls and emit done. A cancel processed before
+            # this point wins and emits cancelled instead.
+            if not receiver.done():
+                receiver.cancel()
+            with suppress(asyncio.CancelledError):
+                await receiver
             error = receiver_error[0]
             if error is not None and not isinstance(error, WebSocketDisconnect):
                 raise error
