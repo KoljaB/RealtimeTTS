@@ -34,8 +34,11 @@ kokoro>=0.9.4
 # snac is for OrpheusEngine
 snac>=1.2.1
 
-# qwentts-cpp-python is the native in-process backend for QwenEngine
-qwentts-cpp-python[cuda12]==0.4.0.dev1
+# qwentts-cpp-python is the native in-process backend for QwenEngine. The
+# validated TestPyPI inventory currently has different candidate versions per
+# supported platform: Windows has dev1 while Linux has dev0.
+qwentts-cpp-python[cuda12]==0.4.0.dev1; sys_platform == "win32"
+qwentts-cpp-python[cuda12]==0.4.0.dev0; sys_platform == "linux"
 
 # HTTP serving dependencies for the optional native Qwen server
 fastapi>=0.115,<1

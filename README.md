@@ -49,7 +49,9 @@ brew install portaudio
 The native `qwen` and Inflect extras use the established PyAudio/PortAudio
 playback path. Windows has prebuilt PyAudio wheels for Python 3.10–3.13. On
 Linux and macOS, install PortAudio first using the commands above. The Qwen
-native wheel itself does not require a local CUDA Toolkit.
+native wheel itself does not require a local CUDA Toolkit. The current
+`0.7.4.dev8` candidate declares validated native Qwen wheels only for x86-64
+Windows and Linux; macOS and other platforms are not candidate targets.
 
 Install `realtimetts[qwen-server]` to expose the same native engine through
 an OpenAI-compatible HTTP API. The server provides `/v1/audio/speech`, dynamic

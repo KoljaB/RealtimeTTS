@@ -11,8 +11,6 @@ from RealtimeTTS.engines.inflect_engine import (
     InflectVoice,
     ONNX_MODEL_ID,
     ONNX_REVISION,
-    PYTORCH_MODEL_ID,
-    PYTORCH_REVISION,
     _PINNED_HASHES,
     _isolate_upstream_logging,
     _load_upstream_module,

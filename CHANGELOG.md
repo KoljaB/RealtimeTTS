@@ -18,6 +18,9 @@
 - Made Stanza opt-in and selected the NLTK plus rule-based tokenizer by default.
 - Kept the server extra headless while engine playback extras continue to use
   PyAudio/PortAudio.
+- Selected the validated native Qwen candidate per platform: Windows uses
+  `qwentts-cpp-python` `0.4.0.dev1` (`1cu128`), while Linux uses `0.4.0.dev0`
+  (`1cu128`). Unsupported platforms are not declared as candidate targets.
 
 ### Fixed
 
@@ -26,5 +29,6 @@
 - Added deterministic cancellation, bounded concurrency, and graceful shutdown
   behavior to the Qwen server.
 
-The final release date and verified native-wheel compatibility matrix will be
-added when the candidate passes Windows and Linux acceptance.
+The final release date and stable native-wheel compatibility matrix still
+require Windows and Linux acceptance and final versioning of both coordinated
+packages.

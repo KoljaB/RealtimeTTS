@@ -24,6 +24,13 @@ Qwen support is a coordinated release of two packages: `RealtimeTTS` and
 `qwentts-cpp-python` version in the range declared by the matching RealtimeTTS
 release. Do not combine this engine with the older 0.3.x native package.
 
+For the current `0.7.4.dev8` TestPyPI candidate, the validated CUDA 12.8
+(`1cu128`) wheel differs by platform: Windows x86-64 uses
+`qwentts-cpp-python==0.4.0.dev1`, while Linux x86-64 uses
+`qwentts-cpp-python==0.4.0.dev0`. The Qwen extras declare native requirements
+only for those Windows and Linux targets; other operating systems are not a
+supported candidate target and must not be treated as a working Qwen install.
+
 When the matching release is on PyPI, install the normal CUDA wheel with:
 
 ```bash
@@ -45,10 +52,27 @@ native candidate with `--no-deps` first so pip cannot silently select the old
 index and uses the TestPyPI project page only as a find-links source for the
 exact RealtimeTTS candidate:
 
+Choose exactly one native-candidate command for the host platform.
+
+Windows x86-64:
+
 ```bash
 python -m pip install --no-deps \
   --index-url https://test.pypi.org/simple \
   "qwentts-cpp-python[cuda12]==0.4.0.dev1"
+```
+
+Linux x86-64:
+
+```bash
+python -m pip install --no-deps \
+  --index-url https://test.pypi.org/simple \
+  "qwentts-cpp-python[cuda12]==0.4.0.dev0"
+```
+
+Then install the shared runtime dependencies and the headless server extra:
+
+```bash
 python -m pip install \
   --index-url https://pypi.org/simple \
   "numpy" "huggingface-hub" \
@@ -56,17 +80,16 @@ python -m pip install \
 python -m pip install \
   --index-url https://pypi.org/simple \
   --find-links https://test.pypi.org/simple/realtimetts/ \
-  "realtimetts[qwen]==0.7.4.dev8"
+  "realtimetts[qwen-server]==0.7.4.dev8"
 python -m qwentts_cpp doctor
 python -m pip check
 ```
 
-The coordinated validation pair is RealtimeTTS `0.7.4.dev8` with
-`qwentts-cpp-python==0.4.0.dev1`. Candidate CUDA wheels use CUDA 12.8 and the
-`1cu128` build tag. Treat the pair as supported on a platform only when that
-platform's `0.4.0.dev1` wheel is present on TestPyPI and passes
+The coordinated validation pair is RealtimeTTS `0.7.4.dev8` with the
+platform-specific native candidate listed above. Treat the pair as supported
+only when that platform's wheel is present on TestPyPI and passes
 `python -m qwentts_cpp doctor`; do not substitute the older `0.4.0.dev0`
-Windows `1cu125` artifact.
+Windows `1cu125` artifact, or use the Linux `0.4.0.dev0` pin on Windows.
 
 For a local RealtimeTTS wheel and a locally built native wheel, keep both files
 in a wheelhouse (or point the RealtimeTTS requirement at its absolute wheel
@@ -110,8 +133,8 @@ Qwen extra installable on Python 3.9.
 
 | Platform | Status/requirement |
 | --- | --- |
-| Windows 10/11 x86-64 | `py3-none-win_amd64`; AVX2/FMA/F16C/BMI2 CPU; NVIDIA GPU with compute capability 7.5 or newer; CUDA-12-compatible driver. This is the primary Windows release target. |
-| Linux x86-64 | `py3-none-manylinux_2_35_x86_64`; glibc 2.35 or newer (Ubuntu 22.04/24.04); AVX2/FMA/F16C/BMI2 CPU; NVIDIA GPU with compute capability 7.5 or newer. This is the primary Linux release target. |
+| Windows 10/11 x86-64 | Current `0.7.4.dev8` candidate: `0.4.0.dev1`, `1cu128`, `py3-none-win_amd64`; AVX2/FMA/F16C/BMI2 CPU; NVIDIA GPU with compute capability 7.5 or newer; CUDA-12-compatible driver. This is the primary Windows release target. |
+| Linux x86-64 | Current `0.7.4.dev8` candidate: `0.4.0.dev0`, `1cu128`, `py3-none-manylinux_2_35_x86_64`; glibc 2.35 or newer (Ubuntu 22.04/24.04); AVX2/FMA/F16C/BMI2 CPU; NVIDIA GPU with compute capability 7.5 or newer. This is the primary Linux release target. |
 | Linux AArch64 | `py3-none-manylinux_2_35_aarch64` when a matching artifact is published; secondary/target-dependent, not guaranteed by every RealtimeTTS release. |
 | Linux CPU | A locally built `manylinux` wheel is possible, but CPU realtime performance is not a supported release guarantee. |
 | macOS / Apple Silicon | No supported prebuilt wheel. `qwentts.cpp` itself has a Metal backend, but the Python wheel helper has no `metal` backend and its macOS library-copy list does not include `libggml-metal.dylib`; the route below is an unverified CPU-only experiment. |
@@ -270,10 +293,14 @@ CPU and macOS wheels do not need it:
 
 ```bash
 python -m venv /path/to/fresh-venv
-# Windows/Linux CUDA wheel:
+# Windows x86-64 CUDA candidate:
 /path/to/fresh-venv/bin/python -m pip install \
   --find-links /path/to/wheelhouse \
   "qwentts-cpp-python[cuda12]==0.4.0.dev1"
+# Linux x86-64 CUDA candidate (use this line instead on Linux):
+/path/to/fresh-venv/bin/python -m pip install \
+  --find-links /path/to/wheelhouse \
+  "qwentts-cpp-python[cuda12]==0.4.0.dev0"
 # Linux CPU or macOS CPU wheel (use this line instead of the CUDA line above):
 /path/to/fresh-venv/bin/python -m pip install \
   --find-links /path/to/wheelhouse \
@@ -660,7 +687,7 @@ Before publishing a compatible release, build and repair the primary Windows
 x86-64 and Linux x86-64 wheels in the `qwentts-cpp-python` project. In fresh
 virtual environments on both target operating systems, verify `doctor`, model
 loading, x-vector, ICL, repeated requests, cancellation/reuse, and valid 24 kHz
-mono output without a repository checkout or system CUDA Toolkit. Release only
-the pair of RealtimeTTS and native package versions tested together. Change the
-development versions to their final release versions before publishing, and
-rebuild both artifacts rather than renaming test wheels.
+mono output without a repository checkout or system CUDA Toolkit. The current
+dev8 candidate deliberately uses the validated platform matrix above; a stable
+release still requires final native package versioning and acceptance for both
+platforms. Rebuild both artifacts rather than renaming test wheels.

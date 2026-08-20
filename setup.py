@@ -1,3 +1,4 @@
+import os
 import re
 from pathlib import Path
 
@@ -115,11 +116,14 @@ camb_requirements = [requirements.get("camb-sdk", "camb-sdk")]
 requests_requirements = [requirements.get("requests", "requests")]
 cartesia_requirements = [requirements.get("cartesia", "cartesia")]
 typecast_requirements = [requirements.get("typecast-python", "typecast-python")]
-qwen_common_requirements = [
-    requirements.get(
-        "qwentts-cpp-python",
-        "qwentts-cpp-python[cuda12]==0.4.0.dev1",
-    ),
+# Do not look up qwentts-cpp-python through the name-keyed requirements mapping:
+# the platform pins intentionally share one package name, so parse_requirements
+# would otherwise keep only the last variant.
+qwen_native_requirements = [
+    'qwentts-cpp-python[cuda12]==0.4.0.dev1; sys_platform == "win32"',
+    'qwentts-cpp-python[cuda12]==0.4.0.dev0; sys_platform == "linux"',
+]
+qwen_common_requirements = qwen_native_requirements + [
     requirements.get("numpy", "numpy"),
     requirements.get("soundfile", "soundfile>=0.13.1"),
 ]
@@ -297,6 +301,8 @@ extras_require = {
     "zh": standard_requirements +["pypinyin>=0.55.0", "ordered_set>=4.1.0", "jieba>=0.42.1", "cn2an>=0.5.24"],
     "ko": standard_requirements +["hangul_romanize"],
 }
+
+os.chdir(_ROOT)
 
 setuptools.setup(
     name="realtimetts",
