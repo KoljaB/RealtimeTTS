@@ -632,22 +632,22 @@ def test_public_exports_and_install_extra_are_declared():
     assert '"qwen": base_requirements + qwen_requirements' in setup_text
     assert '"qwen-server": base_requirements + qwen_common_requirements' in setup_text
     assert (
-        'qwentts-cpp-python[cuda12]==0.4.0.dev1; sys_platform == "win32"'
+        'realtimetts-qwen-native[cuda12]==0.1.0; sys_platform == "win32"'
         in setup_text
     )
     assert (
-        'qwentts-cpp-python[cuda12]==0.4.0.dev0; sys_platform == "linux"'
+        'realtimetts-qwen-native[cuda12]==0.1.0; sys_platform == "linux"'
         in setup_text
     )
     requirements_text = (Path(__file__).parents[1] / "requirements.txt").read_text(
         encoding="utf-8"
     )
     assert (
-        'qwentts-cpp-python[cuda12]==0.4.0.dev1; sys_platform == "win32"'
+        'realtimetts-qwen-native[cuda12]==0.1.0; sys_platform == "win32"'
         in requirements_text
     )
     assert (
-        'qwentts-cpp-python[cuda12]==0.4.0.dev0; sys_platform == "linux"'
+        'realtimetts-qwen-native[cuda12]==0.1.0; sys_platform == "linux"'
         in requirements_text
     )
     assert "uvicorn[standard]>=0.34,<1" in requirements_text

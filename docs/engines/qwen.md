@@ -87,77 +87,28 @@ material.
 
 ## Release status and installation
 
-Qwen support is a coordinated release of two packages: `RealtimeTTS` and
-`qwentts-cpp-python`. This engine requires the native package's C ABI 4 and a
-`qwentts-cpp-python` version in the range declared by the matching RealtimeTTS
-release. Do not combine this engine with the older 0.3.x native package.
+Qwen support is a coordinated release of `RealtimeTTS` and the distinct
+`realtimetts-qwen-native` distribution. The latter packages the MIT-licensed
+upstream `qwentts-cpp-python` binding and `qwentts.cpp` runtime under a
+RealtimeTTS-owned PyPI name. Its Python import remains `qwentts_cpp`.
 
-For RealtimeTTS 0.7.4, the validated CUDA 12.8
-(`1cu128`) wheel differs by platform: Windows x86-64 uses
-`qwentts-cpp-python==0.4.0.dev1`, while Linux x86-64 uses
-`qwentts-cpp-python==0.4.0.dev0`. The Qwen extras declare native requirements
-only for those Windows and Linux targets; other operating systems are not a
-supported release target and must not be treated as a working Qwen install.
+RealtimeTTS 0.7.4 requires `realtimetts-qwen-native==0.1.0` with C ABI 4.
+Validated CUDA 12.8 (`1cu128`) wheels are provided for Windows and Linux
+x86-64. Other operating systems are not supported release targets.
 
-When the matching release is on PyPI, install the normal CUDA wheel with:
+Install the normal CUDA wheel with:
 
 ```bash
-python -m pip install --only-binary=qwentts-cpp-python "realtimetts[qwen]"
+python -m pip install --only-binary=realtimetts-qwen-native "realtimetts[qwen]"
 python -m qwentts_cpp doctor
 ```
 
-`--only-binary=qwentts-cpp-python` makes a missing platform wheel fail clearly;
+`--only-binary=realtimetts-qwen-native` makes a missing platform wheel fail clearly;
 there is no qwentts source-distribution fallback. If no wheel matches your
 platform, Python, or architecture, build a wheel as described in [Build a
 local native wheel](#build-a-local-native-wheel), then install it from a
 wheelhouse. A repaired wheel does not need a compiler or CUDA Toolkit at
 runtime; it does need a compatible NVIDIA driver for CUDA builds.
-
-For pre-release validation from TestPyPI, resolve dependencies from normal
-PyPI while taking both coordinated candidate wheels from TestPyPI. Install the
-native candidate with `--no-deps` first so pip cannot silently select the old
-0.3.x ABI from public PyPI. The final command keeps PyPI as the dependency
-index and uses the TestPyPI project page only as a find-links source for the
-exact RealtimeTTS candidate:
-
-Choose exactly one native-candidate command for the host platform.
-
-Windows x86-64:
-
-```bash
-python -m pip install --no-deps \
-  --index-url https://test.pypi.org/simple \
-  "qwentts-cpp-python[cuda12]==0.4.0.dev1"
-```
-
-Linux x86-64:
-
-```bash
-python -m pip install --no-deps \
-  --index-url https://test.pypi.org/simple \
-  "qwentts-cpp-python[cuda12]==0.4.0.dev0"
-```
-
-Then install the shared runtime dependencies and the headless server extra:
-
-```bash
-python -m pip install \
-  --index-url https://pypi.org/simple \
-  "numpy" "huggingface-hub" \
-  "nvidia-cuda-runtime-cu12>=12.8,<13" "nvidia-cublas-cu12>=12.8,<13"
-python -m pip install \
-  --index-url https://pypi.org/simple \
-  --find-links https://test.pypi.org/simple/realtimetts/ \
-  "realtimetts[qwen-server]==0.7.4"
-python -m qwentts_cpp doctor
-python -m pip check
-```
-
-The coordinated release pair is RealtimeTTS `0.7.4` with the platform-specific
-native package listed above. Treat the pair as supported only when that
-platform's wheel is installed and passes
-`python -m qwentts_cpp doctor`; do not substitute the older `0.4.0.dev0`
-Windows `1cu125` artifact, or use the Linux `0.4.0.dev0` pin on Windows.
 
 For a local RealtimeTTS wheel and a locally built native wheel, keep both files
 in a wheelhouse (or point the RealtimeTTS requirement at its absolute wheel
@@ -165,7 +116,7 @@ path) so pip cannot silently select a different public version:
 
 ```bash
 python -m pip install --find-links /absolute/path/to/native-wheelhouse \
-  "qwentts-cpp-python[cuda12]==0.4.0.dev1"
+  "realtimetts-qwen-native[cuda12]==0.1.0"
 python -m pip install --find-links /absolute/path/to/native-wheelhouse \
   "realtimetts[qwen] @ file:///absolute/path/to/realtimetts-wheel.whl"
 python -m qwentts_cpp doctor
@@ -201,8 +152,8 @@ Qwen extra installable on Python 3.9.
 
 | Platform | Status/requirement |
 | --- | --- |
-| Windows 10/11 x86-64 | RealtimeTTS 0.7.4: `0.4.0.dev1`, `1cu128`, `py3-none-win_amd64`; AVX2/FMA/F16C/BMI2 CPU; NVIDIA GPU with compute capability 7.5 or newer; CUDA-12-compatible driver. This is the primary Windows release target. |
-| Linux x86-64 | RealtimeTTS 0.7.4: `0.4.0.dev0`, `1cu128`, `py3-none-manylinux_2_35_x86_64`; glibc 2.35 or newer (Ubuntu 22.04/24.04); AVX2/FMA/F16C/BMI2 CPU; NVIDIA GPU with compute capability 7.5 or newer. This is the primary Linux release target. |
+| Windows 10/11 x86-64 | `realtimetts-qwen-native==0.1.0`, `1cu128`, `py3-none-win_amd64`; AVX2/FMA/F16C/BMI2 CPU; NVIDIA GPU with compute capability 7.5 or newer; CUDA-12-compatible driver. This is the primary Windows release target. |
+| Linux x86-64 | `realtimetts-qwen-native==0.1.0`, `1cu128`, `py3-none-manylinux_2_35_x86_64`; glibc 2.35 or newer (Ubuntu 22.04/24.04); AVX2/FMA/F16C/BMI2 CPU; NVIDIA GPU with compute capability 7.5 or newer. This is the primary Linux release target. |
 | Linux AArch64 | `py3-none-manylinux_2_35_aarch64` when a matching artifact is published; secondary/target-dependent, not guaranteed by every RealtimeTTS release. |
 | Linux CPU | A locally built `manylinux` wheel is possible, but CPU realtime performance is not a supported release guarantee. |
 | macOS / Apple Silicon | No supported prebuilt wheel. `qwentts.cpp` itself has a Metal backend, but the Python wheel helper has no `metal` backend and its macOS library-copy list does not include `libggml-metal.dylib`; the route below is an unverified CPU-only experiment. |
@@ -364,15 +315,15 @@ python -m venv /path/to/fresh-venv
 # Windows x86-64 CUDA candidate:
 /path/to/fresh-venv/bin/python -m pip install \
   --find-links /path/to/wheelhouse \
-  "qwentts-cpp-python[cuda12]==0.4.0.dev1"
+  "realtimetts-qwen-native[cuda12]==0.1.0"
 # Linux x86-64 CUDA candidate (use this line instead on Linux):
 /path/to/fresh-venv/bin/python -m pip install \
   --find-links /path/to/wheelhouse \
-  "qwentts-cpp-python[cuda12]==0.4.0.dev0"
+  "realtimetts-qwen-native[cuda12]==0.1.0"
 # Linux CPU or macOS CPU wheel (use this line instead of the CUDA line above):
 /path/to/fresh-venv/bin/python -m pip install \
   --find-links /path/to/wheelhouse \
-  "qwentts-cpp-python==0.4.0.dev1"
+  "realtimetts-qwen-native==0.1.0"
 /path/to/fresh-venv/bin/python -c \
   "from qwentts_cpp import QwenLibrary, QT_ABI_VERSION; print(QwenLibrary().version(), QT_ABI_VERSION)"
 ```
@@ -690,7 +641,7 @@ It reports Python/platform support, driver/GPU information, native ABI, and
 discovered CUDA/qwen libraries. `QwenEngine` translates common loader, ABI,
 driver, and out-of-memory failures into actionable messages. Typical fixes are:
 
-- ABI mismatch: reinstall matching RealtimeTTS and `qwentts-cpp-python` wheels.
+- ABI mismatch: reinstall matching RealtimeTTS and `realtimetts-qwen-native` wheels.
 - Missing DLL/SO: inspect `doctor`; do not manually copy random CUDA libraries.
 - Driver/CUDA failure: update to a CUDA-12-compatible NVIDIA driver and verify
   compute capability 7.5 or newer.
@@ -727,7 +678,7 @@ repository.
 ## Native wheel/release verification
 
 Before publishing a compatible release, build and repair the primary Windows
-x86-64 and Linux x86-64 wheels in the `qwentts-cpp-python` project. In fresh
+x86-64 and Linux x86-64 wheels in the `realtimetts-qwen-native` project. In fresh
 virtual environments on both target operating systems, verify `doctor`, model
 loading, x-vector, ICL, repeated requests, cancellation/reuse, and valid 24 kHz
 mono output without a repository checkout or system CUDA Toolkit. The current

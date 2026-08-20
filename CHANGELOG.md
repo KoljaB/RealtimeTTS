@@ -18,9 +18,8 @@
 - Made Stanza opt-in and selected the NLTK plus rule-based tokenizer by default.
 - Kept the server extra headless while engine playback extras continue to use
   PyAudio/PortAudio.
-- Selected the validated native Qwen candidate per platform: Windows uses
-  `qwentts-cpp-python` `0.4.0.dev1` (`1cu128`), while Linux uses `0.4.0.dev0`
-  (`1cu128`). Unsupported platforms are not declared as release targets.
+- Selected `realtimetts-qwen-native` 0.1.0 for the validated Windows and Linux
+  CUDA 12.8 Qwen wheels. Unsupported platforms are not release targets.
 
 ### Fixed
 

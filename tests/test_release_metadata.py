@@ -54,15 +54,15 @@ def test_qwen_native_candidates_keep_validated_platform_pins():
     setup_text = (ROOT / "setup.py").read_text(encoding="utf-8")
     requirements_text = (ROOT / "requirements.txt").read_text(encoding="utf-8")
     expected = {
-        'qwentts-cpp-python[cuda12]==0.4.0.dev1; sys_platform == "win32"',
-        'qwentts-cpp-python[cuda12]==0.4.0.dev0; sys_platform == "linux"',
+        'realtimetts-qwen-native[cuda12]==0.1.0; sys_platform == "win32"',
+        'realtimetts-qwen-native[cuda12]==0.1.0; sys_platform == "linux"',
     }
 
     assert expected <= set(
         line.strip() for line in requirements_text.splitlines() if line.strip()
     )
     assert all(candidate in setup_text for candidate in expected)
-    assert "requirements.get(\"qwentts-cpp-python\"" not in setup_text
+    assert "requirements.get(\"realtimetts-qwen-native\"" not in setup_text
 
 
 def test_source_distribution_manifest_keeps_release_metadata_and_excludes_tests():

@@ -116,12 +116,12 @@ camb_requirements = [requirements.get("camb-sdk", "camb-sdk")]
 requests_requirements = [requirements.get("requests", "requests")]
 cartesia_requirements = [requirements.get("cartesia", "cartesia")]
 typecast_requirements = [requirements.get("typecast-python", "typecast-python")]
-# Do not look up qwentts-cpp-python through the name-keyed requirements mapping:
+# Do not look up realtimetts-qwen-native through the name-keyed requirements mapping:
 # the platform pins intentionally share one package name, so parse_requirements
 # would otherwise keep only the last variant.
 qwen_native_requirements = [
-    'qwentts-cpp-python[cuda12]==0.4.0.dev1; sys_platform == "win32"',
-    'qwentts-cpp-python[cuda12]==0.4.0.dev0; sys_platform == "linux"',
+    'realtimetts-qwen-native[cuda12]==0.1.0; sys_platform == "win32"',
+    'realtimetts-qwen-native[cuda12]==0.1.0; sys_platform == "linux"',
 ]
 qwen_common_requirements = qwen_native_requirements + [
     requirements.get("numpy", "numpy"),

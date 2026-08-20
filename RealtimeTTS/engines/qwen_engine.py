@@ -347,19 +347,19 @@ class QwenEngine(BaseEngine):
             import qwentts_cpp
         except ImportError as exc:
             raise ImportError(
-                "QwenEngine requires the native qwentts-cpp-python wheel. "
+                "QwenEngine requires the native realtimetts-qwen-native wheel. "
                 "Install it with: pip install \"realtimetts[qwen]\""
             ) from exc
         abi = int(getattr(qwentts_cpp, "QT_ABI_VERSION", 0))
         if abi != REQUIRED_QWENTTS_ABI:
             raise QwenEngineError(
-                f"qwentts-cpp-python exposes ABI {abi}; ABI {REQUIRED_QWENTTS_ABI} "
+                f"realtimetts-qwen-native exposes ABI {abi}; ABI {REQUIRED_QWENTTS_ABI} "
                 "is required. Install the pinned realtimetts[qwen] dependencies."
             )
         version = getattr(qwentts_cpp, "__version__", None)
         if version is None:
             try:
-                version = importlib.metadata.version("qwentts-cpp-python")
+                version = importlib.metadata.version("realtimetts-qwen-native")
             except importlib.metadata.PackageNotFoundError:
                 version = "unknown"
         if self.talker_path and self.codec_path:
@@ -396,7 +396,7 @@ class QwenEngine(BaseEngine):
             detail = "not enough GPU VRAM; close other GPU workloads or use a smaller quantization"
         elif "abi" in lowered or "version mismatch" in lowered:
             detail = (
-                "native ABI mismatch; reinstall matching RealtimeTTS and qwentts-cpp-python wheels, "
+                "native ABI mismatch; reinstall matching RealtimeTTS and realtimetts-qwen-native wheels, "
                 "then run `python -m qwentts_cpp doctor`"
             )
         elif any(token in lowered for token in ("dll", "shared libr", "libqwen", "could not find")):

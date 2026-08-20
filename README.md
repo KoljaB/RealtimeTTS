@@ -39,7 +39,7 @@ onset was **80.9 ms** and RTF was **0.108**. These are orientation figures;
 measure the complete path on your target system.
 
 ```bash
-python -m pip install --only-binary=qwentts-cpp-python "realtimetts[qwen]"
+python -m pip install --only-binary=realtimetts-qwen-native "realtimetts[qwen]"
 python -m qwentts_cpp doctor
 ```
 
@@ -251,7 +251,7 @@ data, datasets, generated audio, and third-party services can have separate
 terms. Read [LICENSING_ADDENDUM.md](LICENSING_ADDENDUM.md) and the relevant
 provider or model licenses before commercial use.
 
-For the native Qwen/Inflect paths, `qwentts.cpp` and `qwentts-cpp-python` are
+For the native Qwen/Inflect paths, `qwentts.cpp` and `realtimetts-qwen-native` are
 MIT-licensed; Qwen 0.6B Base/tokenizer and Inflect Micro-v2/ONNX are
 Apache-2.0. Model weights, voice latents, and reference audio are not bundled,
 and users are responsible for the rights to every voice or recording they
