@@ -9,6 +9,8 @@ import pytest
 from RealtimeTTS.engines.inflect_engine import (
     InflectEngine,
     InflectVoice,
+    ONNX_MODEL_ID,
+    ONNX_REVISION,
     PYTORCH_MODEL_ID,
     PYTORCH_REVISION,
     _PINNED_HASHES,
@@ -55,7 +57,7 @@ def engine_factory(monkeypatch, tmp_path, fake_runtime):
 
     def create(**kwargs):
         options = {
-            "backend": "pytorch",
+            "backend": "onnx",
             "device": "cpu",
             "model_dir": tmp_path,
             "warmup": False,
@@ -181,8 +183,8 @@ def test_engine_identity_and_stream_info(engine_factory, monkeypatch):
 def test_engine_uses_pinned_default_source(engine_factory):
     engine = engine_factory()
 
-    assert engine.model_id == PYTORCH_MODEL_ID
-    assert engine.revision == PYTORCH_REVISION
+    assert engine.model_id == ONNX_MODEL_ID
+    assert engine.revision == ONNX_REVISION
 
 
 def test_verification_rejects_tampered_executable_helper(monkeypatch, tmp_path):
@@ -238,7 +240,7 @@ def test_engine_instances_share_the_global_synthesis_lock(engine_factory):
 def test_pytorch_rng_state_is_restored(engine_factory, fake_runtime):
     torch = pytest.importorskip("torch")
 
-    engine = engine_factory()
+    engine = engine_factory(backend="pytorch")
     fake_runtime.on_synthesize = lambda: torch.manual_seed(999)
     torch.manual_seed(123)
     before = torch.random.get_rng_state().clone()
@@ -268,6 +270,7 @@ def test_empty_text_is_success_without_model_call(engine_factory, fake_runtime):
 def test_warmup_calls_runtime_without_queueing(
     monkeypatch, tmp_path, fake_runtime
 ):
+    pytest.importorskip("torch")
     monkeypatch.setattr(InflectEngine, "_validate_runtime_files", lambda self: None)
     monkeypatch.setattr(InflectEngine, "_load_model", lambda self: fake_runtime)
 

@@ -39,10 +39,10 @@ def test_pep517_build_backend_and_pytest_collection_policy_are_declared():
     assert 'python_files = ["test_*.py"]' in text
 
 
-def test_setup_reports_source_version_from_outside_repository_root():
+def test_setup_reports_source_version_from_outside_repository_root(tmp_path):
     result = subprocess.run(
         [sys.executable, str(ROOT / "setup.py"), "--version"],
-        cwd=ROOT / "tests",
+        cwd=tmp_path,
         check=True,
         capture_output=True,
         text=True,
