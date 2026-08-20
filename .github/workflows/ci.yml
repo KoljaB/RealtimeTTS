@@ -25,7 +25,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install --yes portaudio19-dev
           python -m pip install --upgrade pip
-          python -m pip install pytest numpy requests fastapi httpx soundfile
+          python -m pip install pytest "setuptools>=68" numpy requests fastapi httpx soundfile
           python -m pip install -e .
           python -m pip install pyaudio
       - name: Run focused unit tests
