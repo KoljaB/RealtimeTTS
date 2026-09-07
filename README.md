@@ -174,6 +174,7 @@ see [docs/output-and-files.md](docs/output-and-files.md).
 | [`GTTSEngine`](docs/engines/gtts.md) | Free service | `realtimetts[gtts]` | Simple network-backed speech. |
 | [`EdgeEngine`](docs/engines/edge.md) | Free service | `realtimetts[edge]`, needs `mpv` | Free streamed voices. |
 | [`OpenAIEngine`](docs/engines/openai.md) | Cloud API | `realtimetts[openai]` | OpenAI TTS voices. |
+| [`AtlasCloudEngine`](docs/engines/atlascloud.md) | Cloud API | `realtimetts[atlascloud]` | Atlas Cloud TTS models. |
 | [`AzureEngine`](docs/engines/azure.md) | Cloud API | `realtimetts[azure]` | Azure voices and word timings. |
 | [`ElevenlabsEngine`](docs/engines/elevenlabs.md) | Cloud API | `realtimetts[elevenlabs]`, needs `mpv` | High-quality API voices. |
 | [`CambEngine`](docs/engines/camb.md) | Cloud API | `realtimetts[camb]` | CAMB MARS API voices. |
