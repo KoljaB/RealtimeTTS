@@ -358,6 +358,35 @@ def test_onset_profile_validates_and_applies_only_to_xvector(tmp_path, monkeypat
         engine.shutdown()
 
 
+def test_explicit_speaker_only_mode_preserves_reference_and_can_switch_to_icl(tmp_path, monkeypatch):
+    monkeypatch.setattr(qwen_module, "_load_reference_audio", lambda _: np.zeros(2400, dtype=np.float32))
+    backend = FakeBackend()
+    voice = QwenVoice("reference", ref_audio=_reference_file(tmp_path), ref_text="Reference transcript.")
+    engine = _engine(
+        tmp_path, backend, voice=voice, clone_mode="speaker_only",
+        onset_silence_profile="qwen3_tts_12hz_0_6b_base_q8_v1",
+    )
+    try:
+        engine.warmup()
+        assert engine.synthesize("Speaker only.")
+        assert backend.stream_calls[-1]["ref_text"] is None
+        assert backend.stream_calls[-1]["ref_codes"] is None
+        assert backend.stream_calls[-1]["onset_silence_profile"] != "off"
+        assert voice.ref_text == "Reference transcript."
+        engine.set_voice_parameters(clone_mode="auto")
+        calls = len(backend.stream_calls)
+        engine.warmup()
+        assert len(backend.stream_calls) == calls + 1
+        assert engine.synthesize("Full reference cloning.")
+        assert backend.stream_calls[-1]["ref_text"] == voice.ref_text
+        assert backend.stream_calls[-1]["ref_codes"] is not None
+        assert backend.stream_calls[-1]["onset_silence_profile"] == "off"
+        with pytest.raises(ValueError, match="clone_mode"):
+            engine.set_voice_parameters(clone_mode="invalid")
+    finally:
+        engine.shutdown()
+
+
 def test_streaming_start_trim_uses_subframe_preroll_and_fade_in(tmp_path, monkeypatch):
     """Leading windows are trimmed without cutting directly into speech."""
     monkeypatch.setattr(

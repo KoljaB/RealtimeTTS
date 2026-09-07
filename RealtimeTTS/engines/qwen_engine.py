@@ -299,6 +299,7 @@ class QwenEngine(BaseEngine):
         fragment_fade_out_after_ms: float = 1000.0,
         startup_buffer_ms: float = 160.0,
         onset_silence_profile: str = DEFAULT_ONSET_SILENCE_PROFILE,
+        clone_mode: str = "auto",
         backend_factory: Optional[Callable[..., Any]] = None,
     ) -> None:
         super().__init__()
@@ -321,6 +322,8 @@ class QwenEngine(BaseEngine):
             )
         if bool(talker_path) != bool(codec_path):
             raise ValueError("talker_path and codec_path must be supplied together")
+        if clone_mode not in {"auto", "speaker_only"}:
+            raise ValueError("clone_mode must be 'auto' or 'speaker_only'")
 
         self.model_id = model_id
         self.quant = _normalize_quant(quant)
@@ -355,6 +358,7 @@ class QwenEngine(BaseEngine):
         self.onset_silence_profile = str(
             onset_silence_profile or DEFAULT_ONSET_SILENCE_PROFILE
         ).strip().lower()
+        self.clone_mode = clone_mode
 
         self.seed = int(seed)
         self.max_new_tokens = int(max_new_tokens)
@@ -426,6 +430,9 @@ class QwenEngine(BaseEngine):
     def post_init(self) -> None:
         self.engine_name = "qwen"
 
+    def _backend_options(self) -> dict[str, Any]:
+        return {}
+
     def _create_backend(
         self, backend_factory: Optional[Callable[..., Any]]
     ) -> tuple[Any, int, str]:
@@ -441,6 +448,7 @@ class QwenEngine(BaseEngine):
             "clamp_fp16": self.clamp_fp16,
             "max_batch": self.max_batch,
             "codec_chunk_sec": self.codec_chunk_sec,
+            **self._backend_options(),
         }
         if backend_factory is not None:
             backend = backend_factory(**kwargs)
@@ -473,6 +481,7 @@ class QwenEngine(BaseEngine):
                 clamp_fp16=self.clamp_fp16,
                 max_batch=self.max_batch,
                 codec_chunk_sec=self.codec_chunk_sec,
+                **self._backend_options(),
             )
         else:
             pretrained_kwargs = dict(kwargs)
@@ -644,7 +653,7 @@ class QwenEngine(BaseEngine):
         self, text: str, voice: QwenVoice, *, max_new_tokens: Optional[int] = None,
         cancel_event: Optional[threading.Event] = None
     ) -> dict[str, Any]:
-        use_icl = voice.clone_mode == "icl"
+        use_icl = voice.clone_mode == "icl" and self.clone_mode == "auto"
         return {
             "text": text,
             "lang": voice.language,
@@ -675,7 +684,8 @@ class QwenEngine(BaseEngine):
         with self._synthesis_lock:
             if self.current_voice is None or self._voice_ref is None or self._voice_cache_key is None:
                 raise QwenEngineError("Set a QwenVoice before warmup")
-            if self._voice_cache_key in self._warmed_voice_keys:
+            warmup_key = f"{self._voice_cache_key}:{self.clone_mode}"
+            if warmup_key in self._warmed_voice_keys:
                 return
             cancel_event = threading.Event()
             with self._control_condition:
@@ -695,7 +705,7 @@ class QwenEngine(BaseEngine):
                             f"qwentts.cpp returned {sample_rate} Hz during warmup; expected {SAMPLE_RATE} Hz"
                         )
                 if not cancel_event.is_set():
-                    self._warmed_voice_keys.add(self._voice_cache_key)
+                    self._warmed_voice_keys.add(warmup_key)
             except BaseException as exc:
                 if not cancel_event.is_set():
                     raise self._translate_error(exc, "warming the native model") from exc
@@ -1051,11 +1061,13 @@ class QwenEngine(BaseEngine):
         sampling_fields = {
             "seed", "max_new_tokens", "do_sample", "temperature", "top_k", "top_p",
             "repetition_penalty", "subtalker_do_sample", "subtalker_temperature",
-            "subtalker_top_k", "subtalker_top_p",
+            "subtalker_top_k", "subtalker_top_p", "clone_mode",
         }
         unknown = set(voice_parameters) - voice_fields - sampling_fields
         if unknown:
             raise ValueError(f"Unsupported QwenEngine voice parameters: {sorted(unknown)}")
+        if "clone_mode" in voice_parameters and voice_parameters["clone_mode"] not in {"auto", "speaker_only"}:
+            raise ValueError("clone_mode must be 'auto' or 'speaker_only'")
         with self._synthesis_lock:
             if self.current_voice:
                 if "language" in voice_parameters:

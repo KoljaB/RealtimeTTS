@@ -867,7 +867,7 @@ def test_startup_warmup_cli_is_opt_in():
     )
     assert defaults.startup_warmup_tokens == 32
     assert defaults.fragment_lookahead_words == 0
-    assert defaults.clamp_fp16 is True
+    assert defaults.clamp_fp16 is None
     assert defaults.trim_silence is True
     assert defaults.silence_threshold == 0.005
     assert defaults.trim_pre_roll_ms == 15.0
@@ -884,6 +884,68 @@ def test_startup_warmup_cli_is_opt_in():
     assert configured.onset_silence_profile == "qwen3_tts_12hz_0_6b_base_q8_v1"
     assert parser.parse_args(["--no-clamp-fp16"]).clamp_fp16 is False
     assert parser.parse_args(["--no-trim-silence"]).trim_silence is False
+
+
+def test_cpu_cli_constructs_cpu_engine_with_requested_threads(monkeypatch):
+    import sys
+    from types import SimpleNamespace
+
+    calls = []
+    class ConstructionReached(Exception):
+        pass
+
+    def cpu_engine(**kwargs):
+        calls.append(kwargs)
+        raise ConstructionReached
+
+    monkeypatch.setitem(sys.modules, "uvicorn", SimpleNamespace())
+    monkeypatch.setattr(qwen_server_module, "QwenCpuEngine", cpu_engine)
+    with pytest.raises(ConstructionReached):
+        qwen_server_module.main(["--device", "cpu", "--cpu-threads", "6", "--clone-mode", "speaker_only"])
+    assert calls[0]["cpu_threads"] == 6
+    assert calls[0]["clamp_fp16"] is False
+    assert calls[0]["clone_mode"] == "speaker_only"
+    for argv in (["--cpu-threads", "6"], ["--device", "cpu", "--cpu-threads", "0"]):
+        with pytest.raises(SystemExit):
+            qwen_server_module.main(argv)
+
+
+def test_cpu_capabilities_preserve_api_contract(tmp_path):
+    engine = FakeEngine()
+    engine.device = "cpu"
+    engine.cpu_threads = 6
+    engine.engine_name = "qwen_cpu"
+    with TestClient(create_app(_server(tmp_path, engine))) as client:
+        payload = client.get("/v1/capabilities").json()
+        assert payload["engine"]["device"] == "cpu"
+        assert payload["engine"]["cpu_threads"] == 6
+        assert payload["endpoints"]["speech"] == "/v1/audio/speech"
+        assert payload["endpoints"]["speech_stream"] == "/v1/audio/speech-stream"
+
+
+def test_request_clone_mode_is_validated_and_resets_to_default(tmp_path):
+    class ModeObservingEngine(FakeEngine):
+        def __init__(self):
+            super().__init__()
+            self.voice_modes = []
+
+        def set_voice(self, voice):
+            self.voice_modes.append(self.clone_mode)
+            super().set_voice(voice)
+
+    engine = ModeObservingEngine()
+    engine.clone_mode = "speaker_only"
+    with TestClient(create_app(_server(tmp_path, engine))) as client:
+        _register(client)
+        engine.voice_modes.clear()
+        payload = {"input": "A short comparison.", "voice": "mira", "response_format": "pcm"}
+        assert client.post("/v1/audio/speech", json={**payload, "clone_mode": "auto"}).status_code == 200
+        assert engine.parameters["clone_mode"] == "auto"
+        assert client.get("/v1/capabilities").json()["engine"]["clone_mode"] == "speaker_only"
+        assert client.post("/v1/audio/speech", json=payload).status_code == 200
+        assert engine.parameters["clone_mode"] == "speaker_only"
+        assert engine.voice_modes == ["auto", "speaker_only"]
+        assert client.post("/v1/audio/speech", json={**payload, "clone_mode": []}).status_code == 400
 
 
 def test_pcm_waits_for_audible_audio_and_preserves_leading_silence(tmp_path):

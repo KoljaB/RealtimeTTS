@@ -54,6 +54,38 @@ COMPONENT_PROFILES: dict[str, dict[str, object]] = {
         "service_name": "wwz-qwen3-tts.service",
         "publishable": True,
     },
+    # A separate deployment target. It cannot attest the GPU service or publish
+    # a public release; the source/wheel/runtime and signer checks still apply.
+    "RealtimeTTSCPU": {
+        "distribution": "realtimetts",
+        "packages": (("RealtimeTTS", "RealtimeTTS", "RealtimeTTS"),),
+        "signer": "linux-services",
+        "signer_fingerprint": "SHA256:ODuksd5J17paccWV+N0zWfczcc1iV30V5mQytjiar2w",
+        "remote_repository": "github.com/koljab/realtimetts",
+        "remote_branch": "master",
+        "service_required": True,
+        "service_name": "wwz-qwen3-tts-cpu.service",
+        "publishable": False,
+        "required_dependencies": {"realtimetts-qwen-native": "0.2.0+cpu1"},
+    },
+    "RealtimeTTSQwenNativeCPU": {
+        "distribution": "realtimetts-qwen-native",
+        "packages": (("qwentts_cpp", "src/qwentts_cpp", "qwentts_cpp"),),
+        "signer": "linux-services",
+        "signer_fingerprint": "SHA256:ODuksd5J17paccWV+N0zWfczcc1iV30V5mQytjiar2w",
+        "remote_repository": "github.com/koljab/realtimetts-qwen-native",
+        "remote_branch": "main",
+        "service_required": True,
+        "service_name": "wwz-qwen3-tts-cpu.service",
+        "publishable": False,
+        "binary_package_prefixes": {"qwentts_cpp": ("lib/",)},
+        "required_wheel_platforms": ("linux_x86_64",),
+        "native_revision": "30ea6696c8f3be5dcecbfdfe777cfea149091ac7",
+        "required_native_library_groups": {
+            "linux_x86_64": (("qwentts_cpp/lib/libqwen.so",),),
+        },
+        "publish_sdist": False,
+    },
     "RealtimeTTSQwenNative": {
         "distribution": "realtimetts-qwen-native",
         "packages": (("qwentts_cpp", "src/qwentts_cpp", "qwentts_cpp"),),
@@ -1103,6 +1135,11 @@ def _validate_package_artifacts(
     runtime_state: dict[str, object] | None,
     profile: dict[str, object],
 ) -> None:
+    if runtime_state is not None:
+        versions = runtime_state.get("versions", {})
+        for name, expected in profile.get("required_dependencies", {}).items():
+            if versions.get(name) != expected:
+                raise GuardError(f"deployment requires {name}=={expected}; include it as an attested dependency")
     wheel_metadata = _wheel_metadata(wheel)
     sdist_metadata = _sdist_metadata(sdist)
     if (

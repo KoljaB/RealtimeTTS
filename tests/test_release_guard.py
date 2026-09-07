@@ -405,6 +405,29 @@ class ReleaseGuardTests(unittest.TestCase):
                     ],
                 )
 
+    def test_cpu_deployment_cannot_attest_gpu_or_publish(self) -> None:
+        profile = release_guard._component_profile("RealtimeTTSCPU")
+        self.assertEqual(
+            release_guard._service_name(profile, "wwz-qwen3-tts-cpu.service"),
+            "wwz-qwen3-tts-cpu.service",
+        )
+        self.assertEqual(profile["packages"], release_guard.COMPONENT_PROFILES["RealtimeTTS"]["packages"])
+        self.assertEqual(profile["signer_fingerprint"], release_guard.COMPONENT_PROFILES["RealtimeTTS"]["signer_fingerprint"])
+        with self.assertRaises(release_guard.GuardError):
+            release_guard._service_name(profile, "wwz-qwen3-tts.service")
+        with self.assertRaisesRegex(release_guard.GuardError, "not publishable"):
+            release_guard._component_profile("RealtimeTTSCPU", publishing=True)
+        native = release_guard._component_profile("RealtimeTTSQwenNativeCPU")
+        self.assertEqual(native["service_name"], profile["service_name"])
+        self.assertEqual(native["required_wheel_platforms"], ("linux_x86_64",))
+        with self.assertRaisesRegex(release_guard.GuardError, "not publishable"):
+            release_guard._component_profile("RealtimeTTSQwenNativeCPU", publishing=True)
+        with self.assertRaisesRegex(release_guard.GuardError, "realtimetts-qwen-native==0.2.0\\+cpu1"):
+            release_guard._validate_package_artifacts(
+                Path("."), Path("missing.whl"), Path("missing.tar.gz"), [],
+                {"versions": {"realtimetts-qwen-native": "0.2.0"}}, profile,
+            )
+
     def test_remote_branch_and_tag_must_both_equal_release_head(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

@@ -47,6 +47,92 @@ finally:
 Defaults are Qwen3-TTS 12 Hz 0.6B Base, Q8_0, one persistent native context,
 and 24 kHz mono signed 16-bit output.
 
+## CPU engine
+
+`QwenCpuEngine` uses a CPU-only native library and requires no GPU allocation.
+It shares `QwenEngine`'s cached voices, x-vector/ICL cloning, silence trimming,
+startup buffering, streaming, and pause/resume/cancel controls. It never changes
+process-wide GPU visibility. The binding checks the actual library before
+loading a model and rejects an incompatible library, including a custom
+`library_path`.
+
+The CPU package is currently a local deployment build, not a public PyPI release.
+Install the exact CPU native wheel and matching RealtimeTTS wheel from the
+deployment wheelhouse:
+
+```bash
+python -m pip install --find-links /absolute/path/to/cpu-wheelhouse \
+  "realtimetts[qwen-cpu-server] @ file:///absolute/path/to/realtimetts-0.8.6-py3-none-any.whl"
+```
+
+The CPU extras pin `realtimetts-qwen-native==0.2.0+cpu1` and omit CUDA packages.
+Use `qwen-cpu` for local playback or `qwen-cpu-server` for HTTP/WebSocket serving
+without PyAudio. The CPU deployment wheel targets Linux x86-64; other targets
+have not been validated. Its native code is compiled for the deployment CPU;
+rebuild it before installing on a CPU with a different instruction set.
+
+```python
+from RealtimeTTS import QwenCpuEngine, QwenVoice
+
+engine = QwenCpuEngine(
+    talker_path="/models/qwen-talker-0.6b-base-Q8_0.gguf",
+    codec_path="/models/qwen-tokenizer-12hz-Q8_0.gguf",
+    cpu_threads=8,
+    voice=QwenVoice("narrator", ref_audio="reference.wav"),
+    onset_silence_profile="qwen3_tts_12hz_0_6b_base_q8_v1",
+)
+```
+
+The server uses the same endpoints and request bodies:
+
+```bash
+realtimetts-qwen-server --device cpu --cpu-threads 8 \
+  --model /models/qwen-talker-0.6b-base-Q8_0.gguf \
+  --codec /models/qwen-tokenizer-12hz-Q8_0.gguf \
+  --no-clamp-fp16 --port 18085 --voice-dir /runtime/qwen-cpu-voices \
+  --api-key-file /runtime/tts-api-key \
+  --onset-silence-profile qwen3_tts_12hz_0_6b_base_q8_v1
+```
+
+Use a separate virtual environment and voice directory for CPU and GPU servers.
+`/v1/capabilities` reports `engine.device="cpu"`, `cpu_only=true`, and the CPU
+thread count. Readiness still waits for configured voice warmup. Set
+`--startup-warmup-voice` to a registered voice before measuring warm latency.
+
+Up to eight CPU workers are the default; the best count depends on CPU topology and
+other workloads. First native PCM, first audible speech, and continuous-playback
+start are different measurements. A model can produce its first frame quickly
+but spend further computation generating silence or filling the startup buffer.
+The CPU native stream emits 1, 2, 2, then 4 codec frames per callback, keeping
+steady chunks at 320 ms and allowing the initial playback buffer to grow.
+The existing Q8 onset-suppression profile also works on CPU. It remains limited
+to its exact validated Q8 model/codec pair and x-vector cloning; Q4 and ICL must
+not silently inherit that profile.
+
+CPU defaults to `clone_mode="speaker_only"`. This uses the cached speaker
+embedding even when a registered voice also has a transcript; the original
+reference is retained. Set `clone_mode="auto"` to use full ICL for references
+with `ref_text`. The native/GPU engine continues to default to `"auto"`.
+The CLI option is `--clone-mode speaker_only` or `--clone-mode auto`.
+An HTTP or WebSocket request can override the server default with the same
+`clone_mode` field; the following request returns to the configured default:
+
+```json
+{
+  "input": "Guten Abend! Ich habe die Informationen geprüft.",
+  "voice": "mira_v5_spark_de",
+  "language": "german",
+  "response_format": "pcm",
+  "clone_mode": "auto"
+}
+```
+
+Full ICL needs a stored reference transcript. It can reproduce more reference
+detail but adds request-time reference-context processing. Speaker embeddings
+and reference codes are prepared/cached ahead of synthesis; this does not cache
+the entire model attention state for each new sentence. First use of a new
+voice or a different cloning mode can require additional warmup.
+
 ## Measured latency boundaries
 
 In 10 warm Linux runs on a tuned RTX 4090 setup, the measured timeline was:

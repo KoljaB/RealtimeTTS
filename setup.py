@@ -45,6 +45,8 @@ Available engine options include:
 - **orpheus**: Orpheus TTS support
 - **qwen**: Native qwentts.cpp Qwen3 TTS integration
 - **qwen-server**: OpenAI-compatible native Qwen3 TTS HTTP server
+- **qwen-cpu**: Native Qwen3 TTS on CPU, without CUDA dependencies
+- **qwen-cpu-server**: The same Qwen HTTP/WebSocket API on CPU
 - **omnivoice**: Omnivoice TTS integration
 - **luxtts**: LuxTTS integration
 - **chatterbox**: Chatterbox Turbo integration
@@ -131,6 +133,11 @@ qwen_common_requirements = qwen_native_requirements + [
     requirements.get("soundfile", "soundfile>=0.13.1"),
 ]
 qwen_requirements = qwen_common_requirements + pyaudio_requirements
+qwen_cpu_common_requirements = [
+    "realtimetts-qwen-native==0.2.0+cpu1",
+    requirements.get("numpy", "numpy"),
+    requirements.get("soundfile", "soundfile>=0.13.1"),
+]
 qwen_server_requirements = [
     requirements.get("fastapi", "fastapi>=0.115,<1"),
     requirements.get("uvicorn", "uvicorn>=0.34,<1"),
@@ -311,6 +318,8 @@ extras_require = {
     # headless and therefore intentionally leaves PyAudio out.
     "qwen": base_requirements + qwen_requirements,
     "qwen-server": base_requirements + qwen_common_requirements + qwen_server_requirements,
+    "qwen-cpu": base_requirements + qwen_cpu_common_requirements + pyaudio_requirements,
+    "qwen-cpu-server": base_requirements + qwen_cpu_common_requirements + qwen_server_requirements,
     "jp": standard_requirements +["mecab-python3>=1.0.12", "unidic-lite>=1.0.8", "cutlet", "fugashi>=1.5.2", "jaconv>=0.5.0", "mojimoji>=0.0.13", "pyopenjtalk>=0.4.1"],
     "zh": standard_requirements +["pypinyin>=0.55.0", "ordered_set>=4.1.0", "jieba>=0.42.1", "cn2an>=0.5.24"],
     "ko": standard_requirements +["hangul_romanize"],

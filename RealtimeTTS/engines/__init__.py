@@ -22,7 +22,7 @@ __all__ = [
     "ModelsLabEngine", "ModelsLabVoice",
     "MiniMaxEngine", "MiniMaxVoice",
     "CartesiaEngine", "CartesiaVoice",
-    "QwenEngine", "QwenVoice", "QwenEngineError",
+    "QwenEngine", "QwenCpuEngine", "QwenVoice", "QwenEngineError",
     "OmniVoiceEngine", "OmniVoiceVoice",
     "TypecastEngine", "TypecastVoice",
     "LuxTTSEngine", "LuxTTSVoice",
@@ -189,6 +189,12 @@ def _load_qwen_voice():
     return globals()["QwenVoice"]
 
 
+def _load_qwen_cpu_engine():
+    from .qwen_cpu_engine import QwenCpuEngine
+    globals()["QwenCpuEngine"] = QwenCpuEngine
+    return QwenCpuEngine
+
+
 def _load_qwen_error():
     _load_qwen_engine()
     return globals()["QwenEngineError"]
@@ -300,6 +306,7 @@ _lazy_imports = {
     "CartesiaEngine": _load_cartesia_engine,
     "CartesiaVoice": _load_cartesia_engine,
     "QwenEngine": _load_qwen_engine,
+    "QwenCpuEngine": _load_qwen_cpu_engine,
     "QwenVoice": _load_qwen_voice,
     "QwenEngineError": _load_qwen_error,
     "OmniVoiceEngine": _load_omni_voice_engine,

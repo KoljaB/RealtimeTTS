@@ -54,6 +54,7 @@ from .engines.qwen_engine import (
     QwenEngine,
     QwenVoice,
 )
+from .engines.qwen_cpu_engine import QwenCpuEngine
 from .language_router import (
     FastTextLanguageDetector,
     LanguageDetection,
@@ -706,6 +707,7 @@ class QwenHttpServer:
                 "top_k",
                 "top_p",
                 "repetition_penalty",
+                "clone_mode",
             )
             if hasattr(engine, name)
         }
@@ -782,6 +784,10 @@ class QwenHttpServer:
                 "name": engine_name,
                 "backend": "qwentts.cpp",
                 "device": device,
+                "cpu_threads": getattr(self.engine, "cpu_threads", None),
+                "cpu_only": bool(getattr(self.engine, "cpu_only", False)),
+                "clone_mode": str(self._sampling_defaults.get("clone_mode", "auto")),
+                "clone_modes": ["auto", "speaker_only"],
                 "model_id": model_id,
                 "quant": quant,
                 "binding_version": binding_version,
@@ -969,6 +975,11 @@ class QwenHttpServer:
         language = language.strip().lower()
 
         sampling: dict[str, Any] = {}
+        if "clone_mode" in payload:
+            clone_mode = payload["clone_mode"]
+            if not isinstance(clone_mode, str) or clone_mode not in {"auto", "speaker_only"}:
+                raise ApiError(400, "invalid_request_error", "'clone_mode' must be 'auto' or 'speaker_only'")
+            sampling["clone_mode"] = clone_mode
         integer_domains = {
             "seed": (-(2**63), 2**63 - 1),
             "max_new_tokens": (1, 2**31 - 1),
@@ -1090,15 +1101,15 @@ class QwenHttpServer:
             with self._operation_lock:
                 if state.cancelled.is_set() or self._shutting_down.is_set():
                     return
+                parameters = dict(self._sampling_defaults)
+                parameters.update(request.sampling)
+                if parameters:
+                    self.engine.set_voice_parameters(**parameters)
                 self.engine.set_voice(
                     self.registry.to_voice(record, request.language, request.instructions)
                 )
                 if state.cancelled.is_set():
                     return
-                parameters = dict(self._sampling_defaults)
-                parameters.update(request.sampling)
-                if parameters:
-                    self.engine.set_voice_parameters(**parameters)
                 original_queue = self.engine.queue
                 self.engine.queue = _CaptureQueue(
                     state,
@@ -2133,15 +2144,27 @@ def build_argument_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--model-cache-dir", type=Path)
     parser.add_argument("--library-path", type=Path)
+    parser.add_argument(
+        "--device", choices=("native", "cpu"), default="native",
+        help="Use the default native runtime or the CPU-only Qwen engine",
+    )
+    parser.add_argument(
+        "--cpu-threads", type=int, default=None,
+        help="CPU worker count (requires --device cpu; default: up to 8)",
+    )
+    parser.add_argument(
+        "--clone-mode", choices=("auto", "speaker_only"), default=None,
+        help="Cloning default: speaker_only for CPU; auto follows reference transcripts for native",
+    )
     parser.add_argument("--local-files-only", action="store_true")
     parser.add_argument("--no-fa", action="store_true", help="Disable native Flash Attention")
     parser.add_argument(
         "--clamp-fp16",
         action=argparse.BooleanOptionalAction,
-        default=True,
+        default=None,
         help=(
             "Clamp FP16 hidden states to prevent overflow artifacts on pre-Ampere "
-            "NVIDIA GPUs (default: enabled)"
+            "NVIDIA GPUs (default: enabled for native, disabled for CPU)"
         ),
     )
     parser.add_argument("--codec-chunk-sec", type=float, default=24.0)
@@ -2259,6 +2282,10 @@ def _warn_for_compressed_language_id_model(model_path: Optional[Path]) -> None:
 def main(argv: Optional[Sequence[str]] = None) -> None:
     parser = build_argument_parser()
     args = parser.parse_args(argv)
+    if args.cpu_threads is not None and (
+        args.device != "cpu" or not 1 <= args.cpu_threads <= 256
+    ):
+        parser.error("--cpu-threads requires --device cpu and a value between 1 and 256")
     if bool(args.model) != bool(args.codec):
         parser.error("--model and --codec must be supplied together")
     if not 1 <= args.port <= 65535:
@@ -2317,7 +2344,9 @@ def main(argv: Optional[Sequence[str]] = None) -> None:
             "Uvicorn is missing. Install with: pip install \"realtimetts[qwen-server]\""
         ) from exc
 
-    engine = QwenEngine(
+    engine_class = QwenCpuEngine if args.device == "cpu" else QwenEngine
+    device_options = {"cpu_threads": args.cpu_threads} if args.device == "cpu" else {}
+    engine = engine_class(
         model_id=args.model_id,
         quant=args.quant,
         talker_path=args.model,
@@ -2327,7 +2356,7 @@ def main(argv: Optional[Sequence[str]] = None) -> None:
         local_files_only=args.local_files_only,
         library_path=args.library_path,
         use_fa=not args.no_fa,
-        clamp_fp16=args.clamp_fp16,
+        clamp_fp16=(args.device != "cpu") if args.clamp_fp16 is None else args.clamp_fp16,
         codec_chunk_sec=args.codec_chunk_sec,
         trim_silence=args.trim_silence,
         silence_threshold=args.silence_threshold,
@@ -2336,9 +2365,11 @@ def main(argv: Optional[Sequence[str]] = None) -> None:
         fragment_fade_out_after_ms=args.fragment_fade_out_after_ms,
         startup_buffer_ms=args.startup_buffer_ms,
         onset_silence_profile=args.onset_silence_profile,
+        clone_mode=args.clone_mode or ("speaker_only" if args.device == "cpu" else "auto"),
         warmup=False,
         warmup_text=args.startup_warmup_text,
         warmup_tokens=args.startup_warmup_tokens,
+        **device_options,
     )
     language_router = None
     if args.language_id_model is not None:
