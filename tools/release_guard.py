@@ -71,6 +71,7 @@ COMPONENT_PROFILES: dict[str, dict[str, object]] = {
     "RealtimeTTSQwenNativeCPU": {
         "distribution": "realtimetts-qwen-native",
         "packages": (("qwentts_cpp", "src/qwentts_cpp", "qwentts_cpp"),),
+        "sdist_package_dirs": {"qwentts_cpp": "src/qwentts_cpp"},
         "signer": "linux-services",
         "signer_fingerprint": "SHA256:ODuksd5J17paccWV+N0zWfczcc1iV30V5mQytjiar2w",
         "remote_repository": "github.com/koljab/realtimetts-qwen-native",
@@ -1178,7 +1179,9 @@ def _validate_package_artifacts(
             wheel, package_dir, canonical_text=True
         )
         sdist_source_files = _sdist_package_hashes(
-            sdist, package_dir, canonical_text=True
+            sdist,
+            profile.get("sdist_package_dirs", {}).get(package_dir, package_dir),
+            canonical_text=True,
         )
         wheel_files = _wheel_package_hashes(wheel, package_dir)
         excluded = binary_prefixes.get(package_dir, ())

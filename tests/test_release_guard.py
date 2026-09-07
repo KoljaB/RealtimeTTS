@@ -420,6 +420,7 @@ class ReleaseGuardTests(unittest.TestCase):
         native = release_guard._component_profile("RealtimeTTSQwenNativeCPU")
         self.assertEqual(native["service_name"], profile["service_name"])
         self.assertEqual(native["required_wheel_platforms"], ("linux_x86_64",))
+        self.assertEqual(native["sdist_package_dirs"], {"qwentts_cpp": "src/qwentts_cpp"})
         with self.assertRaisesRegex(release_guard.GuardError, "not publishable"):
             release_guard._component_profile("RealtimeTTSQwenNativeCPU", publishing=True)
         with self.assertRaisesRegex(release_guard.GuardError, "realtimetts-qwen-native==0.2.0\\+cpu1"):
