@@ -9,6 +9,7 @@ import hashlib
 import json
 import os
 import re
+import shlex
 import subprocess
 import sys
 import tarfile
@@ -1032,6 +1033,12 @@ def _systemd_user_service_state(
     exec_start = values.get("ExecStart", "")
     match = re.search(r"(?:^|[ {;])path=([^ ;}]+)", exec_start)
     launcher = match.group(1) if match else ""
+    if launcher and _same_executable_path(launcher, runtime_python):
+        configured = re.search(r"argv\[\]=(.*?) ;", exec_start)
+        configured_argv = shlex.split(configured.group(1)) if configured else []
+        if len(configured_argv) < 2 or configured_argv != argv:
+            raise GuardError(f"live service {service} Python arguments differ from its unit")
+        launcher = configured_argv[1]
     if (
         not isinstance(runtime_prefix, str)
         or not launcher
