@@ -7,3 +7,5 @@
 .model-picker small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.heading{padding-bottom:12px}.output canvas{height:72px}.output .card-title{margin-bottom:0}.reference form{gap:16px}.reference{padding-top:12px;padding-bottom:10px}#latentOptions{margin-top:6px}.model-picker label{font-size:11px}@media(min-width:1201px){main{padding-top:16px}.text-wrap textarea{height:160px}}
 
 main>footer{display:none}@media(min-width:1201px){main{padding-bottom:10px}.reference{margin-bottom:0}.reference form{gap:16px}}
+
+.settings{padding-bottom:10px}.advanced{margin-top:6px}
