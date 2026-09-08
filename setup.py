@@ -351,7 +351,7 @@ setuptools.setup(
     python_requires=">=3.10, <3.15",
     install_requires=base_requirements,
     extras_require=extras_require,
-    package_data={"RealtimeTTS": ["engines/*.json"]},
+    package_data={"RealtimeTTS": ["engines/*.json", "studio/*.html", "studio/*.css", "studio/*.js"]},
     include_package_data=True,
     entry_points={
         "console_scripts": [

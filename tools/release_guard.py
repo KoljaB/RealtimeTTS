@@ -28,6 +28,9 @@ MAX_ATTESTATION_AGE_SECONDS = 30 * 60
 SIGNATURE_NAMESPACE = "codex-release-guard"
 IGNORED_SUFFIXES = {".pyc", ".pyo"}
 TEXT_SUFFIXES = {
+    ".html",
+    ".css",
+    ".js",
     ".cfg",
     ".ini",
     ".json",

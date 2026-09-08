@@ -187,3 +187,4 @@ tests/ref_audio.pt
 # Local release validation and generated benchmark artifacts
 .release_validation/
 test_outputs/
+.pytest-tmp-model-modes/

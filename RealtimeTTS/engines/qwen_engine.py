@@ -27,6 +27,12 @@ VOICE_CACHE_FORMAT = 1
 DEFAULT_MODEL = "Qwen/Qwen3-TTS-12Hz-0.6B-Base"
 DEFAULT_QUANT = "Q8_0"
 DEFAULT_ONSET_SILENCE_PROFILE = "off"
+MODEL_TYPE_BASE = "base"
+MODEL_TYPE_CUSTOM_VOICE = "custom_voice"
+MODEL_TYPE_VOICE_DESIGN = "voice_design"
+QWEN_MODEL_TYPES = frozenset(
+    {MODEL_TYPE_BASE, MODEL_TYPE_CUSTOM_VOICE, MODEL_TYPE_VOICE_DESIGN}
+)
 
 
 def _normalize_quant(quant: str) -> str:
@@ -134,32 +140,58 @@ class QwenVoice:
     instruct: Optional[str] = None
     spk_path: Optional[Union[str, os.PathLike[str]]] = None
     rvq_path: Optional[Union[str, os.PathLike[str]]] = None
+    speaker: Optional[str] = None
 
     def __post_init__(self) -> None:
         self.name = str(self.name).strip()
         self.ref_text = self.ref_text.strip() if self.ref_text else None
         self.language = str(self.language).strip().lower()
         self.instruct = self.instruct.strip() if self.instruct else None
+        self.speaker = self.speaker.strip() if self.speaker else None
         if not self.name:
             raise ValueError("QwenVoice.name must not be empty")
         if not self.language:
             raise ValueError("QwenVoice.language must not be empty")
         if bool(self.spk_path) != bool(self.rvq_path):
             raise ValueError("spk_path and rvq_path must be supplied together")
-        if not self.ref_audio and not self.spk_path:
+        if self.speaker and (self.ref_audio or self.spk_path):
+            raise ValueError("speaker cannot be combined with a reference audio or cached reference")
+        if not self.ref_audio and not self.spk_path and not self.speaker and not self.instruct:
             raise ValueError(
-                "QwenVoice requires ref_audio or a pre-encoded spk_path/rvq_path pair"
+                "QwenVoice requires ref_audio, a pre-encoded spk_path/rvq_path pair, "
+                "a built-in speaker, or an instruction"
             )
 
     @property
     def clone_mode(self) -> str:
+        if self.speaker:
+            return MODEL_TYPE_CUSTOM_VOICE
+        if self.instruct and not self.ref_audio and not self.spk_path:
+            return MODEL_TYPE_VOICE_DESIGN
         return "icl" if self.ref_text else "x_vector"
 
     def __repr__(self) -> str:
         return (
             f"QwenVoice(name={self.name!r}, language={self.language!r}, "
-            f"clone_mode={self.clone_mode!r})"
+            f"clone_mode={self.clone_mode!r}, speaker={self.speaker!r})"
         )
+
+
+def _infer_model_type(*values: Any) -> str:
+    """Infer the native checkpoint variant from a model id or GGUF path.
+
+    qwentts.cpp reads ``qwen3-tts.model_type`` from the GGUF, but the current
+    Python ABI does not expose that metadata directly.  The model id/path is
+    the same variant-qualified source used to resolve the GGUF, so use it as
+    a conservative fallback until the ABI grows a metadata accessor.
+    """
+
+    text = " ".join(str(value).lower().replace("-", "_") for value in values if value)
+    if "customvoice" in text or "custom_voice" in text:
+        return MODEL_TYPE_CUSTOM_VOICE
+    if "voicedesign" in text or "voice_design" in text:
+        return MODEL_TYPE_VOICE_DESIGN
+    return MODEL_TYPE_BASE
 
 
 def _default_voice_cache_dir() -> Path:
@@ -392,6 +424,10 @@ class QwenEngine(BaseEngine):
         self.native_abi_version = int(binding_abi)
         self.binding_version = str(binding_version)
         self.native_version = self._native_version()
+        self.model_type = self._native_model_type()
+        self.instruction_control = self._supports_instruction_control()
+        self.speaker_names = self._native_speaker_names()
+        self.built_in_speakers = tuple(self.speaker_names)
         if self.native_abi_version != REQUIRED_QWENTTS_ABI:
             self._backend.close()
             raise QwenEngineError(
@@ -497,6 +533,53 @@ class QwenEngine(BaseEngine):
         except Exception:
             return "unknown"
 
+    def _native_model_type(self) -> str:
+        """Return the loaded checkpoint variant exposed by the backend.
+
+        Newer bindings may expose ``model_type`` directly from GGUF metadata.
+        ABI-5 bindings used by the current CPU deployment do not, so the
+        variant-qualified model id/path remains the deterministic fallback.
+        """
+
+        for source in (self._backend, getattr(self._backend, "library", None)):
+            value = getattr(source, "model_type", None)
+            if callable(value):
+                try:
+                    value = value()
+                except Exception:
+                    value = None
+            normalized = str(value).strip().lower() if value else ""
+            if normalized in QWEN_MODEL_TYPES:
+                return normalized
+        return _infer_model_type(self.model_id, self.talker_path)
+
+    def _native_speaker_names(self) -> list[str]:
+        if self.model_type != MODEL_TYPE_CUSTOM_VOICE:
+            return []
+        getter = getattr(self._backend, "speaker_names", None)
+        if not callable(getter):
+            return []
+        try:
+            return [str(name) for name in getter() if str(name).strip()]
+        except Exception as exc:
+            logging.debug("Unable to enumerate native Qwen speakers: %s", exc)
+            return []
+
+    def _supports_instruction_control(self) -> bool:
+        if self.model_type == MODEL_TYPE_VOICE_DESIGN:
+            return True
+        if self.model_type != MODEL_TYPE_CUSTOM_VOICE:
+            return False
+        model_text = " ".join(
+            str(value).lower().replace("-", "_")
+            for value in (self.model_id, self.talker_path)
+            if value
+        )
+        # The 0.6B CustomVoice checkpoint has named speakers but no
+        # instruction control.  CustomVoice instructions are supported by
+        # the 1.7B variant and by VoiceDesign.
+        return "1.7b" in model_text or "1_7b" in model_text
+
     def _translate_error(self, exc: BaseException, action: str) -> BaseException:
         if isinstance(exc, ImportError):
             return exc
@@ -552,6 +635,23 @@ class QwenEngine(BaseEngine):
             }
         return self._explicit_model_identity
 
+    def _non_reference_voice_key(self, voice: QwenVoice) -> str:
+        identity = {
+            "format": VOICE_CACHE_FORMAT,
+            "model_type": self.model_type,
+            "model_id": self.model_id,
+            "quant": self.quant,
+            "language": voice.language,
+            "speaker": voice.speaker or "",
+            "instruct": voice.instruct or "",
+            "model_source": self._model_source_identity(),
+        }
+        return hashlib.sha256(
+            json.dumps(identity, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode(
+                "utf-8"
+            )
+        ).hexdigest()
+
     def _cache_paths(self, identity: dict[str, Any]) -> tuple[str, Path, Path, Path]:
         canonical = json.dumps(identity, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
         key = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
@@ -606,7 +706,32 @@ class QwenEngine(BaseEngine):
             temporary_spk.unlink(missing_ok=True)
             temporary_rvq.unlink(missing_ok=True)
 
-    def _prepare_voice(self, voice: QwenVoice) -> tuple[Any, str]:
+    def _prepare_voice(self, voice: QwenVoice) -> tuple[Optional[Any], str]:
+        if self.model_type == MODEL_TYPE_CUSTOM_VOICE:
+            if voice.ref_audio or voice.spk_path or voice.rvq_path:
+                raise ValueError("custom_voice models use a built-in speaker, not reference audio")
+            if not voice.speaker:
+                raise ValueError("custom_voice models require QwenVoice(speaker=...)")
+            if voice.instruct and not self.instruction_control:
+                raise ValueError("This CustomVoice checkpoint does not support voice instructions")
+            if self.speaker_names and voice.speaker not in self.speaker_names:
+                raise ValueError(
+                    f"Unknown custom_voice speaker {voice.speaker!r}; expected one of "
+                    f"{self.speaker_names}"
+                )
+            return None, self._non_reference_voice_key(voice)
+
+        if self.model_type == MODEL_TYPE_VOICE_DESIGN:
+            if voice.ref_audio or voice.spk_path or voice.rvq_path or voice.speaker:
+                raise ValueError("voice_design models use an instruction and no reference voice")
+            if not voice.instruct:
+                raise ValueError("voice_design models require QwenVoice(instruct=...)")
+            return None, self._non_reference_voice_key(voice)
+
+        if voice.speaker:
+            raise ValueError("Base Qwen models do not support built-in speakers")
+        if voice.instruct:
+            raise ValueError("Base Qwen models do not support voice instructions")
         if voice.spk_path and voice.rvq_path:
             spk_path = Path(voice.spk_path).expanduser().resolve()
             rvq_path = Path(voice.rvq_path).expanduser().resolve()
@@ -653,14 +778,31 @@ class QwenEngine(BaseEngine):
         self, text: str, voice: QwenVoice, *, max_new_tokens: Optional[int] = None,
         cancel_event: Optional[threading.Event] = None
     ) -> dict[str, Any]:
-        use_icl = voice.clone_mode == "icl" and self.clone_mode == "auto"
+        use_icl = (
+            self.model_type == MODEL_TYPE_BASE
+            and voice.clone_mode == "icl"
+            and self.clone_mode == "auto"
+        )
+        ref_spk_emb = None
+        ref_codes = None
+        ref_text = None
+        speaker = None
+        if self.model_type == MODEL_TYPE_BASE:
+            if self._voice_ref is None:
+                raise QwenEngineError("Base Qwen synthesis requires a prepared voice reference")
+            ref_spk_emb = self._voice_ref.ref_spk_emb
+            ref_codes = self._voice_ref.ref_codes if use_icl else None
+            ref_text = voice.ref_text if use_icl else None
+        elif self.model_type == MODEL_TYPE_CUSTOM_VOICE:
+            speaker = voice.speaker
         return {
             "text": text,
             "lang": voice.language,
             "instruct": voice.instruct,
-            "ref_spk_emb": self._voice_ref.ref_spk_emb,
-            "ref_codes": self._voice_ref.ref_codes if use_icl else None,
-            "ref_text": voice.ref_text if use_icl else None,
+            "speaker": speaker,
+            "ref_spk_emb": ref_spk_emb,
+            "ref_codes": ref_codes,
+            "ref_text": ref_text,
             "onset_silence_profile": (
                 DEFAULT_ONSET_SILENCE_PROFILE
                 if use_icl
@@ -682,7 +824,7 @@ class QwenEngine(BaseEngine):
 
     def warmup(self) -> None:
         with self._synthesis_lock:
-            if self.current_voice is None or self._voice_ref is None or self._voice_cache_key is None:
+            if self.current_voice is None or self._voice_cache_key is None:
                 raise QwenEngineError("Set a QwenVoice before warmup")
             warmup_key = f"{self._voice_cache_key}:{self.clone_mode}"
             if warmup_key in self._warmed_voice_keys:
@@ -732,7 +874,7 @@ class QwenEngine(BaseEngine):
             if self._shutdown or self._backend is None:
                 self.last_error = QwenEngineError("QwenEngine is shut down")
                 return False
-            if self.current_voice is None or self._voice_ref is None:
+            if self.current_voice is None:
                 self.last_error = QwenEngineError("Set a QwenVoice before synthesis")
                 return False
             with self._control_condition:
@@ -1034,7 +1176,12 @@ class QwenEngine(BaseEngine):
                     self._control_condition.notify_all()
 
     def get_voices(self) -> list[QwenVoice]:
-        return []
+        if self.model_type != MODEL_TYPE_CUSTOM_VOICE:
+            return []
+        return [
+            QwenVoice(name=name, speaker=name, language="english")
+            for name in self.speaker_names
+        ]
 
     def set_voice(self, voice: Union[str, QwenVoice]) -> None:
         if not isinstance(voice, QwenVoice):
@@ -1057,7 +1204,7 @@ class QwenEngine(BaseEngine):
                 raise self._translate_error(exc, f"preparing voice {voice.name!r}") from exc
 
     def set_voice_parameters(self, **voice_parameters: Any) -> None:
-        voice_fields = {"language", "instruct"}
+        voice_fields = {"language", "instruct", "speaker"}
         sampling_fields = {
             "seed", "max_new_tokens", "do_sample", "temperature", "top_k", "top_p",
             "repetition_penalty", "subtalker_do_sample", "subtalker_temperature",
@@ -1077,7 +1224,20 @@ class QwenEngine(BaseEngine):
                     self.current_voice.language = language
                 if "instruct" in voice_parameters:
                     value = voice_parameters.pop("instruct")
+                    if value and not self.instruction_control:
+                        raise ValueError("This Qwen checkpoint does not support voice instructions")
                     self.current_voice.instruct = str(value).strip() if value else None
+                if "speaker" in voice_parameters:
+                    value = voice_parameters.pop("speaker")
+                    speaker = str(value).strip() if value else None
+                    if self.model_type == MODEL_TYPE_CUSTOM_VOICE and not speaker:
+                        raise ValueError("custom_voice models require a speaker")
+                    if self.speaker_names and speaker not in self.speaker_names:
+                        raise ValueError(
+                            f"Unknown custom_voice speaker {speaker!r}; expected one of "
+                            f"{self.speaker_names}"
+                        )
+                    self.current_voice.speaker = speaker
             for name, value in voice_parameters.items():
                 setattr(self, name, value)
 
@@ -1136,6 +1296,9 @@ class QwenEngine(BaseEngine):
 
 
 __all__ = [
+    "MODEL_TYPE_BASE",
+    "MODEL_TYPE_CUSTOM_VOICE",
+    "MODEL_TYPE_VOICE_DESIGN",
     "QwenEngine",
     "QwenEngineError",
     "QwenVoice",

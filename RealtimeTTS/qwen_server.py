@@ -38,7 +38,7 @@ from stream2sentence import generate_sentences_async
 try:
     from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
     from fastapi.middleware.cors import CORSMiddleware
-    from fastapi.responses import JSONResponse, Response, StreamingResponse
+    from fastapi.responses import FileResponse, JSONResponse, Response, StreamingResponse
 except ImportError:  # pragma: no cover - guarded by qwen-server extra
     FastAPI = None  # type: ignore[assignment]
     Request = Any  # type: ignore[misc,assignment]
@@ -633,6 +633,7 @@ class QwenHttpServer:
         max_output_bytes: int = DEFAULT_MAX_OUTPUT_BYTES,
         api_key: Optional[str] = None,
         cors_origins: Optional[Sequence[str]] = None,
+        studio_peers: Optional[Sequence[Mapping[str, str]]] = None,
         clock: Callable[[], float] = time.monotonic,
         language_router: Optional[QwenLanguageRouter] = None,
         fragment_lookahead_words: int = 0,
@@ -640,6 +641,7 @@ class QwenHttpServer:
         sentence_silence_duration: float = 0.30,
     ) -> None:
         self.engine = engine
+        self.studio_peers = list(studio_peers or [])
         self.alias = str(alias).strip()
         self.language = str(language).strip().lower()
         if not self.alias or not self.language:
@@ -708,6 +710,11 @@ class QwenHttpServer:
                 "top_p",
                 "repetition_penalty",
                 "clone_mode",
+                "do_sample",
+                "subtalker_do_sample",
+                "subtalker_temperature",
+                "subtalker_top_k",
+                "subtalker_top_p",
             )
             if hasattr(engine, name)
         }
@@ -787,7 +794,7 @@ class QwenHttpServer:
                 "cpu_threads": getattr(self.engine, "cpu_threads", None),
                 "cpu_only": bool(getattr(self.engine, "cpu_only", False)),
                 "clone_mode": str(self._sampling_defaults.get("clone_mode", "auto")),
-                "clone_modes": ["auto", "speaker_only"],
+                "clone_modes": ["auto", "speaker_only"] if getattr(self.engine, "model_type", "base") == "base" else [],
                 "model_id": model_id,
                 "quant": quant,
                 "binding_version": binding_version,
@@ -826,6 +833,17 @@ class QwenHttpServer:
                 "fragment_lookahead_words": self.fragment_lookahead_words,
             },
             "authentication": {"required": self.api_key is not None, "scheme": "bearer"},
+            "sampling_defaults": dict(self._sampling_defaults),
+            "studio_peers": self.studio_peers,
+            "features": {
+                "model_type": getattr(self.engine, "model_type", "base"),
+                "voice_cloning": getattr(self.engine, "model_type", "base") == "base",
+                "instruction_control": bool(getattr(self.engine, "instruction_control", False)),
+            },
+            "playback": {
+                "startup_buffer_ms": getattr(self.engine, "startup_buffer_ms", None),
+                "trim_silence": getattr(self.engine, "trim_silence", None),
+            },
             "ready": self.is_ready(),
         }
 
@@ -869,11 +887,10 @@ class QwenHttpServer:
         )
         if not voice_language:
             raise ValueError("startup warmup language must not be empty")
-        record = self.registry.get(voice_name)
-        if record is None:
-            raise RuntimeError(
-                f"startup warmup voice {voice_name!r} is not registered in {self.registry.root}"
-            )
+        if getattr(self.engine, "model_type", "base") == "base" and self.registry.get(voice_name) is None:
+            raise RuntimeError(f"startup warmup voice {voice_name!r} is not registered in {self.registry.root}")
+        selected_voice = self.synthesis_voice(voice_name, voice_language,
+            "A clear, natural speaking voice." if getattr(self.engine, "model_type", "base") == "voice_design" else None)
 
         started = time.monotonic()
         with self._operation_lock:
@@ -882,7 +899,7 @@ class QwenHttpServer:
             original_queue = self.engine.queue
             self.engine.queue = _DiscardQueue()
             try:
-                self.engine.set_voice(self.registry.to_voice(record, voice_language))
+                self.engine.set_voice(selected_voice)
                 self.engine.warmup()
             finally:
                 self.engine.queue = original_queue
@@ -922,7 +939,20 @@ class QwenHttpServer:
             return name, ref_text, "wav", (wav,)
         return name, ref_text, "latents", (spk, rvq)  # type: ignore[arg-type]
 
+    def synthesis_voice(self, name: str, language: str, instructions: Optional[str] = None) -> QwenVoice:
+        mode = getattr(self.engine, "model_type", "base")
+        if mode == "custom_voice":
+            return QwenVoice(name=name, speaker=name, language=language, instruct=instructions)
+        if mode == "voice_design":
+            return QwenVoice(name="design", language=language, instruct=instructions)
+        record = self.registry.get(name)
+        if record is None:
+            raise RuntimeError(f"registered voice disappeared: {name}")
+        return self.registry.to_voice(record, language, instructions)
+
     def register_voice(self, payload: Mapping[str, Any]) -> VoiceRecord:
+        if getattr(self.engine, "model_type", "base") != "base":
+            raise ApiError(400, "unsupported_operation", "reference cloning requires a Base model")
         name, ref_text, kind, payloads = self._parse_voice_upload(payload)
         record: Optional[VoiceRecord] = None
         try:
@@ -952,12 +982,17 @@ class QwenHttpServer:
             return self.registry.remove(name)
 
     def parse_speech_options(self, payload: Mapping[str, Any]) -> SpeechOptions:
-        voice = payload.get("voice", "")
+        mode = getattr(self.engine, "model_type", "base")
+        if payload.get("model", self.alias) != self.alias:
+            raise ApiError(400, "invalid_request_error", "requested model is not loaded on this server")
+        voice = payload.get("voice", "design" if mode == "voice_design" else "")
         if not isinstance(voice, str) or not voice.strip():
             raise ApiError(400, "invalid_request_error", "'voice' must name a registered voice")
         voice = voice.strip()
-        if self.registry.get(voice) is None:
+        if mode == "base" and self.registry.get(voice) is None:
             raise ApiError(400, "invalid_request_error", f"unknown voice: {voice}")
+        if mode == "custom_voice" and voice not in getattr(self.engine, "built_in_speakers", ()):
+            raise ApiError(400, "invalid_request_error", f"unknown built-in speaker: {voice}")
         response_format = payload.get("response_format", "pcm")
         if not isinstance(response_format, str) or response_format not in {"pcm", "wav"}:
             raise ApiError(400, "invalid_request_error", "response_format must be 'pcm' or 'wav'")
@@ -965,6 +1000,10 @@ class QwenHttpServer:
         if instructions is not None and not isinstance(instructions, str):
             raise ApiError(400, "invalid_request_error", "'instructions' must be a string")
         instructions = instructions.strip() if instructions else None
+        if instructions and hasattr(self.engine, "instruction_control") and not self.engine.instruction_control:
+            raise ApiError(400, "unsupported_operation", "this model does not support instruction control")
+        if mode == "voice_design" and not instructions:
+            raise ApiError(400, "invalid_request_error", "VoiceDesign requires non-empty instructions")
         language = payload.get("language", self.language)
         if not isinstance(language, str) or not language.strip():
             raise ApiError(
@@ -976,6 +1015,8 @@ class QwenHttpServer:
 
         sampling: dict[str, Any] = {}
         if "clone_mode" in payload:
+            if mode != "base":
+                raise ApiError(400, "unsupported_operation", "clone_mode requires a Base model")
             clone_mode = payload["clone_mode"]
             if not isinstance(clone_mode, str) or clone_mode not in {"auto", "speaker_only"}:
                 raise ApiError(400, "invalid_request_error", "'clone_mode' must be 'auto' or 'speaker_only'")
@@ -984,12 +1025,20 @@ class QwenHttpServer:
             "seed": (-(2**63), 2**63 - 1),
             "max_new_tokens": (1, 2**31 - 1),
             "top_k": (0, 2**31 - 1),
+            "subtalker_top_k": (0, 2**31 - 1),
         }
         float_domains = {
             "temperature": (0.0, float("inf"), True),
             "top_p": (0.0, 1.0, False),
             "repetition_penalty": (0.0, float("inf"), False),
+            "subtalker_temperature": (0.0, float("inf"), True),
+            "subtalker_top_p": (0.0, 1.0, False),
         }
+        for field in ("do_sample", "subtalker_do_sample"):
+            if field in payload:
+                if not isinstance(payload[field], bool):
+                    raise ApiError(400, "invalid_request_error", f"'{field}' must be a boolean")
+                sampling[field] = payload[field]
         for field, (low, high) in integer_domains.items():
             if field not in payload:
                 continue
@@ -1095,9 +1144,7 @@ class QwenHttpServer:
         self.metrics.started()
         try:
             request, _detection = self.route_request(request)
-            record = self.registry.get(request.voice)
-            if record is None:
-                raise RuntimeError(f"registered voice disappeared: {request.voice}")
+            selected_voice = self.synthesis_voice(request.voice, request.language, request.instructions)
             with self._operation_lock:
                 if state.cancelled.is_set() or self._shutting_down.is_set():
                     return
@@ -1105,9 +1152,7 @@ class QwenHttpServer:
                 parameters.update(request.sampling)
                 if parameters:
                     self.engine.set_voice_parameters(**parameters)
-                self.engine.set_voice(
-                    self.registry.to_voice(record, request.language, request.instructions)
-                )
+                self.engine.set_voice(selected_voice)
                 if state.cancelled.is_set():
                     return
                 original_queue = self.engine.queue
@@ -1502,7 +1547,7 @@ def create_app(server: QwenHttpServer) -> Any:
         if (
             server.api_key is not None
             and request.method != "OPTIONS"
-            and request.url.path != "/health"
+            and request.url.path not in {"/health", "/", "/studio", "/studio/studio.css", "/studio/studio.js"}
             and not server.authorized(request.headers.get("authorization"))
         ):
             response = JSONResponse(
@@ -1520,6 +1565,21 @@ def create_app(server: QwenHttpServer) -> Any:
             status_code=exc.status,
             content=_error_payload(exc.error_type, exc.message),
         )
+
+    # Only the credential-free UI assets are public. Every inference and voice
+    # operation retains the existing bearer authentication.
+    studio_root = Path(__file__).with_name("studio")
+
+    @app.get("/", include_in_schema=False)
+    @app.get("/studio", include_in_schema=False)
+    def studio() -> Any:
+        return FileResponse(studio_root / "index.html", headers={"Cache-Control": "no-cache"})
+
+    @app.get("/studio/{asset}", include_in_schema=False)
+    def studio_asset(asset: str) -> Any:
+        if asset not in {"studio.css", "studio.js"}:
+            return Response(status_code=404)
+        return FileResponse(studio_root / asset, headers={"Cache-Control": "no-cache"})
 
     @app.get("/health")
     def health() -> Any:
@@ -1545,6 +1605,11 @@ def create_app(server: QwenHttpServer) -> Any:
 
     @app.get("/v1/audio/voices")
     def voices() -> Any:
+        mode = getattr(server.engine, "model_type", "base")
+        if mode == "custom_voice":
+            return {"voices": [{"name": name, "kind": "built_in"} for name in server.engine.built_in_speakers]}
+        if mode == "voice_design":
+            return {"voices": [{"name": "design", "kind": "voice_design"}]}
         return {
             "voices": [
                 {"name": record.name, "kind": "registered"}
@@ -1623,13 +1688,25 @@ def create_app(server: QwenHttpServer) -> Any:
 
     @app.websocket("/v1/audio/speech-stream")
     async def speech_stream(websocket: WebSocket) -> None:
+        # Browser WebSocket cannot set Authorization. A non-echoed subprotocol
+        # carries its bearer token without putting credentials in request URLs.
+        offered = websocket.scope.get("subprotocols", [])
+        browser_key = None
+        for protocol in offered:
+            if protocol.startswith("bearer."):
+                try:
+                    encoded = protocol[7:]
+                    browser_key = base64.urlsafe_b64decode(encoded + "=" * (-len(encoded) % 4)).decode("utf-8")
+                except (ValueError, UnicodeDecodeError, binascii.Error):
+                    browser_key = None
+                break
         if server.api_key is not None and not server.authorized(
             websocket.headers.get("authorization"),
-            websocket.query_params.get("api_key"),
+            browser_key or websocket.query_params.get("api_key"),
         ):
             await websocket.close(code=1008, reason="missing or invalid API key")
             return
-        await websocket.accept()
+        await websocket.accept(subprotocol="qwen-studio" if "qwen-studio" in offered else None)
         session_id = _new_client_id(websocket.headers.get("x-session-id"))
         items: asyncio.Queue[Any] = asyncio.Queue()
         cancelled = asyncio.Event()
@@ -2102,6 +2179,8 @@ def build_argument_parser() -> argparse.ArgumentParser:
         help="Allowed browser origin (repeat for multiple origins); defaults to localhost origins",
     )
     parser.add_argument("--lang", default="Auto")
+    parser.add_argument("--studio-peer", action="append", default=[], metavar="LABEL=URL",
+                        help="Already-loaded model server offered in Studio (repeatable; explicit CORS required)")
     parser.add_argument(
         "--language-id-model",
         type=Path,
@@ -2345,6 +2424,14 @@ def main(argv: Optional[Sequence[str]] = None) -> None:
         ) from exc
 
     engine_class = QwenCpuEngine if args.device == "cpu" else QwenEngine
+    from urllib.parse import urlsplit
+    studio_peers = []
+    for entry in args.studio_peer:
+        label, separator, url = entry.partition("=")
+        parsed = urlsplit(url)
+        if not separator or not label.strip() or parsed.scheme not in {"http", "https"} or not parsed.netloc or parsed.username or parsed.password or parsed.query or parsed.fragment or parsed.path not in {"", "/"}:
+            parser.error("--studio-peer requires LABEL=http(s)://host:port without credentials or paths")
+        studio_peers.append({"label": label.strip(), "url": url.rstrip("/")})
     device_options = {"cpu_threads": args.cpu_threads} if args.device == "cpu" else {}
     engine = engine_class(
         model_id=args.model_id,
@@ -2393,6 +2480,7 @@ def main(argv: Optional[Sequence[str]] = None) -> None:
         max_output_bytes=args.max_output_bytes,
         api_key=api_key,
         cors_origins=args.cors_origin,
+        studio_peers=studio_peers,
         language_router=language_router,
         fragment_lookahead_words=args.fragment_lookahead_words,
         comma_silence_duration=args.comma_silence_duration,

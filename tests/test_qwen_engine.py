@@ -151,6 +151,97 @@ def test_voice_selects_icl_only_when_reference_text_exists(tmp_path):
         QwenVoice("bad", spk_path=tmp_path / "only.spk")
 
 
+def test_custom_voice_mode_uses_native_speaker_without_reference(tmp_path):
+    class CustomBackend(FakeBackend):
+        def speaker_names(self):
+            return ["vivian", "serena"]
+
+    backend = CustomBackend()
+    engine = _engine(
+        tmp_path,
+        backend,
+        model_id="Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice",
+        voice=QwenVoice("vivian", speaker="vivian"),
+        trim_silence=False,
+    )
+    try:
+        assert engine.model_type == "custom_voice"
+        assert engine.instruction_control is True
+        assert engine.speaker_names == ["vivian", "serena"]
+        assert [voice.speaker for voice in engine.get_voices()] == ["vivian", "serena"]
+        assert engine.synthesize("Hello from a named speaker.") is True
+        call = backend.stream_calls[-1]
+        assert call["speaker"] == "vivian"
+        assert call["instruct"] is None
+        assert call["ref_spk_emb"] is None
+        assert call["ref_codes"] is None
+        assert call["ref_text"] is None
+    finally:
+        engine.shutdown()
+
+
+def test_voice_design_mode_uses_instruction_without_reference(tmp_path):
+    backend = FakeBackend()
+    engine = _engine(
+        tmp_path,
+        backend,
+        model_id="Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign",
+        voice=QwenVoice("design", instruct="warm, calm, and articulate"),
+        trim_silence=False,
+    )
+    try:
+        assert engine.model_type == "voice_design"
+        assert engine.instruction_control is True
+        assert engine.speaker_names == []
+        assert engine.synthesize("A designed voice.") is True
+        call = backend.stream_calls[-1]
+        assert call["speaker"] is None
+        assert call["instruct"] == "warm, calm, and articulate"
+        assert call["ref_spk_emb"] is None
+        assert call["ref_codes"] is None
+        assert call["ref_text"] is None
+    finally:
+        engine.shutdown()
+
+
+def test_06b_custom_voice_has_named_speakers_but_no_instruction_control(tmp_path):
+    class CustomBackend(FakeBackend):
+        def speaker_names(self):
+            return ["vivian"]
+
+    backend = CustomBackend()
+    engine = _engine(
+        tmp_path,
+        backend,
+        model_id="Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice",
+        voice=QwenVoice("vivian", speaker="vivian"),
+        trim_silence=False,
+    )
+    try:
+        assert engine.model_type == "custom_voice"
+        assert engine.instruction_control is False
+        with pytest.raises(ValueError, match="does not support voice instructions"):
+            engine.set_voice(QwenVoice("vivian-instructed", speaker="vivian", instruct="bright"))
+    finally:
+        engine.shutdown()
+
+
+def test_model_mode_rejects_incompatible_voice_inputs(tmp_path):
+    backend = FakeBackend()
+    engine = _engine(
+        tmp_path,
+        backend,
+        model_id="Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign",
+    )
+    try:
+        with pytest.raises(ValueError, match="requires ref_audio"):
+            engine.set_voice(QwenVoice("missing-design", instruct=None))
+        with pytest.raises(ValueError, match="no reference voice"):
+            engine.set_voice(QwenVoice("bad-design", instruct="warm", speaker="vivian"))
+    finally:
+        engine.shutdown()
+
+
 def test_preencoded_voice_refs_are_cached_in_memory_for_fast_switching(tmp_path):
     spk = tmp_path / "voice.spk"
     rvq = tmp_path / "voice.rvq"
