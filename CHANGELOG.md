@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.8.6rc1 - release candidate
+## 0.8.6rc2 - release candidate
 
 ### Added
 
@@ -14,6 +14,9 @@
   used by the Linux deployment.
 
 ### Changed
+
+- Constrain Windows Qwen installs to the verified Numba 0.66 line to avoid a
+  first-run optimizer stall while resampling the original emotional references.
 
 - Start eligible speech fragments at em dashes in both local and server paths.
 - Preserve experimental prefix-splice work on its own development branch rather

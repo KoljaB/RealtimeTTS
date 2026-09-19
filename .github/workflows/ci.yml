@@ -45,6 +45,7 @@ jobs:
           tests/test_qwen_engine.py
           tests/test_qwen_cpu_engine.py
           tests/test_qwen_cpu_distribution.py
+          tests/test_qwen_windows_resampling_requirement.py
           tests/test_qwen_emotions.py
           tests/test_qwen_emotions_protocol.py
           tests/test_qwen_cpu_recovery.py

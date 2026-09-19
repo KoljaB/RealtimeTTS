@@ -128,16 +128,18 @@ qwen_native_requirements = [
     'realtimetts-qwen-native[cuda12]==0.2.0; sys_platform == "win32"',
     'realtimetts-qwen-native[cuda12]==0.2.0; sys_platform == "linux"',
 ]
-qwen_common_requirements = qwen_native_requirements + [
+# Numba 0.67's Windows optimizer stalls on resampy's first reference conversion.
+# Keep the verified 0.66 line for both Qwen backends; Linux/macOS are unaffected.
+qwen_audio_requirements = [
     requirements.get("numpy", "numpy"),
     requirements.get("soundfile", "soundfile>=0.13.1"),
+    'numba>=0.66,<0.67; sys_platform == "win32"',
 ]
+qwen_common_requirements = qwen_native_requirements + qwen_audio_requirements
 qwen_requirements = qwen_common_requirements + pyaudio_requirements
 qwen_cpu_common_requirements = [
     "realtimetts-qwen-native-cpu==0.3.0rc1",
-    requirements.get("numpy", "numpy"),
-    requirements.get("soundfile", "soundfile>=0.13.1"),
-]
+] + qwen_audio_requirements
 qwen_server_requirements = [
     requirements.get("fastapi", "fastapi>=0.115,<1"),
     requirements.get("uvicorn", "uvicorn>=0.34,<1"),
