@@ -569,7 +569,8 @@ def test_websocket_pause_resume_is_acknowledged_idempotent_and_stress_safe(
         _register(client)
         controls = client.get("/v1/capabilities").json()["stream_controls"]
         assert controls == {
-            "input_events": ["pause", "resume", "cancel"],
+            "input_events": ["pause", "resume", "cancel", "flush", "segment_start", "skip_segment"],
+            "segmented_narration": True,
             "pause_acknowledgement": "native_checkpoint",
         }
         with client.websocket_connect("/v1/audio/speech-stream") as websocket:
@@ -1456,3 +1457,44 @@ def test_health_endpoint_returns_503_for_the_watchdog_only_while_stalled(tmp_pat
         assert response.status_code == 200
         assert response.json()["status"] == "ok"
         server.metrics.finished()
+
+
+@pytest.mark.parametrize("lookahead", [0, 8])
+def test_explicit_flush_releases_speech_before_end_and_retains_session(tmp_path, lookahead):
+    class RecordingEngine(FakeEngine):
+        def __init__(self):
+            super().__init__()
+            self.calls = []
+            self.first_synthesis = threading.Event()
+
+        def synthesize(self, text):
+            self.calls.append(text)
+            self.first_synthesis.set()
+            return super().synthesize(text)
+
+    engine = RecordingEngine()
+    server = _server(tmp_path, engine, fragment_lookahead_words=lookahead)
+    with TestClient(create_app(server)) as client:
+        _register(client)
+        assert "flush" in client.get("/v1/capabilities").json()["stream_controls"]["input_events"]
+        with client.websocket_connect("/v1/audio/speech-stream") as websocket:
+            websocket.send_json({"type": "config", "voice": "mira", "language": "en", "response_format": "pcm"})
+            websocket.send_json({"type": "text", "text": "Let me check that for you."})
+            websocket.send_json({"type": "flush"})
+            assert engine.first_synthesis.wait(1), "finished narration waited for the next model round"
+            # No end or next-round text has been supplied; the same connection stays open.
+            websocket.send_json({"type": "flush"})  # An empty segment cannot synthesize twice.
+            websocket.send_json({"type": "text", "text": "The result is ready."})
+            websocket.send_json({"type": "end"})
+            pcm = []
+            while True:
+                message = websocket.receive()
+                if message.get("bytes") is not None:
+                    pcm.append(message["bytes"])
+                    continue
+                event = json.loads(message["text"])
+                assert event["type"] != "error", event
+                if event["type"] == "done":
+                    break
+            assert pcm
+    assert engine.calls == ["Let me check that for you.", "The result is ready."]

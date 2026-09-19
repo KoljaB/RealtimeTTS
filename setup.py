@@ -134,7 +134,7 @@ qwen_common_requirements = qwen_native_requirements + [
 ]
 qwen_requirements = qwen_common_requirements + pyaudio_requirements
 qwen_cpu_common_requirements = [
-    "realtimetts-qwen-native==0.2.0+cpu1",
+    "realtimetts-qwen-native-cpu==0.3.0",
     requirements.get("numpy", "numpy"),
     requirements.get("soundfile", "soundfile>=0.13.1"),
 ]
@@ -312,6 +312,9 @@ extras_require = {
     "moss-tts": standard_requirements + moss_requirements,
     "higgs": standard_requirements + higgs_requirements,
     "alignment": standard_requirements + alignment_requirements,
+    "prefix-splice": base_requirements + pyaudio_requirements + [
+        "numpy", "scipy", "torch>=2.6", "transformers>=4.40,<6", "phonemizer>=3.2",
+    ],
     "omniasr": standard_requirements + omniasr_requirements,
     "piper": standard_requirements,
     # Qwen uses PyAudio for the in-process playback path. The server extra is
@@ -356,6 +359,7 @@ setuptools.setup(
     entry_points={
         "console_scripts": [
             "realtimetts-qwen-server=RealtimeTTS.qwen_server:main",
+            "realtimetts-qwen-emotions=RealtimeTTS.qwen_emotions:main",
         ],
     },
     keywords="real-time, text-to-speech, TTS, streaming, audio, voice, synthesis, sentence-segmentation, low-latency, character-streaming, dynamic feedback, audio-output, text-input, TTS-engine, audio-playback, stream-player, sentence-fragment, audio-feedback, interactive, python",

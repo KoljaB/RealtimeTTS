@@ -93,6 +93,13 @@ AUDIO_METADATA = {
 _CLIENT_ID_RE = re.compile(r"^[A-Za-z0-9._:-]{1,128}$")
 _STREAM_END = object()
 _TEXT_END = object()
+_TEXT_FLUSH = object()
+
+
+@dataclass(frozen=True)
+class _SegmentBoundary:
+    segment_id: int
+    started: bool
 _END_SENTENCE_DELIMITERS = ".!?。！？…"
 _MID_SENTENCE_DELIMITERS = ";:,\n()[]{}-“”„”—/|《》"
 LANGUAGE_LOOKAHEAD_MAX_ADDITIONAL_WORDS = 3
@@ -818,7 +825,8 @@ class QwenHttpServer:
                 "capabilities": "/v1/capabilities",
             },
             "stream_controls": {
-                "input_events": ["pause", "resume", "cancel"],
+                "input_events": ["pause", "resume", "cancel", "flush", "segment_start", "skip_segment"],
+                "segmented_narration": True,
                 "pause_acknowledgement": "native_checkpoint",
             },
             "limits": {
@@ -843,6 +851,9 @@ class QwenHttpServer:
             "playback": {
                 "startup_buffer_ms": getattr(self.engine, "startup_buffer_ms", None),
                 "trim_silence": getattr(self.engine, "trim_silence", None),
+                "onset_silence_recovery": bool(
+                    getattr(self.engine, "onset_silence_recovery", False)
+                ),
             },
             "ready": self.is_ready(),
         }
@@ -1343,12 +1354,39 @@ async def _json_object(request: Any) -> Mapping[str, Any]:
     return payload
 
 
-async def _stream_token_source(items: asyncio.Queue[Any]) -> AsyncIterator[str]:
+async def _stream_token_source(
+    items: asyncio.Queue[Any], ended: Optional[asyncio.Event] = None,
+    boundaries: Optional[list[_SegmentBoundary]] = None,
+) -> AsyncIterator[str]:
     while True:
         item = await items.get()
         if item is _TEXT_END:
+            if ended is not None:
+                ended.set()
+            return
+        if item is _TEXT_FLUSH:
+            return
+        if isinstance(item, _SegmentBoundary):
+            if boundaries is not None:
+                boundaries.append(item)
             return
         yield str(item)
+
+
+async def _stream_sentence_fragments(items: asyncio.Queue[Any], **options: Any) -> AsyncIterator[Any]:
+    """Flush an explicitly finished speech segment without closing the session.
+
+    A model tool call ends its preceding narration. Waiting for the next model
+    round as sentence lookahead would hide that narration behind tool execution.
+    The ordinary splitter still handles all text inside each segment unchanged.
+    """
+    ended = asyncio.Event()
+    while not ended.is_set():
+        boundaries: list[_SegmentBoundary] = []
+        async for fragment in generate_sentences_async(_stream_token_source(items, ended, boundaries), **options):
+            yield fragment
+        for boundary in boundaries:
+            yield boundary
 
 
 async def _websocket_json(websocket: Any) -> Mapping[str, Any]:
@@ -1596,6 +1634,38 @@ def create_app(server: QwenHttpServer) -> Any:
     def capabilities() -> Any:
         return server.capabilities()
 
+    @app.post("/v1/text/languages")
+    async def text_languages(request: Request) -> Any:
+        """Reuse the warmed CPU detector without taking the synthesis/engine lock."""
+        try:
+            payload = await _json_object(request)
+            texts = payload.get("texts")
+            if (not isinstance(texts, list) or not 1 <= len(texts) <= 128
+                    or any(not isinstance(t, str) or not t.strip() for t in texts)
+                    or sum(len(t) for t in texts) > 200_000):
+                raise ApiError(400, "invalid_request_error", "texts must contain 1-128 non-empty sentences, at most 200000 characters")
+            if server.language_router is None:
+                raise ApiError(503, "server_error", "language detector is not configured")
+            from dataclasses import asdict
+            from .language_router import normalize_qwen_language, SUPPORTED_QWEN_LANGUAGES
+            fallback = normalize_qwen_language(payload.get("fallback_language", "english"))
+            def classify():
+                router = server.language_router
+                values = []
+                for text in texts:
+                    detector = router.detector
+                    value = (detector.detect(text, fallback_language=fallback)
+                             if isinstance(detector, FastTextLanguageDetector)
+                             else detector.detect(text))
+                    values.append(asdict(router._detector_result(value)))
+                return values
+            return {"languages": await asyncio.to_thread(classify),
+                    "supported_languages": sorted(SUPPORTED_QWEN_LANGUAGES)}
+        except ApiError as exc:
+            return api_error(exc)
+        except (TypeError, ValueError) as exc:
+            return api_error(ApiError(400, "invalid_request_error", str(exc)))
+
     @app.get("/v1/models")
     def models() -> Any:
         return {
@@ -1719,6 +1789,13 @@ def create_app(server: QwenHttpServer) -> Any:
         )
         current_state: list[Optional[SynthesisState]] = [None]
         cancelled_states: set[SynthesisState] = set()
+        input_segment: Optional[int] = None
+        last_segment_id = 0
+        active_segment: Optional[int] = None
+        segment_cancelled = asyncio.Event()
+        skipped_segments: set[int] = set()
+        known_segments: set[int] = set()
+        completed_segments: set[int] = set()
         cancel_requested = asyncio.Event()
         receiver_error: list[Optional[BaseException]] = [None]
         last_request_id: list[Optional[str]] = [None]
@@ -1731,6 +1808,7 @@ def create_app(server: QwenHttpServer) -> Any:
         locked_language: Optional[str] = None
 
         def cancel_current() -> None:
+            segment_cancelled.set()
             state = current_state[0]
             if state is None or state in cancelled_states:
                 return
@@ -1738,15 +1816,19 @@ def create_app(server: QwenHttpServer) -> Any:
             server.cancel(state)
 
         async def finish_input() -> None:
+            nonlocal input_segment
             if input_ended.is_set():
                 return
             input_ended.set()
             stream_ended.set()
             text_updated.set()
+            if input_segment is not None:
+                await items.put(_SegmentBoundary(input_segment, False))
+                input_segment = None
             await items.put(_TEXT_END)
 
         async def receive_text() -> None:
-            nonlocal session_id, text_version, total_text_bytes
+            nonlocal session_id, text_version, total_text_bytes, input_segment, last_segment_id
             try:
                 first = await _websocket_json(websocket)
                 if first.get("type") != "config":
@@ -1796,6 +1878,34 @@ def create_app(server: QwenHttpServer) -> Any:
                             text_version += 1
                             text_updated.set()
                             await items.put(text)
+                    elif event_type == "segment_start":
+                        segment_id = event.get("segment_id")
+                        if (input_ended.is_set() or input_segment is not None
+                                or type(segment_id) is not int or segment_id <= last_segment_id):
+                            raise ApiError(400, "invalid_request_error", "segment_start requires an increasing positive integer ID after the previous segment flush")
+                        last_segment_id = segment_id
+                        input_segment = segment_id
+                        known_segments.add(segment_id)
+                        await items.put(_SegmentBoundary(segment_id, True))
+                    elif event_type == "skip_segment":
+                        segment_id = event.get("segment_id")
+                        if type(segment_id) is not int or segment_id not in known_segments:
+                            raise ApiError(400, "invalid_request_error", "skip_segment requires a known positive integer segment_id")
+                        if segment_id not in completed_segments:
+                            skipped_segments.add(segment_id)
+                            if active_segment == segment_id:
+                                cancel_current()
+                    elif event_type == "flush":
+                        if input_ended.is_set():
+                            raise ApiError(400, "invalid_request_error", "flush events must precede the end event")
+                        if "segment_id" in event:
+                            segment_id = event["segment_id"]
+                            if type(segment_id) is not int or input_segment != segment_id:
+                                raise ApiError(400, "invalid_request_error", "flush segment_id must match the open segment")
+                            await items.put(_SegmentBoundary(segment_id, False))
+                            input_segment = None
+                        else:
+                            await items.put(_TEXT_FLUSH)
                     elif event_type == "end":
                         if input_ended.is_set():
                             raise ApiError(
@@ -1961,8 +2071,8 @@ def create_app(server: QwenHttpServer) -> Any:
         fragment_index = 0
         try:
             options = await config_ready
-            async for fragment in generate_sentences_async(
-                _stream_token_source(items),
+            async for fragment in _stream_sentence_fragments(
+                items,
                 tokenizer="rule-based",
                 language=_QWEN_TO_TOKENIZER_LANGUAGE.get(options.language, "en"),
                 minimum_sentence_length=10,
@@ -1970,6 +2080,7 @@ def create_app(server: QwenHttpServer) -> Any:
                 quick_yield_single_sentence_fragment=True,
                 quick_yield_for_all_sentences=True,
                 quick_yield_every_fragment=False,
+                sentence_fragment_delimiters=".?!;:,\n…)]}。-—",
                 force_first_fragment_after_words=_NO_FORCED_FIRST_FRAGMENT,
                 fragment_lookahead_words=server.fragment_lookahead_words,
             ):
@@ -1977,8 +2088,30 @@ def create_app(server: QwenHttpServer) -> Any:
                     break
                 if receiver_error[0] is not None:
                     raise receiver_error[0]
+                if isinstance(fragment, _SegmentBoundary):
+                    if fragment.started:
+                        active_segment = fragment.segment_id
+                        segment_cancelled.clear()
+                        if active_segment in skipped_segments:
+                            segment_cancelled.set()
+                        await _send_websocket_json(websocket, {
+                            "type": "segment_started", "segment_id": active_segment,
+                        }, send_lock)
+                    else:
+                        completed_segments.add(fragment.segment_id)
+                        await _send_websocket_json(websocket, {
+                            "type": "segment_done", "segment_id": fragment.segment_id,
+                            "skipped": fragment.segment_id in skipped_segments,
+                        }, send_lock)
+                        active_segment = None
+                    continue
+                if active_segment in skipped_segments:
+                    continue
                 text = fragment.strip()
-                if not text:
+                # Splitter tails may contain only emoji/punctuation. They have no
+                # linguistic content to synthesize; Unicode letters and numbers
+                # from every writing system remain eligible, including digits.
+                if not text or not any(character.isalnum() for character in text):
                     continue
                 fragment_index += 1
                 fragment_ready_at = time.monotonic()
@@ -2028,6 +2161,8 @@ def create_app(server: QwenHttpServer) -> Any:
                     break
                 if cancelled.is_set():
                     break
+                if active_segment in skipped_segments:
+                    continue
                 synthesis_started = time.monotonic()
                 state = server.start_synthesis(request, request_id=fragment_request_id)
                 current_state[0] = state
@@ -2043,10 +2178,15 @@ def create_app(server: QwenHttpServer) -> Any:
                     resumed=stream_resumed,
                     send_lock=send_lock,
                 )
+                if active_segment is not None and state.cancelled.is_set():
+                    # Do not acknowledge completion or start a successor while the
+                    # cancelled native worker can still own the engine/queue.
+                    if not await asyncio.to_thread(state.done.wait, server.synthesis_timeout_seconds):
+                        raise ApiError(503, "server_error", "cancelled segment synthesis did not finish")
                 await _send_stream_silence(
                     websocket,
                     server.fragment_silence_duration(text),
-                    cancelled=cancelled,
+                    cancelled=segment_cancelled if active_segment is not None else cancelled,
                     resumed=stream_resumed,
                     send_lock=send_lock,
                 )
@@ -2144,6 +2284,14 @@ def build_argument_parser() -> argparse.ArgumentParser:
         help=(
             "Checkpoint-specific x-vector onset suppression profile "
             "(default: off; ICL routes remain unchanged)"
+        ),
+    )
+    parser.add_argument(
+        "--onset-silence-recovery",
+        action="store_true",
+        help=(
+            "CPU only: retry once if the first 240 ms of native audio stays quiet; "
+            "requires the Q8 v1 onset profile, silence trimming, and a recovery-capable native wheel"
         ),
     )
     parser.add_argument(
@@ -2361,6 +2509,8 @@ def _warn_for_compressed_language_id_model(model_path: Optional[Path]) -> None:
 def main(argv: Optional[Sequence[str]] = None) -> None:
     parser = build_argument_parser()
     args = parser.parse_args(argv)
+    if args.onset_silence_recovery and args.device != "cpu":
+        parser.error("--onset-silence-recovery requires --device cpu")
     if args.cpu_threads is not None and (
         args.device != "cpu" or not 1 <= args.cpu_threads <= 256
     ):
@@ -2432,7 +2582,14 @@ def main(argv: Optional[Sequence[str]] = None) -> None:
         if not separator or not label.strip() or parsed.scheme not in {"http", "https"} or not parsed.netloc or parsed.username or parsed.password or parsed.query or parsed.fragment or parsed.path not in {"", "/"}:
             parser.error("--studio-peer requires LABEL=http(s)://host:port without credentials or paths")
         studio_peers.append({"label": label.strip(), "url": url.rstrip("/")})
-    device_options = {"cpu_threads": args.cpu_threads} if args.device == "cpu" else {}
+    device_options = (
+        {
+            "cpu_threads": args.cpu_threads,
+            "onset_silence_recovery": args.onset_silence_recovery,
+        }
+        if args.device == "cpu"
+        else {}
+    )
     engine = engine_class(
         model_id=args.model_id,
         quant=args.quant,

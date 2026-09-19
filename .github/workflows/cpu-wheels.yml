@@ -1,0 +1,286 @@
+name: Build CPU native wheels
+
+"on":
+  pull_request:
+    paths:
+      - ".github/workflows/cpu-wheels.yml"
+      - "pyproject.toml"
+      - "setup.py"
+      - "scripts/**"
+      - "src/**"
+      - "tests/**"
+  workflow_dispatch:
+    inputs:
+      cpu_version:
+        description: "Release-candidate version to build (must remain an rc version)"
+        required: true
+        default: "0.3.0rc1"
+        type: string
+      publish_testpypi:
+        description: "Explicitly upload this RC to TestPyPI after all platform jobs pass"
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+env:
+  QWENTTS_CPP_REPOSITORY: KoljaB/qwentts.cpp
+  QWENTTS_REF: b47728bd6cb60331bd02afacb390e533479329b5
+  QWENTTS_CPP_BUILD_JOBS: "2"
+  CPU_VERSION: ${{ inputs.cpu_version || '0.3.0rc1' }}
+
+jobs:
+  build:
+    name: ${{ matrix.label }} CPU wheel
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: Linux x86_64
+            runner: ubuntu-22.04
+            family: linux
+            wheel_platform: manylinux_2_35_x86_64
+            artifact: linux-x86_64
+            emit_sdist: true
+          - label: Windows x64
+            runner: windows-2022
+            family: windows
+            artifact: windows-x86_64
+            emit_sdist: false
+          - label: macOS Intel
+            runner: macos-13
+            family: macos
+            artifact: macos-x86_64
+            emit_sdist: false
+          - label: macOS arm64
+            runner: macos-14
+            family: macos
+            artifact: macos-arm64
+            emit_sdist: false
+
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Validate RC version
+        shell: bash
+        run: |
+          python - <<'PY'
+          import os, re
+          version = os.environ["CPU_VERSION"]
+          if not re.fullmatch(r"0\.3\.0rc\d+", version):
+              raise SystemExit(f"CPU workflow accepts only 0.3.0rcN versions, got {version!r}")
+          print(version)
+          PY
+
+      - name: Install common build tools
+        shell: bash
+        run: python -m pip install --upgrade pip build wheel pytest numpy huggingface-hub
+
+      - name: Install Linux build tools
+        if: matrix.family == 'linux'
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends cmake ninja-build patchelf
+          python -m pip install --upgrade auditwheel
+
+      - name: Install Windows build tools
+        if: matrix.family == 'windows'
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade cmake ninja delvewheel
+
+      - name: Select MSVC
+        if: matrix.family == 'windows'
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Install macOS build tools
+        if: matrix.family == 'macos'
+        shell: bash
+        run: python -m pip install --upgrade cmake ninja delocate
+
+      - name: Set RC version in this CI checkout
+        shell: bash
+        run: python scripts/set_local_version.py --version "$CPU_VERSION"
+
+      - name: Fetch and verify the qualified qwentts.cpp commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          url="https://github.com/${QWENTTS_CPP_REPOSITORY}.git"
+          mkdir -p third_party
+          git clone --filter=blob:none --no-checkout "$url" third_party/qwentts.cpp
+          if ! git -C third_party/qwentts.cpp fetch --depth=1 origin "$QWENTTS_REF"; then
+            echo "::error::${QWENTTS_REF} is not publicly reachable from ${url}. Publish the exact b477 source (preserving GPU history) before enabling this workflow."
+            exit 1
+          fi
+          git -C third_party/qwentts.cpp checkout --detach "$QWENTTS_REF"
+          git -C third_party/qwentts.cpp submodule update --init --recursive
+          test "$(git -C third_party/qwentts.cpp rev-parse HEAD)" = "$QWENTTS_REF"
+
+      - name: Build native CPU library and focused tests (POSIX)
+        if: matrix.family != 'windows'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/build_native.py \
+            --source third_party/qwentts.cpp \
+            --backend cpu \
+            --clean \
+            --jobs "$QWENTTS_CPP_BUILD_JOBS" \
+            --cmake-arg=-G \
+            --cmake-arg=Ninja
+          PYTHONPATH=src python -m pytest -p no:cacheprovider -q \
+            tests/test_binding.py tests/test_runtime_loader.py tests/test_cli.py \
+            tests/test_packaging.py tests/test_build_native.py
+
+      - name: Build native CPU library and focused tests (Windows)
+        if: matrix.family == 'windows'
+        shell: pwsh
+        run: |
+          python scripts/build_native.py `
+            --source third_party/qwentts.cpp `
+            --backend cpu `
+            --clean `
+            --jobs $env:QWENTTS_CPP_BUILD_JOBS `
+            --cmake-arg=-G `
+            --cmake-arg=Ninja
+          $env:PYTHONPATH = "src"
+          python -m pytest -p no:cacheprovider -q `
+            tests/test_binding.py tests/test_runtime_loader.py tests/test_cli.py `
+            tests/test_packaging.py tests/test_build_native.py
+
+      - name: Build source and wheel distributions
+        shell: bash
+        run: python -m build --sdist --wheel --outdir dist
+
+      - name: Repair Linux wheel
+        if: matrix.family == 'linux'
+        shell: bash
+        run: |
+          mkdir -p wheelhouse
+          python -m auditwheel repair \
+            --plat "${{ matrix.wheel_platform }}" \
+            -w wheelhouse dist/*.whl
+
+      - name: Repair Windows wheel
+        if: matrix.family == 'windows'
+        shell: pwsh
+        run: |
+          python -m delvewheel repair `
+            --analyze-existing `
+            --ignore-existing `
+            --add-path "src\qwentts_cpp_cpu\lib" `
+            --wheel-dir wheelhouse `
+            dist\*.whl
+
+      - name: Repair macOS wheel
+        if: matrix.family == 'macos'
+        shell: bash
+        run: |
+          mkdir -p wheelhouse
+          delocate-wheel -w wheelhouse dist/*.whl
+
+      - name: Inspect native wheel payload
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from zipfile import ZipFile
+          wheels = sorted(Path("wheelhouse").glob("*.whl"))
+          if len(wheels) != 1:
+              raise SystemExit(f"expected one repaired wheel, found {wheels}")
+          with ZipFile(wheels[0]) as archive:
+              names = archive.namelist()
+          native = [name for name in names if "qwentts_cpp_cpu/lib/" in name]
+          has_qwen = any("libqwen" in name or name.endswith("/qwen.dll") for name in native)
+          has_cpu = any("libggml-cpu" in name or name.endswith("/ggml-cpu.dll") for name in native)
+          if not (has_qwen and has_cpu):
+              raise SystemExit(f"native CPU payload missing: {native}")
+          if any("qwentts_cpp/" in name for name in names):
+              raise SystemExit("CUDA package namespace leaked into CPU wheel")
+          print(wheels[0])
+          print("native payload:", native)
+          PY
+
+      - name: Fresh exact-wheel install and real 0.6B Q8 synthesis (POSIX)
+        if: matrix.family != 'windows'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m venv .ci-venv
+          .ci-venv/bin/python -m pip install --upgrade pip
+          wheel="$(find wheelhouse -maxdepth 1 -name '*.whl' -print -quit)"
+          test -n "$wheel"
+          .ci-venv/bin/python -m pip install --no-index --find-links wheelhouse "$wheel"
+          .ci-venv/bin/python scripts/ci_cpu_synthesis.py \
+            --sample samples/pr-wheel-audio/cpu_greedy_20f_customvoice_bf16.wav \
+            --cache-dir model-cache
+
+      - name: Fresh exact-wheel install and real 0.6B Q8 synthesis (Windows)
+        if: matrix.family == 'windows'
+        shell: pwsh
+        run: |
+          python -m venv .ci-venv
+          & .ci-venv\Scripts\python.exe -m pip install --upgrade pip
+          $wheel = Get-ChildItem wheelhouse\*.whl | Select-Object -First 1
+          if (-not $wheel) { throw "No repaired CPU wheel found" }
+          & .ci-venv\Scripts\python.exe -m pip install --no-index --find-links wheelhouse $wheel.FullName
+          & .ci-venv\Scripts\python.exe scripts\ci_cpu_synthesis.py `
+            --sample samples\pr-wheel-audio\cpu_greedy_20f_customvoice_bf16.wav `
+            --cache-dir model-cache
+
+      - name: Check artifact metadata
+        shell: bash
+        run: |
+          python -m twine check --strict wheelhouse/*.whl
+          if [[ "${{ matrix.emit_sdist }}" == "true" ]]; then
+            python -m twine check --strict dist/*.tar.gz
+          fi
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: cpu-wheel-${{ matrix.artifact }}-${{ env.CPU_VERSION }}
+          path: wheelhouse/*.whl
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: matrix.emit_sdist == true
+        with:
+          name: cpu-sdist-${{ env.CPU_VERSION }}
+          path: dist/*.tar.gz
+
+  publish-testpypi:
+    name: Explicit TestPyPI RC upload
+    if: github.event_name == 'workflow_dispatch' && inputs.publish_testpypi == true
+    needs: build
+    runs-on: ubuntu-22.04
+    environment: testpypi
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: cpu-*- ${{ env.CPU_VERSION }}
+          path: dist
+          merge-multiple: true
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Upload only after explicit TestPyPI opt-in
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.TESTPYPI_API_TOKEN }}
+        run: |
+          python -m pip install --upgrade twine
+          python -m twine check --strict dist/*
+          python -m twine upload --repository-url https://test.pypi.org/legacy/ --non-interactive --skip-existing dist/*

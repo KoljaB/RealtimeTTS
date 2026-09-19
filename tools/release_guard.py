@@ -70,7 +70,7 @@ COMPONENT_PROFILES: dict[str, dict[str, object]] = {
         "service_required": True,
         "service_name": "wwz-qwen3-tts-cpu.service",
         "publishable": False,
-        "required_dependencies": {"realtimetts-qwen-native": "0.2.0+cpu1"},
+        "required_dependencies": {"realtimetts-qwen-native": "0.2.0+cpu2"},
     },
     "RealtimeTTSQwenNativeCPU": {
         "distribution": "realtimetts-qwen-native",
@@ -85,10 +85,64 @@ COMPONENT_PROFILES: dict[str, dict[str, object]] = {
         "publishable": False,
         "binary_package_prefixes": {"qwentts_cpp": ("lib/",)},
         "required_wheel_platforms": ("linux_x86_64",),
-        "native_revision": "30ea6696c8f3be5dcecbfdfe777cfea149091ac7",
+        "native_revision": "b47728bd6cb60331bd02afacb390e533479329b5",
         "required_native_library_groups": {
             "linux_x86_64": (("qwentts_cpp/lib/libqwen.so",),),
         },
+        "publish_sdist": False,
+    },
+    # Public CPU wheels are a separate distribution and import namespace from
+    # the private cpu2 deployment above.  Keep this profile strict: a candidate
+    # must carry the same signed Linux runtime provenance as the deployment
+    # profile and provide every declared public platform wheel before publish.
+    "RealtimeTTSQwenNativeCPUPublic": {
+        "distribution": "realtimetts-qwen-native-cpu",
+        "packages": ((
+            "qwentts_cpp_cpu",
+            "src/qwentts_cpp_cpu",
+            "qwentts_cpp_cpu",
+        ),),
+        "sdist_package_dirs": {"qwentts_cpp_cpu": "src/qwentts_cpp_cpu"},
+        "signer": "linux-services",
+        "signer_fingerprint": "SHA256:ODuksd5J17paccWV+N0zWfczcc1iV30V5mQytjiar2w",
+        "remote_repository": "github.com/koljab/realtimetts-qwen-native",
+        "remote_branch": "main",
+        "service_required": True,
+        "service_name": "wwz-qwen3-tts-cpu.service",
+        "publishable": True,
+        "binary_package_prefixes": {"qwentts_cpp_cpu": ("lib/",)},
+        # delvewheel can rewrite these wrapper files on Windows; native
+        # libraries remain covered by the binary-package checks below.
+        "generated_wheel_files": {
+            "win_amd64": {"qwentts_cpp_cpu": ("__init__.py", "py.typed")},
+        },
+        "required_wheel_platforms": (
+            "manylinux_2_35_x86_64",
+            "win_amd64",
+            "macosx_10_9_x86_64",
+            "macosx_11_0_arm64",
+        ),
+        "native_revision": "b47728bd6cb60331bd02afacb390e533479329b5",
+        "required_native_library_groups": {
+            "manylinux_2_35_x86_64": (
+                ("qwentts_cpp_cpu/lib/libqwen.so",),
+                ("qwentts_cpp_cpu/lib/libggml-cpu.so.0",),
+            ),
+            "win_amd64": (
+                ("qwentts_cpp_cpu/lib/qwen.dll", "qwentts_cpp_cpu/lib/libqwen.dll"),
+                ("qwentts_cpp_cpu/lib/ggml-cpu.dll",),
+            ),
+            "macosx_10_9_x86_64": (
+                ("qwentts_cpp_cpu/lib/libqwen.dylib",),
+                ("qwentts_cpp_cpu/lib/libggml-cpu.dylib",),
+            ),
+            "macosx_11_0_arm64": (
+                ("qwentts_cpp_cpu/lib/libqwen.dylib",),
+                ("qwentts_cpp_cpu/lib/libggml-cpu.dylib",),
+            ),
+        },
+        # Native sdists contain the Python wrapper only; platform wheels carry
+        # the compiled runtime and are the artifacts sent to PyPI.
         "publish_sdist": False,
     },
     "RealtimeTTSQwenNative": {
@@ -978,6 +1032,39 @@ def _service_name(profile: dict[str, object], requested: str) -> str | None:
     return requested or None
 
 
+def _systemd_typed_execstart_argv(service: str, launcher: str) -> list[str]:
+    """Read exact argv; systemctl's display form strips embedded JSON quotes."""
+    def query(arguments):
+        result = subprocess.run(
+            ["busctl", "--user", "--json=short", *arguments],
+            text=True, capture_output=True, check=False, timeout=5,
+        )
+        if result.returncode:
+            raise GuardError("cannot read typed systemd service arguments")
+        return json.loads(result.stdout)
+
+    try:
+        unit = query(["call", "org.freedesktop.systemd1", "/org/freedesktop/systemd1",
+                      "org.freedesktop.systemd1.Manager", "GetUnit", "s", service])
+        paths = unit["data"]
+        if unit["type"] != "o" or not isinstance(paths, list) or len(paths) != 1:
+            raise ValueError("invalid unit object")
+        value = query(["get-property", "org.freedesktop.systemd1", paths[0],
+                       "org.freedesktop.systemd1.Service", "ExecStart"])
+        records = value["data"]
+        if value["type"] != "a(sasbttttuii)" or len(records) != 1:
+            raise ValueError("ambiguous ExecStart")
+        record = records[0]
+        arguments = record[1]
+        if record[0] != launcher or not isinstance(arguments, list) or not all(
+            isinstance(item, str) for item in arguments
+        ):
+            raise ValueError("invalid ExecStart arguments")
+        return arguments
+    except (KeyError, IndexError, TypeError, ValueError, OSError, subprocess.SubprocessError) as exc:
+        raise GuardError("cannot verify typed systemd service arguments") from exc
+
+
 def _systemd_user_service_state(
     service: str, runtime_state: dict[str, object]
 ) -> dict[str, object]:
@@ -1039,6 +1126,8 @@ def _systemd_user_service_state(
     if launcher and _same_executable_path(launcher, runtime_python):
         configured = re.search(r"argv\[\]=(.*?) ;", exec_start)
         configured_argv = shlex.split(configured.group(1)) if configured else []
+        if len(configured_argv) < 2 or configured_argv != argv:
+            configured_argv = _systemd_typed_execstart_argv(service, launcher)
         if len(configured_argv) < 2 or configured_argv != argv:
             raise GuardError(f"live service {service} Python arguments differ from its unit")
         launcher = configured_argv[1]

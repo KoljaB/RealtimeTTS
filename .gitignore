@@ -187,4 +187,8 @@ tests/ref_audio.pt
 # Local release validation and generated benchmark artifacts
 .release_validation/
 test_outputs/
+qwen_emotions_output/
 .pytest-tmp-model-modes/
+
+# Local conversation attachments; never publish them.
+.codex-remote-attachments/

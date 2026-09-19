@@ -423,11 +423,42 @@ class ReleaseGuardTests(unittest.TestCase):
         self.assertEqual(native["sdist_package_dirs"], {"qwentts_cpp": "src/qwentts_cpp"})
         with self.assertRaisesRegex(release_guard.GuardError, "not publishable"):
             release_guard._component_profile("RealtimeTTSQwenNativeCPU", publishing=True)
-        with self.assertRaisesRegex(release_guard.GuardError, "realtimetts-qwen-native==0.2.0\\+cpu1"):
+        with self.assertRaisesRegex(release_guard.GuardError, "realtimetts-qwen-native==0.2.0\\+cpu2"):
             release_guard._validate_package_artifacts(
                 Path("."), Path("missing.whl"), Path("missing.tar.gz"), [],
                 {"versions": {"realtimetts-qwen-native": "0.2.0"}}, profile,
             )
+
+    def test_public_cpu_native_profile_is_separate_and_publishable(self) -> None:
+        private = release_guard._component_profile("RealtimeTTSQwenNativeCPU")
+        public = release_guard._component_profile(
+            "RealtimeTTSQwenNativeCPUPublic", publishing=True
+        )
+        self.assertFalse(private["publishable"])
+        self.assertTrue(public["publishable"])
+        self.assertEqual(public["distribution"], "realtimetts-qwen-native-cpu")
+        self.assertEqual(
+            public["packages"],
+            (("qwentts_cpp_cpu", "src/qwentts_cpp_cpu", "qwentts_cpp_cpu"),),
+        )
+        self.assertEqual(
+            public["required_wheel_platforms"],
+            (
+                "manylinux_2_35_x86_64",
+                "win_amd64",
+                "macosx_10_9_x86_64",
+                "macosx_11_0_arm64",
+            ),
+        )
+        self.assertEqual(
+            public["binary_package_prefixes"],
+            {"qwentts_cpp_cpu": ("lib/",)},
+        )
+        self.assertEqual(
+            public["native_revision"],
+            "b47728bd6cb60331bd02afacb390e533479329b5",
+        )
+        self.assertFalse(public["publish_sdist"])
 
     def test_remote_branch_and_tag_must_both_equal_release_head(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

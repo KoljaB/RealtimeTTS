@@ -454,6 +454,17 @@ class QwenEngine(BaseEngine):
                 raise self._translate_error(
                     exc, "validating the onset silence profile"
                 ) from exc
+        try:
+            self._validate_additional_onset_silence_profiles()
+        except BaseException as exc:
+            try:
+                self._backend.close()
+            finally:
+                self._backend = None
+                self._shutdown = True
+            raise self._translate_error(
+                exc, "validating additional onset silence profiles"
+            ) from exc
         if voice is not None:
             try:
                 self.set_voice(voice)
@@ -468,6 +479,10 @@ class QwenEngine(BaseEngine):
 
     def _backend_options(self) -> dict[str, Any]:
         return {}
+
+    def _load_native_module(self):
+        import qwentts_cpp
+        return qwentts_cpp
 
     def _create_backend(
         self, backend_factory: Optional[Callable[..., Any]]
@@ -490,7 +505,7 @@ class QwenEngine(BaseEngine):
             backend = backend_factory(**kwargs)
             return backend, REQUIRED_QWENTTS_ABI, "injected"
         try:
-            import qwentts_cpp
+            qwentts_cpp = self._load_native_module()
         except ImportError as exc:
             raise ImportError(
                 "QwenEngine requires the native qwentts-cpp-python wheel. "
@@ -822,6 +837,38 @@ class QwenEngine(BaseEngine):
             "cancel_event": cancel_event,
         }
 
+    def _stream_native(
+        self,
+        stream_kwargs: dict[str, Any],
+        *,
+        stream_started_ns: Optional[int] = None,
+    ) -> Any:
+        """Create one native stream iterator.
+
+        The CPU engine overrides this protected seam for its bounded onset
+        recovery. Keeping the call here makes the normal native path exactly
+        the same backend call and leaves the synthesis loop responsible for
+        queueing, trimming, pause, and cancellation semantics.
+        """
+
+        del stream_started_ns
+        return self._backend.stream(**stream_kwargs)
+
+    def _native_stream_profile(self) -> dict[str, Any]:
+        """Return the native profile for the primary stream attempt."""
+
+        return dict(getattr(self._backend, "last_stream_profile", None) or {})
+
+    def _validate_additional_onset_silence_profiles(self) -> None:
+        """Hook for engines that need to validate an extra native profile."""
+
+        return None
+
+    def _native_stream_recovery_profile(self) -> Optional[dict[str, Any]]:
+        """Return optional structured stream-recovery data for profiling."""
+
+        return None
+
     def warmup(self) -> None:
         with self._synthesis_lock:
             if self.current_voice is None or self._voice_cache_key is None:
@@ -1037,8 +1084,9 @@ class QwenEngine(BaseEngine):
 
             try:
                 stream_started_ns = time.perf_counter_ns()
-                stream = self._backend.stream(
-                    **self._stream_kwargs(text.strip(), self.current_voice, cancel_event=cancel_event)
+                stream = self._stream_native(
+                    self._stream_kwargs(text.strip(), self.current_voice, cancel_event=cancel_event),
+                    stream_started_ns=stream_started_ns,
                 )
                 for chunk, sample_rate in stream:
                     if self.stop_synthesis_event.is_set() or cancel_event.cancelled():
@@ -1103,7 +1151,7 @@ class QwenEngine(BaseEngine):
                         )
                     )
                     ending_audio = np.empty(0, dtype=np.float32)
-                callback_profile = dict(getattr(self._backend, "last_stream_profile", None) or {})
+                callback_profile = self._native_stream_profile()
                 margins = [
                     item["playout_margin_before_ms"]
                     for item in queued_chunks
@@ -1141,6 +1189,9 @@ class QwenEngine(BaseEngine):
                     ),
                     "native": callback_profile,
                 }
+                recovery_profile = self._native_stream_recovery_profile()
+                if recovery_profile is not None:
+                    self.last_synthesis_profile["onset_recovery"] = recovery_profile
                 if first_queue_ns is not None:
                     callback_ns = callback_profile.get("first_callback_perf_counter_ns")
                     if callback_ns is not None:
@@ -1158,6 +1209,15 @@ class QwenEngine(BaseEngine):
                     raise QwenEngineError("qwentts.cpp completed without producing audio")
                 return True
             except BaseException as exc:
+                recovery_profile = self._native_stream_recovery_profile()
+                if recovery_profile is not None:
+                    self.last_synthesis_profile = {
+                        "cancelled": cancel_event.cancelled() or self.stop_synthesis_event.is_set(),
+                        "n_samples": n_samples,
+                        "total_ms": (time.perf_counter_ns() - started_ns) / 1_000_000,
+                        "native": self._native_stream_profile(),
+                        "onset_recovery": recovery_profile,
+                    }
                 if cancel_event.cancelled() or self.stop_synthesis_event.is_set():
                     return True
                 self.last_error = self._translate_error(exc, "streaming synthesis")

@@ -47,6 +47,14 @@ finally:
 Defaults are Qwen3-TTS 12 Hz 0.6B Base, Q8_0, one persistent native context,
 and 24 kHz mono signed 16-bit output.
 
+## Emotional showcase (the video command)
+
+The advertised `tests/faster_qwen_emotions.py` entry point is restored for the
+next release. It retains the original eleven recordings/texts, 0.6B Base model,
+and speaker-only emotion-reference workflow on the maintained native engine.
+See [the emotional demo guide](../qwen-emotions.md) for the original install/run
+commands, CPU and HTTP-server variants, headless output, and release status.
+
 ## CPU engine
 
 `QwenCpuEngine` uses a CPU-only native library and requires no GPU allocation.
@@ -56,20 +64,19 @@ process-wide GPU visibility. The binding checks the actual library before
 loading a model and rejects an incompatible library, including a custom
 `library_path`.
 
-The CPU package is currently a local deployment build, not a public PyPI release.
-Install the exact CPU native wheel and matching RealtimeTTS wheel from the
-deployment wheelhouse:
+The next-release CPU extras pin `realtimetts-qwen-native-cpu==0.3.0`, which
+installs `qwentts_cpp_cpu` without CUDA dependencies or files shared with the
+GPU package. Use `qwen-cpu` for local playback or `qwen-cpu-server` for
+HTTP/WebSocket serving without PyAudio. This candidate is not on PyPI yet;
+see [release status and installation targets](../qwen-emotions.md).
 
-```bash
-python -m pip install --find-links /absolute/path/to/cpu-wheelhouse \
-  "realtimetts[qwen-cpu-server] @ file:///absolute/path/to/realtimetts-0.8.6-py3-none-any.whl"
-```
-
-The CPU extras pin `realtimetts-qwen-native==0.2.0+cpu1` and omit CUDA packages.
-Use `qwen-cpu` for local playback or `qwen-cpu-server` for HTTP/WebSocket serving
-without PyAudio. The CPU deployment wheel targets Linux x86-64; other targets
-have not been validated. Its native code is compiled for the deployment CPU;
-rebuild it before installing on a CPU with a different instruction set.
+The currently deployed Linux service instead uses the preserved private
+`realtimetts-qwen-native==0.2.0+cpu2` wheel. The engine retains support for
+that legacy import layout. That particular wheel was compiled for the server's
+CPU and is not a portable public installer. Preserve it with its matching
+RealtimeTTS wheel and runtime configuration when reproducing the existing
+service. Public CPU candidates require separate installation and synthesis
+verification on each supported platform; macOS is not yet verified.
 
 ```python
 from RealtimeTTS import QwenCpuEngine, QwenVoice
@@ -108,6 +115,31 @@ steady chunks at 320 ms and allowing the initial playback buffer to grow.
 The existing Q8 onset-suppression profile also works on CPU. It remains limited
 to its exact validated Q8 model/codec pair and x-vector cloning; Q4 and ICL must
 not silently inherit that profile.
+
+### Conditional CPU onset recovery (experimental)
+
+`QwenCpuEngine(onset_silence_recovery=True)` can restart generation once when
+the first 240 ms of generated PCM contains no speech. The retry uses the
+CPU-specific `qwen3_tts_12hz_0_6b_base_q8_cpu_recovery_v2` native profile. It
+requires silence trimming and the normal
+`onset_silence_profile="qwen3_tts_12hz_0_6b_base_q8_v1"` profile. Requests using
+full ICL remain unchanged. Recovery is disabled by default.
+
+The server option is `--onset-silence-recovery`, together with `--device cpu`
+and the normal v1 onset profile. This requires a native binding containing
+the new recovery profile; the existing `0.2.0+cpu1` deployment does not contain
+it. Initialization fails clearly if that capability is missing. The binding
+also verifies the CPU library and exact model/codec hashes.
+
+This targets unusually long silent starts, not the computation time of the
+first native frame. The ordinary stream and PCM remain unchanged when speech
+starts within the detection window. Do not select the recovery profile for
+every request: broader suppression produced an extra initial syllable in
+testing. The retry retains the configured startup buffer and reports its
+timings separately in `last_synthesis_profile["onset_recovery"]`.
+The outer `native` profile describes the first attempt. Its
+`callback_to_queue_ms` spans the original first callback through recovery to
+the first queued output; the nested `retry_attempt` timings start with the retry.
 
 CPU defaults to `clone_mode="speaker_only"`. This uses the cached speaker
 embedding even when a registered voice also has a transcript; the original

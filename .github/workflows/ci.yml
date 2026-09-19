@@ -43,6 +43,16 @@ jobs:
           tests/test_pocket_engine.py
           tests/test_pocket_gpu_engine.py
           tests/test_qwen_engine.py
+          tests/test_qwen_cpu_engine.py
+          tests/test_qwen_cpu_distribution.py
+          tests/test_qwen_emotions.py
+          tests/test_qwen_emotions_protocol.py
+          tests/test_qwen_cpu_recovery.py
+          tests/test_qwen_cpu_recovery_server.py
+          tests/test_qwen_language_endpoint.py
+          tests/test_qwen_segmented_narration.py
+          tests/test_qwen_symbol_fragments.py
+          tests/test_em_dash_fragments.py
           tests/test_qwen_server.py
           tests/test_release_guard.py
           tests/test_release_guard_cli.py

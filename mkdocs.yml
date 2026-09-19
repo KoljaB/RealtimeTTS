@@ -71,6 +71,7 @@ nav:
       - Kokoro: engines/kokoro.md
       - Orpheus: engines/orpheus.md
       - Qwen: engines/qwen.md
+      - Qwen Emotional Showcase: qwen-emotions.md
       - OmniVoice: engines/omnivoice.md
       - PocketTTS: engines/pockettts.md
       - NeuTTS: engines/neutts.md

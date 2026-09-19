@@ -2,6 +2,7 @@ from .base_engine import BaseEngine, TimingInfo
 
 __all__ = [
     "BaseEngine", "TimingInfo",
+    "PrefixSpliceEngine", "QwenHttpSynthesizer",
     "AzureEngine", "AzureVoice",
     "SystemEngine", "SystemVoice",
     "ElevenlabsEngine", "ElevenlabsVoice",
@@ -331,6 +332,10 @@ _lazy_imports = {
 
 
 def __getattr__(name):
+    if name in ("PrefixSpliceEngine", "QwenHttpSynthesizer"):
+        from .prefix_splice_engine import PrefixSpliceEngine, QwenHttpSynthesizer
+        globals().update(PrefixSpliceEngine=PrefixSpliceEngine, QwenHttpSynthesizer=QwenHttpSynthesizer)
+        return globals()[name]
     if name in _lazy_imports:
         _lazy_imports[name]()
         return globals()[name]
