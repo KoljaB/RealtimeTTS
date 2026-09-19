@@ -24,7 +24,7 @@ testing, more bug reports, more fixes, and better releases for everyone.
 
 https://github.com/KoljaB/RealtimeTTS/assets/7604638/87dcd9a5-3a4e-4f57-be45-837fc63237e7
 
-## Recommended Engine: QwenEngine
+## Recommended Engine: Qwen (GPU and CPU)
 
 For supported Windows and Linux systems with an NVIDIA GPU, **QwenEngine is
 currently the recommended and preferred RealtimeTTS engine for high-quality,
@@ -38,12 +38,53 @@ chunk**, and about **10 ms of silence inside that chunk**. Predicted audible
 onset was **80.9 ms** and RTF was **0.108**. These are orientation figures;
 measure the complete path on your target system.
 
+RealtimeTTS 0.8.6 also provides `QwenCpuEngine`, using the maintained CPU-only
+native runtime with worker-pool improvements and onset recovery. Choose one of
+these server installations in a fresh Python 3.11 or 3.12 virtual environment:
+
 ```bash
-python -m pip install --only-binary=realtimetts-qwen-native "realtimetts[qwen]"
-python -m qwentts_cpp doctor
+# NVIDIA GPU on Windows or Linux x86-64
+python -m pip install "realtimetts[qwen-server]"
+realtimetts-qwen-server --clone-mode speaker_only
 ```
 
-See the [QwenEngine guide](docs/engines/qwen.md) for setup and details.
+```bash
+# CPU on Windows, Linux, Intel Mac, or Apple Silicon
+python -m pip install "realtimetts[qwen-cpu-server]"
+realtimetts-qwen-server --device cpu --clone-mode speaker_only --no-clamp-fp16 --onset-silence-profile qwen3_tts_12hz_0_6b_base_q8_v1 --onset-silence-recovery
+```
+
+Neither server extra needs Torch, a local CUDA Toolkit, or PortAudio. GPU mode
+still needs a compatible NVIDIA GPU/driver. CPU wheels support Windows x86-64,
+Linux x86-64 with glibc 2.35+, Intel macOS 13+, and Apple Silicon macOS 11+.
+x86-64 CPUs require AVX2/FMA/F16C/BMI2. CPU throughput depends on the machine;
+older x86 CPUs, Linux ARM CPU, Windows ARM64, and Metal are outside this release.
+
+Both servers offer browser playback at `http://127.0.0.1:8080/studio`, early
+em-dash speech, streaming segment controls, and language detection. See the
+[QwenEngine guide](docs/engines/qwen.md) for models, voices, authentication,
+language routing, and reproducing the deployed CPU settings.
+
+### Emotional Qwen demo from the video
+
+The advertised `faster_qwen_emotions.py` command is restored and supported.
+It keeps the original eleven emotional references/texts and the 0.6B Base Q8
+speaker-only workflow. In an activated Python 3.11 or 3.12 environment:
+
+```bash
+git clone https://github.com/KoljaB/RealtimeTTS.git
+cd RealtimeTTS
+python -m pip install -e ".[qwen]"
+cd tests
+python faster_qwen_emotions.py
+```
+
+For CPU use `.[qwen-cpu]` when installing, then run
+`python faster_qwen_emotions.py --device cpu`. Local playback on Linux/macOS
+needs PortAudio (see below). The first run downloads the model pair if needed.
+See the [emotional showcase guide](docs/qwen-emotions.md) for the complete
+virtual-environment setup, headless/server mode, and package-only commands.
+
 [`InflectEngine`](docs/engines/inflect.md) is the documented lightweight
 alternative for one fixed English voice on CUDA or ONNX CPU.
 
@@ -69,14 +110,13 @@ On macOS:
 brew install portaudio
 ```
 
-The native `qwen` and Inflect extras use the established PyAudio/PortAudio
-playback path. Windows has prebuilt PyAudio wheels for Python 3.10–3.13. On
-Linux and macOS, install PortAudio first using the commands above. The Qwen
-native wheel itself does not require a local CUDA Toolkit. RealtimeTTS 0.7.4
-declares validated native Qwen wheels only for x86-64 Windows and Linux; macOS
-and other platforms are not supported release targets.
+The local `qwen`, `qwen-cpu`, and Inflect extras use PyAudio/PortAudio for
+playback. Windows has prebuilt PyAudio wheels; on Linux and macOS install
+PortAudio first using the commands above. Use Python 3.11 or 3.12 for the
+Qwen workflows. Server-only installations do not need audio-device libraries.
 
-Install `realtimetts[qwen-server]` to expose the same native engine through
+Install `realtimetts[qwen-server]` (GPU) or `realtimetts[qwen-cpu-server]` (CPU)
+to expose the same native engine through
 an OpenAI-compatible HTTP API. The server provides `/v1/audio/speech`, dynamic
 voice registration, persistent voice latents, and watchdog-ready request/stall
 metrics on `/health`; it is headless and does not install PyAudio/PortAudio.
@@ -169,6 +209,7 @@ see [docs/output-and-files.md](docs/output-and-files.md).
 | Engine | Type | Install/status note | Best first use |
 | --- | --- | --- | --- |
 | **[`QwenEngine`](docs/engines/qwen.md) (recommended)** | Local native neural / HTTP server | `realtimetts[qwen]` or `realtimetts[qwen-server]` with a matching native wheel | High-quality multilingual realtime speech, voice cloning, and fast cancellation. |
+| [`QwenCpuEngine`](docs/engines/qwen.md#cpu-engine) | Local CPU native / HTTP server | `realtimetts[qwen-cpu]` or `realtimetts[qwen-cpu-server]` | CPU-only Qwen on Windows/Linux x86-64 and Intel/Apple Silicon macOS; onset recovery and the same streaming controls. |
 | [`InflectEngine`](docs/engines/inflect.md) | Local lightweight | `realtimetts[inflect]` | Fast fixed English voice through PyTorch CUDA or ONNX CPU. |
 | [`SystemEngine`](docs/engines/system.md) | Local | `realtimetts[system]` | First local audio smoke test. |
 | [`GTTSEngine`](docs/engines/gtts.md) | Free service | `realtimetts[gtts]` | Simple network-backed speech. |

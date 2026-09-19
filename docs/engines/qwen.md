@@ -443,22 +443,26 @@ After any local build, install only from the repaired wheelhouse and verify the
 native ABI before trying RealtimeTTS. Use the CUDA extra only for a CUDA wheel;
 CPU and macOS wheels do not need it:
 
+For a Windows/Linux CUDA wheel, in a fresh environment:
+
 ```bash
 python -m venv /path/to/fresh-venv
-# Windows x86-64 CUDA wheel:
 /path/to/fresh-venv/bin/python -m pip install \
   --find-links /path/to/wheelhouse \
   "realtimetts-qwen-native[cuda12]==0.2.0"
-# Linux x86-64 CUDA wheel (use this line instead on Linux):
-/path/to/fresh-venv/bin/python -m pip install \
-  --find-links /path/to/wheelhouse \
-  "realtimetts-qwen-native[cuda12]==0.2.0"
-# Linux CPU or macOS CPU wheel (use this line instead of the CUDA line above):
-/path/to/fresh-venv/bin/python -m pip install \
-  --find-links /path/to/wheelhouse \
-  "realtimetts-qwen-native==0.2.0"
 /path/to/fresh-venv/bin/python -c \
   "from qwentts_cpp import QwenLibrary, QT_ABI_VERSION; print(QwenLibrary().version(), QT_ABI_VERSION)"
+```
+
+For a Windows/Linux/macOS CPU wheel, use a separate fresh environment instead:
+
+```bash
+python -m venv /path/to/fresh-cpu-venv
+/path/to/fresh-cpu-venv/bin/python -m pip install \
+  --find-links /path/to/wheelhouse \
+  "realtimetts-qwen-native-cpu==0.3.0"
+/path/to/fresh-cpu-venv/bin/python -c \
+  "from qwentts_cpp_cpu import QwenLibrary, QT_ABI_VERSION; print(QwenLibrary().version(), QT_ABI_VERSION)"
 ```
 
 On Windows, use `fresh-venv\Scripts\python.exe`. Then install the matching

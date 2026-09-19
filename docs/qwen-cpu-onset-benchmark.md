@@ -1,5 +1,10 @@
 # Qwen CPU onset recovery: measured results, 2026-09-13
 
+This is a historical benchmark and private-deployment record, not the current
+public installation guide. For RealtimeTTS 0.8.6 and the portable CPU package,
+use the [Qwen setup guide](engines/qwen.md#cpu-engine) and
+[GPU/CPU installation workflows](qwen-emotions.md).
+
 Conditional recovery reduces long silent starts on the tested CPU setup.
 The first native PCM frame is already fast; the avoidable delay is further
 generation of silence before usable speech reaches the output queue.

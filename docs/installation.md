@@ -16,7 +16,7 @@ working.
 ## Platform Audio Prerequisites
 
 RealtimeTTS uses PyAudio/PortAudio for supported local PCM playback, including
-the native `qwen` and Inflect extras. Python 3.13+ also installs the small
+the local `qwen`, `qwen-cpu`, and Inflect extras. Python 3.13+ also installs the small
 `audioop-lts` compatibility wheel required by pydub; this does not compile
 locally.
 
@@ -37,7 +37,11 @@ Windows installs PyAudio wheels directly on Python 3.10–3.13. PyAudio 0.2.14
 does not publish a Windows Python 3.14 wheel, so use Python 3.13 for supported
 RealtimeTTS local playback.
 
-To add PyAudio explicitly, use `realtimetts[playback]`.
+To add PyAudio explicitly, use `realtimetts[playback]`. The `qwen-server` and
+`qwen-cpu-server` extras are headless and do not require PyAudio/PortAudio.
+Use Python 3.11 or 3.12 for the Qwen GPU/CPU workflows; see the
+[emotional showcase guide](qwen-emotions.md) for platform requirements and the
+restored `faster_qwen_emotions.py` workflow.
 
 ## Sentence Tokenizer
 
@@ -106,6 +110,8 @@ These extras are present in `setup.py`:
 | `piper` | Core RealtimeTTS dependencies; Piper binary/model assets remain external. |
 | `qwen` | Native in-process qwentts.cpp backend with PyAudio playback (`realtimetts-qwen-native==0.2.0` on supported Windows and Linux targets). |
 | `qwen-server` | OpenAI-compatible HTTP server for the native Qwen backend (same platform-specific native wheel pins, without PyAudio). |
+| `qwen-cpu` | CPU-only native Qwen with local PyAudio playback; uses `realtimetts-qwen-native-cpu==0.3.0`. |
+| `qwen-cpu-server` | CPU HTTP/WebSocket server without PyAudio; Windows/Linux x86-64, Intel macOS 13+, and Apple Silicon macOS 11+. |
 | `inflect`, `inflect-pytorch`, `inflect-onnx` | Inflect-Micro-v2 with PyAudio playback; choose both backends, PyTorch only, or ONNX only. |
 | `jp`, `zh`, `ko` | Extra language support packages for Kokoro. |
 | `all` | Best-effort convenience set for all Python-installable engine stacks. |
@@ -238,9 +244,15 @@ the published native dependency from PyPI:
 
 ```bash
 python -m venv .venv-release-check
+```
+
+Activate it first: `source .venv-release-check/bin/activate` on Linux/macOS,
+or `.venv-release-check\Scripts\activate.bat` in Windows cmd. Then run:
+
+```bash
 python -m pip install --only-binary=:all: \
   "realtimetts-qwen-native[cuda12]==0.2.0"
-python -m pip install "dist/realtimetts-0.8.4-py3-none-any.whl[qwen-server]"
+python -m pip install "dist/realtimetts-0.8.6-py3-none-any.whl[qwen-server]"
 python -m qwentts_cpp doctor
 python -m pip check
 ```

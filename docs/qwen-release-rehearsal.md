@@ -1,16 +1,19 @@
 # Qwen TestPyPI release rehearsal
 
-Release policy for the next Qwen GPU/CPU update: **TestPyPI first, PyPI only
-after fresh-install and real-speech acceptance.** This page describes the plan;
-it does not claim that a candidate has already been uploaded.
+Qwen GPU/CPU release policy: **TestPyPI first, PyPI only after fresh-install
+and real-speech acceptance.** The `0.8.6rc5` framework and `0.3.0rc1` CPU
+runtime have passed the four-platform CPU TestPyPI installation/speech matrix
+(Linux x86-64, Windows x86-64, Intel Mac, and Apple Silicon), plus Windows GPU
+TestPyPI acceptance. Final-version artifacts must pass the gates below before
+PyPI publication; candidate results do not replace final-artifact checks.
 
 ## Candidate sequence
 
 1. Preserve the existing Linux runtime and all dirty worktree changes. Separate
    the prefix-splice experiment from the production release branch.
 2. Build immutable wheel/sdist pairs from clean commits. Use release candidates
-   such as `realtimetts==0.8.6rc1` and
-   `realtimetts-qwen-native-cpu==0.3.0rc1`; the CPU extra must pin the exact
+   (the historical rehearsal used `realtimetts==0.8.6rc5` and
+   `realtimetts-qwen-native-cpu==0.3.0rc1`); the CPU extra must pin the exact
    matching native version. Existing public GPU native wheels can remain pinned.
 3. Exercise the exact artifacts in the declared isolated/runtime environments,
    obtain the required fresh signed attestation, and publish to TestPyPI through
