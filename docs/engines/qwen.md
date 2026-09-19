@@ -49,8 +49,8 @@ and 24 kHz mono signed 16-bit output.
 
 ## Emotional showcase (the video command)
 
-The advertised `tests/faster_qwen_emotions.py` entry point is restored for the
-next release. It retains the original eleven recordings/texts, 0.6B Base model,
+The advertised `tests/faster_qwen_emotions.py` entry point is restored in
+0.8.6. It retains the original eleven recordings/texts, 0.6B Base model,
 and speaker-only emotion-reference workflow on the maintained native engine.
 See [the emotional demo guide](../qwen-emotions.md) for the original install/run
 commands, CPU and HTTP-server variants, headless output, and release status.
@@ -64,19 +64,23 @@ process-wide GPU visibility. The binding checks the actual library before
 loading a model and rejects an incompatible library, including a custom
 `library_path`.
 
-The next-release CPU extras pin `realtimetts-qwen-native-cpu==0.3.0rc1`, which
-installs `qwentts_cpp_cpu` without CUDA dependencies or files shared with the
-GPU package. Use `qwen-cpu` for local playback or `qwen-cpu-server` for
-HTTP/WebSocket serving without PyAudio. This candidate is not on PyPI yet;
-see [release status and installation targets](../qwen-emotions.md).
+The CPU extras pin `realtimetts-qwen-native-cpu==0.3.0`, which installs
+`qwentts_cpp_cpu` without CUDA dependencies or files shared with the GPU
+package. Use `qwen-cpu` for local playback or `qwen-cpu-server` for
+HTTP/WebSocket serving without PyAudio. See the
+[installation and platform guide](../qwen-emotions.md).
 
-The currently deployed Linux service instead uses the preserved private
-`realtimetts-qwen-native==0.2.0+cpu2` wheel. The engine retains support for
-that legacy import layout. That particular wheel was compiled for the server's
-CPU and is not a portable public installer. Preserve it with its matching
-RealtimeTTS wheel and runtime configuration when reproducing the existing
-service. Public CPU candidates require separate installation and synthesis
-verification on each supported platform; macOS is not yet verified.
+The public CPU runtime includes the Linux worker-pool and strict-affinity
+improvements. The engine also retains the deployed onset-recovery profile,
+streaming segment controls, language detection, and early em-dash speech.
+For the deployed speaker-only profile, use `--clone-mode speaker_only`,
+`--no-clamp-fp16`, `--onset-silence-profile qwen3_tts_12hz_0_6b_base_q8_v1`,
+and `--onset-silence-recovery`. Reproducing a particular server additionally
+requires its model/voice assets, seed, CPU thread/affinity settings, startup
+buffer, and language-route configuration; preserve those alongside the wheels.
+
+Legacy private CPU wheels remain import-compatible for rollback, but they are
+not the portable public installation path.
 
 ```python
 from RealtimeTTS import QwenCpuEngine, QwenVoice
@@ -294,8 +298,8 @@ when local Windows playback requires PyAudio.
 | Windows 10/11 x86-64 | `realtimetts-qwen-native==0.2.0`, `1cu128`, `py3-none-win_amd64`; AVX2/FMA/F16C/BMI2 CPU; NVIDIA GPU with compute capability 7.5 or newer; CUDA-12-compatible driver. This is the primary Windows release target. |
 | Linux x86-64 | `realtimetts-qwen-native==0.2.0`, `1cu128`, `py3-none-manylinux_2_35_x86_64`; glibc 2.35 or newer (Ubuntu 22.04/24.04); AVX2/FMA/F16C/BMI2 CPU; NVIDIA GPU with compute capability 7.5 or newer. This is the primary Linux release target. |
 | Linux AArch64 | `realtimetts-qwen-native==0.2.0`, `py3-none-manylinux_2_35_aarch64`; built and hash-verified as a required 0.2.0 release artifact. Runtime model acceptance remains focused on the production Linux x86-64 host. |
-| CPU-only installations | Use the distinct `realtimetts-qwen-native-cpu` package through `qwen-cpu-server` or `qwen-cpu`; do not install the CUDA native package as a CPU workaround. See the CPU candidate status above. |
-| macOS / Apple Silicon | No CUDA wheel. Separate CPU candidates target Intel macOS 13+ and Apple Silicon macOS 11+; installation and actual synthesis on both architectures are required before publication. Metal acceleration is outside this release. |
+| CPU-only installations | Use the distinct `realtimetts-qwen-native-cpu` package through `qwen-cpu-server` or `qwen-cpu`; do not install the CUDA native package as a CPU workaround. Use Python 3.11 or 3.12; see the CPU section above. |
+| macOS / Apple Silicon | CPU wheels support Intel macOS 13+ and Apple Silicon macOS 11+ with architecture-matched Python. No CUDA or Metal acceleration is included. |
 | CUDA | The default published CUDA wheel is built with CUDA 12.8. The `[cuda12]` extra supplies NVIDIA's `nvidia-cuda-runtime-cu12` and `nvidia-cublas-cu12` packages (`>=12.8,<13`); a compatible NVIDIA driver is still required. |
 
 AMD/Vulkan, Alpine/musl, Windows ARM64, and guaranteed realtime CPU synthesis
@@ -416,34 +420,24 @@ python -m auditwheel repair \
   /artifacts/raw/*.whl
 ```
 
-### macOS / Apple Silicon (unverified)
+### macOS / Apple Silicon CPU
 
-There is no published or release-tested macOS Python wheel. The following is a
-best-effort CPU-only build for an Apple Silicon Python interpreter. The
-explicit `GGML_METAL=OFF` matters because qwentts.cpp enables Metal by default
-on Apple platforms, while the current Python helper does not package its Metal
-backend library:
+Use the separate CPU distribution; a compiler, CUDA, and Torch are not needed:
 
 ```bash
-python -m pip install --upgrade pip build cmake ninja wheel
-python scripts/build_native.py \
-  --source /path/to/qwentts.cpp \
-  --backend cpu \
-  --clean \
-  --cmake-arg=-G \
-  --cmake-arg=Ninja \
-  --cmake-arg=-DGGML_METAL=OFF
-QWENTTS_CPP_WHEEL_BUILD_TAG=1cpu \
-  python -m build --wheel --outdir /absolute/path/to/mac-wheelhouse
+python3.12 -m venv qwen-cpu-env
+source qwen-cpu-env/bin/activate
+python -m pip install --upgrade pip
+python -m pip install "realtimetts[qwen-cpu-server]"
+python -m qwentts_cpp_cpu doctor
+realtimetts-qwen-server --device cpu --clone-mode speaker_only --no-clamp-fp16 --onset-silence-profile qwen3_tts_12hz_0_6b_base_q8_v1 --onset-silence-recovery
 ```
 
-Install the resulting host-specific `macosx_*_arm64` wheel only into an arm64
-Python environment and test it in a fresh environment. `python -m qwentts_cpp
-doctor` is expected to report macOS as unsupported by the current diagnostics;
-that is why this path is documented as unverified. A working Metal wheel would
-require upstream packaging changes to add a Metal backend and bundle/load
-`libggml-metal.dylib`; do not assume that a successful CMake build provides a
-working RealtimeTTS wheel.
+The wheels target Intel macOS 13+ and Apple Silicon macOS 11+. Install arm64
+Python on Apple Silicon and x86-64 Python on Intel. Both builds are CPU-only
+(`GGML_METAL=OFF`); Metal acceleration is not part of this release. Server
+mode does not require PortAudio; local speaker playback does (see the
+[emotional demo guide](../qwen-emotions.md)).
 
 After any local build, install only from the repaired wheelhouse and verify the
 native ABI before trying RealtimeTTS. Use the CUDA extra only for a CUDA wheel;

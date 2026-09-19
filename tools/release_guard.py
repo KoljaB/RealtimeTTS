@@ -84,7 +84,7 @@ COMPONENT_PROFILES: dict[str, dict[str, object]] = {
         "service_required": True,
         "service_name": "wwz-qwen3-tts-cpu.service",
         "publishable": True,
-        "required_dependencies": {"realtimetts-qwen-native-cpu": "0.3.0rc1"},
+        "required_dependencies": {"realtimetts-qwen-native-cpu": "0.3.0"},
     },
     "RealtimeTTSQwenNativeCPU": {
         "distribution": "realtimetts-qwen-native",

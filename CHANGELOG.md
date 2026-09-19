@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.8.6rc5 - release candidate
+## 0.8.6 - 2026-09-20
 
 ### Added
 

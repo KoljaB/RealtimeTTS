@@ -6,18 +6,22 @@ native Qwen backend, with the original eleven reference recordings and spoken
 texts, 0.6B Base Q8, and speaker-only cloning. Some original showcase texts contain
 strong language. Emotion comes from the recording, not an instruction prompt.
 
-## Release status
+## Release and platform support
 
-This workflow is under validation for the next release. The public 0.8.5 package
-does not include this restored demo or the CPU extra. The new CPU distribution
-must be built, tested and published before the CPU install command below can
-resolve from PyPI. Do not describe an editable checkout test as public-release
-acceptance. Windows/Linux GPU, Windows/Linux CPU and macOS CPU must each have
-explicit installation and synthesis evidence; macOS is not yet verified.
+These commands target RealtimeTTS 0.8.6 and CPU native runtime 0.3.0. Use
+Python 3.11 or 3.12 for the Qwen workflows. Core-package Python support does
+not imply that every optional audio/native dependency supports newer Python.
 
-The release will be rehearsed on TestPyPI first, using fresh non-editable
-installations and real synthesis before publication to PyPI. See the
-[TestPyPI acceptance plan](qwen-release-rehearsal.md).
+GPU mode supports NVIDIA GPUs on Windows/Linux x86-64. CPU wheels cover
+Windows x86-64, Linux x86-64 with glibc 2.35+, Intel macOS 13+, and Apple
+Silicon macOS 11+ (use Python matching the machine architecture). x86-64
+requires AVX2, FMA, F16C, and BMI2; older CPUs, Windows ARM64, Linux ARM CPU,
+and Metal acceleration are outside this release. CPU speed depends on the
+machine: installation support is not a guarantee of faster-than-realtime audio.
+
+Publication is gated on fresh non-editable TestPyPI installations and real
+synthesis, followed by publication of the same final artifacts to PyPI. See
+the [TestPyPI acceptance plan](qwen-release-rehearsal.md).
 
 ## GPU: the existing video command
 
@@ -43,7 +47,7 @@ Ubuntu); macOS needs PortAudio (for example `brew install portaudio`). Windows
 Python 3.11 has a prebuilt PyAudio wheel.
 
 The maintained CPU equivalent uses `python -m pip install -e ".[qwen-cpu]"` and
-`python faster_qwen_emotions.py --device cpu`, once its native wheel is available.
+`python faster_qwen_emotions.py --device cpu`.
 The model is not silently changed to 1.7B or another backend. The local CPU demo
 also enables the deployed CPU onset-silence profile and recovery. The CPU server
 command below enables those explicitly. Exact production reproduction additionally
@@ -61,7 +65,7 @@ realtimetts-qwen-server --host 127.0.0.1 --port 8080 --clone-mode speaker_only
 
 ```bash
 python -m pip install "realtimetts[qwen-cpu-server]"
-realtimetts-qwen-server --device cpu --host 127.0.0.1 --port 8080 --onset-silence-profile qwen3_tts_12hz_0_6b_base_q8_v1 --onset-silence-recovery
+realtimetts-qwen-server --device cpu --host 127.0.0.1 --port 8080 --clone-mode speaker_only --no-clamp-fp16 --onset-silence-profile qwen3_tts_12hz_0_6b_base_q8_v1 --onset-silence-recovery
 ```
 
 The server extras do not install local sound-device dependencies. Open the

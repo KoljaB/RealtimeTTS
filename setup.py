@@ -138,7 +138,7 @@ qwen_audio_requirements = [
 qwen_common_requirements = qwen_native_requirements + qwen_audio_requirements
 qwen_requirements = qwen_common_requirements + pyaudio_requirements
 qwen_cpu_common_requirements = [
-    "realtimetts-qwen-native-cpu==0.3.0rc1",
+    "realtimetts-qwen-native-cpu==0.3.0",
 ] + qwen_audio_requirements
 qwen_server_requirements = [
     requirements.get("fastapi", "fastapi>=0.115,<1"),

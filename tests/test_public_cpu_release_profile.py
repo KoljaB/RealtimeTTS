@@ -11,7 +11,7 @@ def test_public_cpu_uses_real_service_and_exact_candidate_dependency():
     assert profile["service_required"] is True
     assert profile["service_name"] == "wwz-qwen3-tts-cpu.service"
     assert profile["remote_branch"] == "master"
-    assert profile["required_dependencies"] == {"realtimetts-qwen-native-cpu": "0.3.0rc1"}
+    assert profile["required_dependencies"] == {"realtimetts-qwen-native-cpu": "0.3.0"}
     assert profile["signer_fingerprint"] == release_guard.COMPONENT_PROFILES["RealtimeTTS"]["signer_fingerprint"]
     with pytest.raises(release_guard.GuardError, match="requires realtimetts-qwen-native-cpu"):
         release_guard._validate_package_artifacts(

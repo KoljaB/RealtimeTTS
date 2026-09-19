@@ -31,6 +31,6 @@ def test_cpu_does_not_hide_broken_package_dependency(monkeypatch):
 def test_cpu_extra_selects_different_distribution_than_gpu():
     from pathlib import Path
     setup = (Path(__file__).resolve().parents[1] / "setup.py").read_text()
-    assert '"realtimetts-qwen-native-cpu==0.3.0rc1"' in setup
+    assert '"realtimetts-qwen-native-cpu==0.3.0"' in setup
     assert 'realtimetts-qwen-native[cuda12]==0.2.0' in setup
     assert '"realtimetts-qwen-native==0.2.0+cpu2"' not in setup
