@@ -25,6 +25,8 @@ def test_cpu_engine_rejects_gpu_binding_before_constructing_context(monkeypatch)
 
 
 def test_cpu_engine_streams_both_clone_modes_without_changing_environment(tmp_path, monkeypatch):
+    # This test selects six workers deliberately, independent of CI host size.
+    monkeypatch.setattr(os, "cpu_count", lambda: 8)
     monkeypatch.setenv("GGML_BACKEND", "CUDA")
     monkeypatch.setenv("CUDA_VISIBLE_DEVICES", "0")
     before = dict(os.environ)

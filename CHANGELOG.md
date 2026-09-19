@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.8.6rc2 - release candidate
+## 0.8.6rc3 - release candidate
 
 ### Added
 
