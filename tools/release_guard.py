@@ -124,7 +124,7 @@ COMPONENT_PROFILES: dict[str, dict[str, object]] = {
         "service_required": True,
         "service_name": "wwz-qwen3-tts-cpu.service",
         "publishable": True,
-        "binary_package_prefixes": {"qwentts_cpp_cpu": ("lib/",)},
+        "binary_package_prefixes": {"qwentts_cpp_cpu": ("lib/", ".dylibs/")},
         # delvewheel can rewrite these wrapper files on Windows; native
         # libraries remain covered by the binary-package checks below.
         "generated_wheel_files": {

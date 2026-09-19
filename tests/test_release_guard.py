@@ -452,7 +452,7 @@ class ReleaseGuardTests(unittest.TestCase):
         )
         self.assertEqual(
             public["binary_package_prefixes"],
-            {"qwentts_cpp_cpu": ("lib/",)},
+            {"qwentts_cpp_cpu": ("lib/", ".dylibs/")},
         )
         self.assertEqual(
             public["native_revision"],
