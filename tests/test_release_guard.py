@@ -446,7 +446,7 @@ class ReleaseGuardTests(unittest.TestCase):
             (
                 "manylinux_2_35_x86_64",
                 "win_amd64",
-                "macosx_10_9_x86_64",
+                "macosx_13_0_x86_64",
                 "macosx_11_0_arm64",
             ),
         )
@@ -458,7 +458,7 @@ class ReleaseGuardTests(unittest.TestCase):
             public["native_revision"],
             "b47728bd6cb60331bd02afacb390e533479329b5",
         )
-        self.assertFalse(public["publish_sdist"])
+        self.assertTrue(public["publish_sdist"])
 
     def test_remote_branch_and_tag_must_both_equal_release_head(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.8.6rc1 - release candidate
+
+### Added
+
+- CPU-only Qwen installation through `qwen-cpu` and `qwen-cpu-server`, using a
+  separate native distribution/import namespace without overwriting GPU files.
+- Restore the advertised `tests/faster_qwen_emotions.py` command, its original
+  eleven emotional references and texts, and the 0.6B Base speaker-only workflow.
+  The installed package also exposes `realtimetts-qwen-emotions`.
+- Include the CPU onset-recovery behavior, segmented narration controls
+  (`flush`, `segment_start`, `skip_segment`), and language-detection endpoint
+  used by the Linux deployment.
+
+### Changed
+
+- Start eligible speech fragments at em dashes in both local and server paths.
+- Preserve experimental prefix-splice work on its own development branch rather
+  than including it in the production package.
+- Rehearse the GPU/CPU installation and real-speech workflows on TestPyPI before
+  publishing final artifacts to PyPI. Platform verification is a release gate,
+  not an import-only claim; see `docs/qwen-release-rehearsal.md`.
+
 ## 0.8.4 - 2026-08-31
 
 ### Added

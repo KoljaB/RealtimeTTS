@@ -475,6 +475,6 @@ class QwenCpuEngine(QwenEngine):
     def _installation_help() -> str:
         return (
             "QwenCpuEngine requires the CPU wheel realtimetts-qwen-native-cpu "
-            "(0.3.0). Install realtimetts[qwen-cpu] or "
+            "(0.3.0rc1). Install realtimetts[qwen-cpu] or "
             "realtimetts[qwen-cpu-server]."
         )

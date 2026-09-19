@@ -5,7 +5,6 @@ from ._version import __version__
 __all__ = [
     "__version__",
     "TextToAudioStream", "BaseEngine", "TimingInfo",
-    "PrefixSpliceEngine", "QwenHttpSynthesizer",
     "SystemEngine", "SystemVoice",
     "AzureEngine", "AzureVoice",
     "ElevenlabsEngine", "ElevenlabsVoice",
@@ -544,10 +543,6 @@ _lazy_imports = {
 
 
 def __getattr__(name):
-    if name in ("PrefixSpliceEngine", "QwenHttpSynthesizer"):
-        from .engines.prefix_splice_engine import PrefixSpliceEngine, QwenHttpSynthesizer
-        globals().update(PrefixSpliceEngine=PrefixSpliceEngine, QwenHttpSynthesizer=QwenHttpSynthesizer)
-        return globals()[name]
     if name in _lazy_imports:
         _lazy_imports[name]()
         return globals()[name]

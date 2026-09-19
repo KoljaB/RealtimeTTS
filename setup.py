@@ -134,7 +134,7 @@ qwen_common_requirements = qwen_native_requirements + [
 ]
 qwen_requirements = qwen_common_requirements + pyaudio_requirements
 qwen_cpu_common_requirements = [
-    "realtimetts-qwen-native-cpu==0.3.0",
+    "realtimetts-qwen-native-cpu==0.3.0rc1",
     requirements.get("numpy", "numpy"),
     requirements.get("soundfile", "soundfile>=0.13.1"),
 ]
@@ -312,9 +312,6 @@ extras_require = {
     "moss-tts": standard_requirements + moss_requirements,
     "higgs": standard_requirements + higgs_requirements,
     "alignment": standard_requirements + alignment_requirements,
-    "prefix-splice": base_requirements + pyaudio_requirements + [
-        "numpy", "scipy", "torch>=2.6", "transformers>=4.40,<6", "phonemizer>=3.2",
-    ],
     "omniasr": standard_requirements + omniasr_requirements,
     "piper": standard_requirements,
     # Qwen uses PyAudio for the in-process playback path. The server extra is

@@ -72,6 +72,20 @@ COMPONENT_PROFILES: dict[str, dict[str, object]] = {
         "publishable": False,
         "required_dependencies": {"realtimetts-qwen-native": "0.2.0+cpu2"},
     },
+    # Public package qualification against the actual CPU production service.
+    # The private cpu2 profile above remains deployment-only.
+    "RealtimeTTSPublicCPU": {
+        "distribution": "realtimetts",
+        "packages": (("RealtimeTTS", "RealtimeTTS", "RealtimeTTS"),),
+        "signer": "linux-services",
+        "signer_fingerprint": "SHA256:ODuksd5J17paccWV+N0zWfczcc1iV30V5mQytjiar2w",
+        "remote_repository": "github.com/koljab/realtimetts",
+        "remote_branch": "master",
+        "service_required": True,
+        "service_name": "wwz-qwen3-tts-cpu.service",
+        "publishable": True,
+        "required_dependencies": {"realtimetts-qwen-native-cpu": "0.3.0rc1"},
+    },
     "RealtimeTTSQwenNativeCPU": {
         "distribution": "realtimetts-qwen-native",
         "packages": (("qwentts_cpp", "src/qwentts_cpp", "qwentts_cpp"),),
@@ -106,7 +120,7 @@ COMPONENT_PROFILES: dict[str, dict[str, object]] = {
         "signer": "linux-services",
         "signer_fingerprint": "SHA256:ODuksd5J17paccWV+N0zWfczcc1iV30V5mQytjiar2w",
         "remote_repository": "github.com/koljab/realtimetts-qwen-native",
-        "remote_branch": "main",
+        "remote_branch": "codex/qwen-cpu-public-release",
         "service_required": True,
         "service_name": "wwz-qwen3-tts-cpu.service",
         "publishable": True,
@@ -119,7 +133,7 @@ COMPONENT_PROFILES: dict[str, dict[str, object]] = {
         "required_wheel_platforms": (
             "manylinux_2_35_x86_64",
             "win_amd64",
-            "macosx_10_9_x86_64",
+            "macosx_13_0_x86_64",
             "macosx_11_0_arm64",
         ),
         "native_revision": "b47728bd6cb60331bd02afacb390e533479329b5",
@@ -132,7 +146,7 @@ COMPONENT_PROFILES: dict[str, dict[str, object]] = {
                 ("qwentts_cpp_cpu/lib/qwen.dll", "qwentts_cpp_cpu/lib/libqwen.dll"),
                 ("qwentts_cpp_cpu/lib/ggml-cpu.dll",),
             ),
-            "macosx_10_9_x86_64": (
+            "macosx_13_0_x86_64": (
                 ("qwentts_cpp_cpu/lib/libqwen.dylib",),
                 ("qwentts_cpp_cpu/lib/libggml-cpu.dylib",),
             ),
@@ -141,9 +155,9 @@ COMPONENT_PROFILES: dict[str, dict[str, object]] = {
                 ("qwentts_cpp_cpu/lib/libggml-cpu.dylib",),
             ),
         },
-        # Native sdists contain the Python wrapper only; platform wheels carry
-        # the compiled runtime and are the artifacts sent to PyPI.
-        "publish_sdist": False,
+        # Publish the source artifact too; unsupported source builds must fail
+        # explicitly rather than silently producing a library-less wheel.
+        "publish_sdist": True,
     },
     "RealtimeTTSQwenNative": {
         "distribution": "realtimetts-qwen-native",

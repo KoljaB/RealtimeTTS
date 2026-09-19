@@ -64,7 +64,7 @@ process-wide GPU visibility. The binding checks the actual library before
 loading a model and rejects an incompatible library, including a custom
 `library_path`.
 
-The next-release CPU extras pin `realtimetts-qwen-native-cpu==0.3.0`, which
+The next-release CPU extras pin `realtimetts-qwen-native-cpu==0.3.0rc1`, which
 installs `qwentts_cpp_cpu` without CUDA dependencies or files shared with the
 GPU package. Use `qwen-cpu` for local playback or `qwen-cpu-server` for
 HTTP/WebSocket serving without PyAudio. This candidate is not on PyPI yet;
@@ -231,9 +231,9 @@ Qwen support is a coordinated release of `RealtimeTTS` and the distinct
 upstream `qwentts-cpp-python` binding and `qwentts.cpp` runtime under a
 RealtimeTTS-owned PyPI name. Its Python import remains `qwentts_cpp`.
 
-RealtimeTTS 0.8.4 requires `realtimetts-qwen-native==0.2.0` with C ABI 5.
+The GPU extra requires `realtimetts-qwen-native==0.2.0` with C ABI 5.
 Validated CUDA 12.8 (`1cu128`) wheels are provided for Windows and Linux
-x86-64. Other operating systems are not supported release targets.
+x86-64. macOS uses the separate CPU package described above, not this CUDA wheel.
 
 Install the normal CUDA wheel with:
 
@@ -245,7 +245,7 @@ python -m qwentts_cpp doctor
 `--only-binary=realtimetts-qwen-native` makes a missing platform wheel fail clearly;
 there is no qwentts source-distribution fallback. If no wheel matches your
 platform, Python, or architecture, build a wheel as described in [Build a
-local native wheel](#build-a-local-native-wheel), then install it from a
+local native wheel](#advanced-build-a-local-gpu-native-wheel), then install it from a
 wheelhouse. A repaired wheel does not need a compiler or CUDA Toolkit at
 runtime; it does need a compatible NVIDIA driver for CUDA builds.
 
@@ -274,13 +274,13 @@ The HTTP speech endpoint intentionally
 synthesizes each submitted `input` as one request, matching the native
 qwentts.cpp server contract; it does not split that text into sentence seams.
 
-This extra uses PyAudio/PortAudio for supported local playback. On Windows use
+The local `qwen` and `qwen-cpu` extras use PyAudio/PortAudio for playback. On Windows use
 Python 3.10–3.13, for which PyAudio publishes prebuilt wheels. On Linux install
 `portaudio19-dev` before this extra; on macOS install `portaudio` with Homebrew.
 Python 3.13 also installs the prebuilt `audioop-lts` compatibility module needed
 by pydub.
 
-## Native wheel compatibility
+## GPU native wheel compatibility
 
 The native Qwen binding is `ctypes`-based rather than a CPython extension, so
 its `py3-none` wheel can load on Python 3.10 through 3.14. Supported RealtimeTTS
@@ -294,8 +294,8 @@ when local Windows playback requires PyAudio.
 | Windows 10/11 x86-64 | `realtimetts-qwen-native==0.2.0`, `1cu128`, `py3-none-win_amd64`; AVX2/FMA/F16C/BMI2 CPU; NVIDIA GPU with compute capability 7.5 or newer; CUDA-12-compatible driver. This is the primary Windows release target. |
 | Linux x86-64 | `realtimetts-qwen-native==0.2.0`, `1cu128`, `py3-none-manylinux_2_35_x86_64`; glibc 2.35 or newer (Ubuntu 22.04/24.04); AVX2/FMA/F16C/BMI2 CPU; NVIDIA GPU with compute capability 7.5 or newer. This is the primary Linux release target. |
 | Linux AArch64 | `realtimetts-qwen-native==0.2.0`, `py3-none-manylinux_2_35_aarch64`; built and hash-verified as a required 0.2.0 release artifact. Runtime model acceptance remains focused on the production Linux x86-64 host. |
-| Linux CPU | A locally built `manylinux` wheel is possible, but CPU realtime performance is not a supported release guarantee. |
-| macOS / Apple Silicon | No supported prebuilt wheel. `qwentts.cpp` itself has a Metal backend, but the Python wheel helper has no `metal` backend and its macOS library-copy list does not include `libggml-metal.dylib`; the route below is an unverified CPU-only experiment. |
+| CPU-only installations | Use the distinct `realtimetts-qwen-native-cpu` package through `qwen-cpu-server` or `qwen-cpu`; do not install the CUDA native package as a CPU workaround. See the CPU candidate status above. |
+| macOS / Apple Silicon | No CUDA wheel. Separate CPU candidates target Intel macOS 13+ and Apple Silicon macOS 11+; installation and actual synthesis on both architectures are required before publication. Metal acceleration is outside this release. |
 | CUDA | The default published CUDA wheel is built with CUDA 12.8. The `[cuda12]` extra supplies NVIDIA's `nvidia-cuda-runtime-cu12` and `nvidia-cublas-cu12` packages (`>=12.8,<13`); a compatible NVIDIA driver is still required. |
 
 AMD/Vulkan, Alpine/musl, Windows ARM64, and guaranteed realtime CPU synthesis
@@ -316,7 +316,7 @@ as `+cpu`, `+cu124`, `+cu128`, and `+cu130` through its Hugging Face wheel
 index. Those variants are useful for a private wheelhouse, but are not a
 substitute for the single default backend flavor published to PyPI.
 
-## Build a local native wheel
+## Advanced: build a local GPU-native wheel
 
 Use the upstream [`qwentts-cpp-python`](https://github.com/andimarafioti/qwentts-cpp-python)
 `scripts/build_native.py` helper. Run these commands from that repository, and
