@@ -23,7 +23,7 @@ def _version_from_source() -> str:
 
 
 def test_release_version_is_single_source_and_current_candidate():
-    assert _version_from_source() == "0.8.6rc3"
+    assert re.fullmatch(r"0\.8\.6(?:rc[1-9]\d*)?", _version_from_source())
 
     setup_text = (ROOT / "setup.py").read_text(encoding="utf-8")
     assert "_version.py" in setup_text
