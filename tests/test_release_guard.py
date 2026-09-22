@@ -429,6 +429,30 @@ class ReleaseGuardTests(unittest.TestCase):
                 {"versions": {"realtimetts-qwen-native": "0.2.0"}}, profile,
             )
 
+    def test_overlap_deployment_profiles_stay_private_and_cpu_only(self) -> None:
+        for name in ("RealtimeTTSCPUOverlap", "RealtimeTTSQwenNativeCPUOverlap",
+                     "RealtimeTTSCPUStartup", "RealtimeTTSQwenNativeCPUStartup"):
+            profile = release_guard._component_profile(name)
+            self.assertEqual(profile["service_name"], "wwz-qwen3-tts-cpu.service")
+            self.assertEqual(profile["signer_fingerprint"],
+                             release_guard.COMPONENT_PROFILES["RealtimeTTS"]["signer_fingerprint"])
+            with self.assertRaises(release_guard.GuardError):
+                release_guard._service_name(profile, "wwz-qwen3-tts.service")
+            with self.assertRaisesRegex(release_guard.GuardError, "not publishable"):
+                release_guard._component_profile(name, publishing=True)
+        self.assertEqual(
+            release_guard.COMPONENT_PROFILES["RealtimeTTSCPUOverlap"]["required_dependencies"],
+            {"realtimetts-qwen-native-cpu": "0.3.0+overlap20260920"},
+        )
+        self.assertEqual(
+            release_guard.COMPONENT_PROFILES["RealtimeTTSCPUStartup"]["required_dependencies"],
+            {"realtimetts-qwen-native-cpu": "0.3.0+startup20260920.1"},
+        )
+        self.assertEqual(
+            release_guard.COMPONENT_PROFILES["RealtimeTTSQwenNativeCPUStartup"]["native_revision"],
+            "0b7862a660cafaf550f50b8da880e8eace90d425",
+        )
+
     def test_public_cpu_native_profile_is_separate_and_publishable(self) -> None:
         private = release_guard._component_profile("RealtimeTTSQwenNativeCPU")
         public = release_guard._component_profile(
@@ -456,7 +480,7 @@ class ReleaseGuardTests(unittest.TestCase):
         )
         self.assertEqual(
             public["native_revision"],
-            "b47728bd6cb60331bd02afacb390e533479329b5",
+            "ec5336154a68f9e17f95c3d99b3b97489cb090a6",
         )
         self.assertTrue(public["publish_sdist"])
 

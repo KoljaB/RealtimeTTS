@@ -147,5 +147,57 @@ def test_server_demo_registers_wav_and_streams_pcm_without_local_engine(tmp_path
 
 
 def test_demo_is_packaged_and_console_entry_point_is_preserved():
+    assert (ROOT / "RealtimeTTS" / "qwen_emotions.py").read_text(encoding="utf-8") == (
+        ROOT / "tests" / "faster_qwen_emotions.py"
+    ).read_text(encoding="utf-8")
     assert (ROOT / "RealtimeTTS" / "qwen_emotions.py").is_file()
     assert "realtimetts-qwen-emotions=RealtimeTTS.qwen_emotions:main" in (ROOT / "setup.py").read_text()
+
+def test_compact_native_filter_preserves_warnings_errors_and_unknown_lines(capfd):
+    with demo.filtered_native_stderr(enabled=True):
+        import os
+        for line in (
+            "[Talker] Loaded: 28 layers\n",
+            "[Prompt] Built: 14 ids\n",
+            "[GGUF] model.gguf: 478 tensors, data at offset 1234\n",
+            "[SpeakerEncoder] Loaded: enc_dim=1024\n",
+            "[SpkExtract] Extracted 1024-dim embedding (228926 samples, padded 229694)\n",
+            "ggml_cuda_init: found 1 CUDA devices (Total VRAM: 8191 MiB):\n",
+            "  Device 0: RTX 2080 SUPER, compute capability 7.5, VMM: yes, VRAM: 8191 MiB\n",
+            "ggml_backend_cuda_graph_compute: CUDA graph warmup complete\n",
+            "ggml_backend_cuda_graph_compute: CUDA graph warmup reset\n",
+            "ggml_cuda_init: CUDA error: out of memory\n",
+            "[BPE] WARNING: missing token\n",
+            "[Prompt] FATAL: empty input\n",
+            "unrecognized native diagnostic\n",
+        ):
+            os.write(2, line.encode())
+    captured = capfd.readouterr().err
+    assert "Loaded:" not in captured and "Built:" not in captured and "478 tensors" not in captured
+    assert "Extracted" not in captured and "CUDA graph warmup" not in captured
+    assert "CUDA devices" not in captured and "Device 0:" not in captured
+    assert "CUDA error: out of memory" in captured
+    assert "WARNING: missing token" in captured
+    assert "FATAL: empty input" in captured
+    assert "unrecognized native diagnostic" in captured
+
+
+def test_native_callback_is_removed_even_when_model_loading_fails():
+    callbacks = []
+
+    class Library:
+        def __init__(self, path):
+            pass
+
+        def set_log_callback(self, callback):
+            callbacks.append(callback)
+
+    console = demo.DemoConsole(stdout=io.StringIO(), stderr=io.StringIO())
+    with pytest.raises(RuntimeError, match="load failed"):
+        with demo.native_diagnostics(types.SimpleNamespace(QwenLibrary=Library), None, console):
+            callbacks[-1](1, "hidden info")
+            callbacks[-1](2, "visible warning")
+            raise RuntimeError("load failed")
+    assert callbacks[-1] is None
+    assert "hidden info" not in console.stderr.getvalue()
+    assert "visible warning" in console.stderr.getvalue()

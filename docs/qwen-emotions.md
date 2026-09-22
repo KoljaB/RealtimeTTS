@@ -8,7 +8,7 @@ strong language. Emotion comes from the recording, not an instruction prompt.
 
 ## Release and platform support
 
-These commands target RealtimeTTS 0.8.6 and CPU native runtime 0.3.0. Use
+These commands target RealtimeTTS 0.8.7 and CPU native runtime 0.4.0. Use
 Python 3.11 or 3.12 for the Qwen workflows. Core-package Python support does
 not imply that every optional audio/native dependency supports newer Python.
 

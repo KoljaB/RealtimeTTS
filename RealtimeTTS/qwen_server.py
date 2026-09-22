@@ -799,6 +799,9 @@ class QwenHttpServer:
                 "backend": "qwentts.cpp",
                 "device": device,
                 "cpu_threads": getattr(self.engine, "cpu_threads", None),
+                **{name: getattr(self.engine, name, 0) for name in (
+                    "cpu_codec_threads", "cpu_stream_frames", "cpu_affinity", "cpu_codec_affinity"
+                )},
                 "cpu_only": bool(getattr(self.engine, "cpu_only", False)),
                 "clone_mode": str(self._sampling_defaults.get("clone_mode", "auto")),
                 "clone_modes": ["auto", "speaker_only"] if getattr(self.engine, "model_type", "base") == "base" else [],
@@ -2379,6 +2382,14 @@ def build_argument_parser() -> argparse.ArgumentParser:
         "--cpu-threads", type=int, default=None,
         help="CPU worker count (requires --device cpu; default: up to 8)",
     )
+    parser.add_argument("--cpu-codec-threads", type=int, default=0,
+                        help="Separate CPU codec workers; positive values enable overlap")
+    parser.add_argument("--cpu-stream-frames", type=int, choices=(0, 1, 2, 4), default=0,
+                        help="CPU streaming chunk frames; 0 keeps the native default")
+    parser.add_argument("--cpu-affinity", type=lambda value: int(value, 0), default=0,
+                        help="Generation pool logical CPU mask, e.g. 0x555; 0 is unpinned")
+    parser.add_argument("--cpu-codec-affinity", type=lambda value: int(value, 0), default=0,
+                        help="Codec pool logical CPU mask; requires --cpu-codec-threads")
     parser.add_argument(
         "--clone-mode", choices=("auto", "speaker_only"), default=None,
         help="Cloning default: speaker_only for CPU; auto follows reference transcripts for native",
@@ -2515,6 +2526,16 @@ def main(argv: Optional[Sequence[str]] = None) -> None:
         args.device != "cpu" or not 1 <= args.cpu_threads <= 256
     ):
         parser.error("--cpu-threads requires --device cpu and a value between 1 and 256")
+    if any((args.cpu_codec_threads, args.cpu_stream_frames, args.cpu_affinity,
+            args.cpu_codec_affinity)) and args.device != "cpu":
+        parser.error("CPU scheduling options require --device cpu")
+    if not 0 <= args.cpu_codec_threads <= 256:
+        parser.error("--cpu-codec-threads must be between 0 and 256")
+    for name in ("cpu_affinity", "cpu_codec_affinity"):
+        if not 0 <= getattr(args, name) < 2**64:
+            parser.error(f"--{name.replace('_', '-')} must be an unsigned 64-bit mask")
+    if args.cpu_codec_affinity and not args.cpu_codec_threads:
+        parser.error("--cpu-codec-affinity requires --cpu-codec-threads")
     if bool(args.model) != bool(args.codec):
         parser.error("--model and --codec must be supplied together")
     if not 1 <= args.port <= 65535:
@@ -2585,6 +2606,10 @@ def main(argv: Optional[Sequence[str]] = None) -> None:
     device_options = (
         {
             "cpu_threads": args.cpu_threads,
+            "cpu_codec_threads": args.cpu_codec_threads,
+            "cpu_stream_frames": args.cpu_stream_frames,
+            "cpu_affinity": args.cpu_affinity,
+            "cpu_codec_affinity": args.cpu_codec_affinity,
             "onset_silence_recovery": args.onset_silence_recovery,
         }
         if args.device == "cpu"

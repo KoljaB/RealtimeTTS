@@ -3,6 +3,7 @@ import re
 from pathlib import Path
 
 import setuptools
+from setuptools.command.build_py import build_py as _build_py
 
 _ROOT = Path(__file__).resolve().parent
 _version_text = (Path(__file__).resolve().parent / "RealtimeTTS" / "_version.py").read_text(
@@ -12,6 +13,19 @@ _version_match = re.search(r'^__version__ = "([^"]+)"$', _version_text, re.MULTI
 if _version_match is None:
     raise RuntimeError("Could not determine RealtimeTTS package version")
 current_version = _version_match.group(1)
+
+class BuildPy(_build_py):
+    """Ship the complete demo from its original editable source location."""
+
+    def run(self):
+        super().run()
+        source = _ROOT / "tests" / "faster_qwen_emotions.py"
+        target = Path(self.build_lib) / "RealtimeTTS" / "qwen_emotions.py"
+        # The normal build already creates this package directory. Force the
+        # canonical source over the checkout-only adapter, even on rebuilds.
+        import shutil
+        shutil.copyfile(source, target)
+
 
 # Read the contents of README.md
 with (_ROOT / "README.md").open("r", encoding="utf-8") as fh:
@@ -138,7 +152,7 @@ qwen_audio_requirements = [
 qwen_common_requirements = qwen_native_requirements + qwen_audio_requirements
 qwen_requirements = qwen_common_requirements + pyaudio_requirements
 qwen_cpu_common_requirements = [
-    "realtimetts-qwen-native-cpu==0.3.0",
+    "realtimetts-qwen-native-cpu==0.4.0",
 ] + qwen_audio_requirements
 qwen_server_requirements = [
     requirements.get("fastapi", "fastapi>=0.115,<1"),
@@ -340,6 +354,7 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/KoljaB/realtimetts",
     packages=setuptools.find_packages(exclude=["tests", "tests.*"]),
+    cmdclass={"build_py": BuildPy},
     classifiers=[
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.10",

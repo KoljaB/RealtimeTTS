@@ -64,7 +64,7 @@ process-wide GPU visibility. The binding checks the actual library before
 loading a model and rejects an incompatible library, including a custom
 `library_path`.
 
-The CPU extras pin `realtimetts-qwen-native-cpu==0.3.0`, which installs
+The CPU extras pin `realtimetts-qwen-native-cpu==0.4.0`, which installs
 `qwentts_cpp_cpu` without CUDA dependencies or files shared with the GPU
 package. Use `qwen-cpu` for local playback or `qwen-cpu-server` for
 HTTP/WebSocket serving without PyAudio. See the
@@ -460,7 +460,7 @@ For a Windows/Linux/macOS CPU wheel, use a separate fresh environment instead:
 python -m venv /path/to/fresh-cpu-venv
 /path/to/fresh-cpu-venv/bin/python -m pip install \
   --find-links /path/to/wheelhouse \
-  "realtimetts-qwen-native-cpu==0.3.0"
+  "realtimetts-qwen-native-cpu==0.4.0"
 /path/to/fresh-cpu-venv/bin/python -c \
   "from qwentts_cpp_cpu import QwenLibrary, QT_ABI_VERSION; print(QwenLibrary().version(), QT_ABI_VERSION)"
 ```

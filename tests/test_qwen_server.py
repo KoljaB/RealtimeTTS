@@ -902,11 +902,25 @@ def test_cpu_cli_constructs_cpu_engine_with_requested_threads(monkeypatch):
     monkeypatch.setitem(sys.modules, "uvicorn", SimpleNamespace())
     monkeypatch.setattr(qwen_server_module, "QwenCpuEngine", cpu_engine)
     with pytest.raises(ConstructionReached):
-        qwen_server_module.main(["--device", "cpu", "--cpu-threads", "6", "--clone-mode", "speaker_only"])
+        qwen_server_module.main([
+            "--device", "cpu", "--cpu-threads", "6", "--clone-mode", "speaker_only",
+            "--cpu-codec-threads", "4", "--cpu-stream-frames", "2",
+            "--cpu-affinity", "0x3f", "--cpu-codec-affinity", "0xf00",
+        ])
     assert calls[0]["cpu_threads"] == 6
+    assert calls[0]["cpu_codec_threads"] == 4
+    assert calls[0]["cpu_stream_frames"] == 2
+    assert calls[0]["cpu_affinity"] == 0x3f
+    assert calls[0]["cpu_codec_affinity"] == 0xf00
     assert calls[0]["clamp_fp16"] is False
     assert calls[0]["clone_mode"] == "speaker_only"
-    for argv in (["--cpu-threads", "6"], ["--device", "cpu", "--cpu-threads", "0"]):
+    for argv in (
+        ["--cpu-threads", "6"], ["--device", "cpu", "--cpu-threads", "0"],
+        ["--cpu-codec-threads", "4"], ["--device", "cpu", "--cpu-codec-threads", "-1"],
+        ["--device", "cpu", "--cpu-stream-frames", "3"],
+        ["--device", "cpu", "--cpu-affinity", "-1"],
+        ["--device", "cpu", "--cpu-codec-affinity", "0xf00"],
+    ):
         with pytest.raises(SystemExit):
             qwen_server_module.main(argv)
 
@@ -915,11 +929,19 @@ def test_cpu_capabilities_preserve_api_contract(tmp_path):
     engine = FakeEngine()
     engine.device = "cpu"
     engine.cpu_threads = 6
+    engine.cpu_codec_threads = 4
+    engine.cpu_stream_frames = 2
+    engine.cpu_affinity = 0x3f
+    engine.cpu_codec_affinity = 0xf00
     engine.engine_name = "qwen_cpu"
     with TestClient(create_app(_server(tmp_path, engine))) as client:
         payload = client.get("/v1/capabilities").json()
         assert payload["engine"]["device"] == "cpu"
         assert payload["engine"]["cpu_threads"] == 6
+        assert payload["engine"]["cpu_codec_threads"] == 4
+        assert payload["engine"]["cpu_stream_frames"] == 2
+        assert payload["engine"]["cpu_affinity"] == 0x3f
+        assert payload["engine"]["cpu_codec_affinity"] == 0xf00
         assert payload["endpoints"]["speech"] == "/v1/audio/speech"
         assert payload["endpoints"]["speech_stream"] == "/v1/audio/speech-stream"
 

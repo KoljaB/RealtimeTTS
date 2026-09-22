@@ -65,9 +65,15 @@ em-dash speech, streaming segment controls, and language detection. See the
 [QwenEngine guide](docs/engines/qwen.md) for models, voices, authentication,
 language routing, and reproducing the deployed CPU settings.
 
+CPU decoder overlap is available through explicit worker and chunk settings.
+See [CPU scheduling and measured results](docs/qwen-cpu-scheduling.md).
+
 ### Emotional Qwen demo from the video
 
-The advertised `faster_qwen_emotions.py` command is restored and supported.
+The complete editable demo is in `tests/faster_qwen_emotions.py`, including the
+voice texts and playback loop. Its compact colored output is the default;
+add `--verbose` for native diagnostics. Warnings and errors remain visible.
+The packaged `RealtimeTTS.qwen_emotions` command is built from the same source.
 It keeps the original eleven emotional references/texts and the 0.6B Base Q8
 speaker-only workflow. In an activated Python 3.11 or 3.12 environment:
 

@@ -4,3 +4,4 @@ include CHANGELOG.md
 include requirements.txt
 include README.md
 prune tests
+include tests/faster_qwen_emotions.py

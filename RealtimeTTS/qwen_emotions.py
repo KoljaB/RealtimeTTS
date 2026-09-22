@@ -1,12 +1,17 @@
-"""The public emotional Qwen showcase, on the maintained native backend.
+"""The complete, editable emotional Qwen showcase.
 
-The historical tests/faster_qwen_emotions.py command delegates here. The original
-0.6B Base model, speaker-only mode, reference recordings and texts are retained.
-Instructions below are descriptive labels; Base does not support instruct.
+Run this file directly: python faster_qwen_emotions.py --device cpu
+The voice definitions, setup, playback loop and terminal presentation live here.
+Default output is compact and colored; --verbose includes native diagnostics.
+The original 0.6B Base model and speaker-only reference cloning are retained.
+Instruct labels describe each emotion; Base does not support instruction control.
+The packaged RealtimeTTS.qwen_emotions command is built from this same file.
 """
 from __future__ import annotations
 
 import argparse
+from contextlib import contextmanager
+import ctypes
 import base64
 import hashlib
 import importlib
@@ -14,13 +19,16 @@ import json
 import os
 from pathlib import Path
 import queue
+import re
 import sys
 import time
+import threading
+import traceback
 import urllib.error
 import urllib.request
 import wave
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, TextIO
 
 MODEL_ID = "Qwen/Qwen3-TTS-12Hz-0.6B-Base"
 ASSET_REVISION = "26f8dfd03de957480a6a95f451d366a3aae15d8a"
@@ -41,6 +49,158 @@ ASSET_HASHES = {
     "realization": "1aeb32dde90298a0118fdb0b5aaf973478761a731d72cb7079e5f4f1833b57f1",
     "distress": "7291e705c1a29e23783663161dca94ffb8156071ad1fe69b3c3bc053df2371bb",
 }
+
+
+def _enable_windows_colors(stream: TextIO) -> None:
+    if os.name != "nt" or not stream.isatty():
+        return
+    import msvcrt
+
+    try:
+        kernel = ctypes.WinDLL("kernel32", use_last_error=True)
+        kernel.GetConsoleMode.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_ulong)]
+        kernel.SetConsoleMode.argtypes = [ctypes.c_void_p, ctypes.c_ulong]
+        handle = msvcrt.get_osfhandle(stream.fileno())
+        mode = ctypes.c_ulong()
+        if kernel.GetConsoleMode(handle, ctypes.byref(mode)):
+            kernel.SetConsoleMode(handle, mode.value | 0x0004)
+    except (OSError, ValueError, AttributeError):
+        pass
+
+
+class DemoConsole:
+    """Match the original demo's colors while keeping redirected logs readable."""
+
+    def __init__(self, *, verbose: bool = False, color: str = "auto",
+                 stdout: TextIO | None = None, stderr: TextIO | None = None):
+        self.stdout = stdout if stdout is not None else sys.stdout
+        self.stderr = stderr if stderr is not None else sys.stderr
+        self.verbose = verbose
+        self.color = color == "always" or (
+            color == "auto" and self.stdout.isatty() and "NO_COLOR" not in os.environ
+        )
+        if self.color:
+            _enable_windows_colors(self.stdout)
+            _enable_windows_colors(self.stderr)
+
+    def paint(self, text: str, code: str) -> str:
+        return f"\033[{code}m{text}\033[0m" if self.color else text
+
+    def write(self, text: str = "", *, error: bool = False) -> None:
+        stream = self.stderr if error else self.stdout
+        # Redirected legacy Windows consoles can use a narrow code page.
+        encoding = getattr(stream, "encoding", None) or "utf-8"
+        text = text.encode(encoding, errors="replace").decode(encoding)
+        print(text, file=stream, flush=True)
+
+    def status(self, message: str) -> None:
+        self.write(self.paint(message, "94"))
+
+    def voices(self, entries) -> None:
+        self.write(self.paint("Preparing emotional voices:", "93"))
+        for entry in entries:
+            self.write(self.paint(f"  • {entry.name}", "93"))
+
+    def ready(self) -> None:
+        self.write(self.paint("All emotion voices are prepared and cached.", "92"))
+
+    def start(self, *, no_play: bool = False) -> None:
+        self.status("START of synthesis." if no_play else "START of playout.")
+
+    def emotion(self, entry, text: str) -> None:
+        self.write()
+        self.write(self.paint("Switching to emotion:", "94") + " " + self.paint(entry.name, "1"))
+        self.write("  " + self.paint("Instruct:", "93") + " " + entry.instruct)
+        self.write("  " + self.paint("Text:", "93") + " " + text)
+
+    def synthesizing(self, sentence: str) -> None:
+        self.write(self.paint("⚡ synthesizing", "96;1") + f" → '{sentence}'")
+
+    def synthesized(self, _sentence: str = "") -> None:
+        self.write(self.paint("✔ SYNTHESIS FINISHED", "92;1"))
+
+    def first_audio(self, seconds: float, *, played: bool = True) -> None:
+        label = "TTFA" if played else "first PCM"
+        self.write(f"<{label}> {seconds:.3f}s")
+
+    def saved(self, path, duration: float, *, no_play: bool = False) -> None:
+        if self.verbose or no_play:
+            self.write(f"Saved {path} ({duration:.2f}s audio)")
+
+    def finish(self, *, no_play: bool = False) -> None:
+        self.status("FINISH of synthesis." if no_play else "FINISH of playout.")
+
+    def diagnostic(self, level: int, message: str) -> None:
+        # qwentts.cpp: DEBUG=0, INFO=1, WARN=2, ERROR=3.
+        if level >= 2:
+            self.write(self.paint(message.rstrip(), "91" if level >= 3 else "93"), error=True)
+
+
+
+# Several native headers write directly to stderr instead of qt_log. Suppress
+# only their known informational records; unknown lines and errors pass through.
+_NATIVE_INFO = re.compile(
+    r"^(?:\[GGUF\] .+: \d+ tensors, data at offset \d+"
+    r"|\[(?:WeightCtx|Talker|CodePredictor|Quantizer|Transformer|Upsample|DAC|SpeakerEncoder|SEANet|EncTransformer|EncDownsample|EncQuantizer)\] Loaded:? .+"
+    r"|\[KVCache\] Allocated: .+"
+    r"|\[BPE\] (?:Loaded from GGUF: .+|Registered \d+ arch special tokens .+)"
+    r"|\[Prompt\] Built: .+"
+    r"|\[SpkExtract\] Extracted \d+-dim embedding \(\d+ samples, padded \d+\)"
+    r"|ggml_cuda_init: found \d+ CUDA devices \(Total VRAM: \d+ MiB\):"
+    r"|\s+Device \d+: .+, compute capability \d+\.\d+, VMM: (?:yes|no), VRAM: \d+ MiB"
+    r"|ggml_backend_cuda_graph_compute: CUDA graph warmup (?:complete|reset))$"
+)
+
+
+@contextmanager
+def filtered_native_stderr(*, enabled: bool):
+    if not enabled:
+        yield
+        return
+    sys.stderr.flush()
+    saved = os.dup(2)
+    read_fd, write_fd = os.pipe()
+
+    def forward():
+        with os.fdopen(read_fd, "rb") as source:
+            for line in source:
+                text = line.decode("utf-8", errors="replace").rstrip("\r\n")
+                if not _NATIVE_INFO.fullmatch(text):
+                    view = memoryview(line)
+                    while view:
+                        written = os.write(saved, view)
+                        view = view[written:]
+
+    reader = threading.Thread(target=forward, name="qwen-demo-stderr", daemon=True)
+    try:
+        os.dup2(write_fd, 2)
+        os.close(write_fd)
+        reader.start()
+        yield
+    finally:
+        sys.stderr.flush()
+        os.dup2(saved, 2)
+        if reader.ident is not None:
+            reader.join()
+        else:
+            os.close(read_fd)
+        os.close(saved)
+
+
+@contextmanager
+def native_diagnostics(native_module, library_path, console: DemoConsole):
+    """Filter native INFO before model loading; keep warnings/errors and cleanup."""
+    library = None
+    factory = getattr(native_module, "QwenLibrary", None)
+    with filtered_native_stderr(enabled=not console.verbose):
+        if not console.verbose and callable(factory):
+            library = factory(library_path)
+            library.set_log_callback(console.diagnostic)
+        try:
+            yield
+        finally:
+            if library is not None:
+                library.set_log_callback(None)
 
 
 def cache_root() -> Path:
@@ -186,7 +346,20 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--language", default="English")
     parser.add_argument("--text", help="Override the original spoken text for a short smoke test.")
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("-v", "--verbose", action="store_true",
+                        help="Include native loading, frame and performance diagnostics.")
+    parser.add_argument("--color", choices=("auto", "always", "never"), default="auto",
+                        help="Terminal colors; auto respects redirection and NO_COLOR.")
     parser.add_argument("--cpu-threads", type=int)
+    parser.add_argument("--cpu-codec-threads", type=int, default=0,
+                        help="Separate CPU codec workers; 0 keeps serial execution.")
+    parser.add_argument("--cpu-stream-frames", type=int, choices=(0, 1, 2, 4), default=0,
+                        help="CPU stream chunk width; 2 delivers 160 ms chunks.")
+    parser.add_argument("--cpu-affinity", type=lambda value: int(value, 0), default=0,
+                        help="Optional CPU worker bitmask, e.g. 0x555.")
+    parser.add_argument("--cpu-codec-affinity", type=lambda value: int(value, 0), default=0,
+                        help="Optional separate codec worker bitmask.")
+    parser.add_argument("--library-path", type=Path, help="Explicit native library for a local engine.")
     parser.add_argument("--model", type=Path, help="Optional local 0.6B Base talker GGUF.")
     parser.add_argument("--codec", type=Path, help="Optional local tokenizer GGUF.")
     parser.add_argument("--local-files-only", action="store_true", help="Disable model/reference downloads.")
@@ -197,7 +370,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 def _check_playback() -> None:
     try:
-        from ._audio_backend import pyaudio
+        from RealtimeTTS._audio_backend import pyaudio
     except ImportError as exc:
         raise RuntimeError(
             "For speaker playback install realtimetts[playback] (PortAudio is required "
@@ -248,70 +421,108 @@ def _native_module(device: str):
 
 def run_local(args, entries: list[EmotionEntry]) -> list[dict]:
     qwentts_cpp = _native_module(args.device)
-    from .engines.qwen_engine import QwenEngine, QwenVoice
-    from .engines.qwen_cpu_engine import QwenCpuEngine
+    from RealtimeTTS.engines.qwen_engine import QwenEngine, QwenVoice
+    from RealtimeTTS.engines.qwen_cpu_engine import QwenCpuEngine
 
+    console = args.console
     cpu = getattr(qwentts_cpp, "CPU_ONLY", False) is True
     device = ("cpu" if cpu else "gpu") if args.device == "auto" else args.device
+    if device != "cpu" and any((args.cpu_threads is not None, args.cpu_codec_threads,
+                                args.cpu_stream_frames, args.cpu_affinity, args.cpu_codec_affinity)):
+        raise ValueError("CPU scheduling options require a CPU engine")
     if (device == "cpu") != cpu:
         raise RuntimeError(f"Requested {device}, but the installed native wheel is {'CPU' if cpu else 'GPU'}. Use separate environments.")
     options = dict(
         model_id=MODEL_ID, quant="Q8_0", voice=None, warmup=False,
         clone_mode="speaker_only", seed=args.seed,
         voice_cache_dir=args.cache_dir / "voices",
-        talker_path=args.model, codec_path=args.codec,
+        talker_path=args.model, codec_path=args.codec, library_path=args.library_path,
         local_files_only=args.local_files_only,
     )
     if cpu:
         options.update(
             cpu_threads=args.cpu_threads,
+            cpu_codec_threads=args.cpu_codec_threads,
+            cpu_stream_frames=args.cpu_stream_frames,
+            cpu_affinity=args.cpu_affinity,
+            cpu_codec_affinity=args.cpu_codec_affinity,
             onset_silence_profile="qwen3_tts_12hz_0_6b_base_q8_v1",
             onset_silence_recovery=True,
         )
-    print(f"Loading native Qwen {device.upper()} 0.6B Base Q8_0 ...", flush=True)
-    engine = (QwenCpuEngine if cpu else QwenEngine)(**options)
+
+    console.status(f"Loading native Qwen {device.upper()} 0.6B Base Q8_0 ...")
     results = []
-    try:
-        for entry in entries:
-            print(f"Preparing emotional reference: {entry.name} ...", flush=True)
-            entry.voice = QwenVoice(name=entry.name, ref_audio=entry.ref_audio,
-                                    ref_text=entry.ref_text, language=args.language)
-            engine.set_voice(entry.voice)
-        engine.set_voice(entries[0].voice)
-        print("Warming the loaded model ...", flush=True)
-        engine.warmup()
-        for entry in entries:
-            engine.set_voice(entry.voice)
-            text = args.text if args.text is not None else entry.speak_text
-            output = args.output_dir / f"{entry.name}.wav"
-            print(f"Speaking {entry.name}: {text}", flush=True)
-            start = time.perf_counter()
-            if args.no_play:
-                if not engine.synthesize(text):
-                    raise RuntimeError(f"Synthesis failed for {entry.name}: {engine.last_error}")
-                _write_pcm(output, _queued_pcm(engine))
-            else:
-                from .text_to_stream import TextToAudioStream
-                stream = TextToAudioStream(engine, on_audio_stream_start=lambda: print(
-                    f"<TTFA> {time.perf_counter() - start:.3f}s", flush=True))
-                stream.feed([text]).play(
-                    output_wavfile=str(output), log_synthesized_text=True,
-                    fast_sentence_fragment=False, force_first_fragment_after_words=9999,
-                    minimum_sentence_length=25, minimum_first_fragment_length=25,
-                    comma_silence_duration=0.15, sentence_silence_duration=0.3,
-                    default_silence_duration=0.3,
+    # Install the native filter before qt_init, including model-loading logs.
+    with native_diagnostics(qwentts_cpp, args.library_path, console):
+        engine = (QwenCpuEngine if cpu else QwenEngine)(**options)
+        stream = None
+        try:
+            console.voices(entries)
+            for entry in entries:
+                entry.voice = QwenVoice(name=entry.name, ref_audio=entry.ref_audio,
+                                        ref_text=entry.ref_text, language=args.language)
+                engine.set_voice(entry.voice)
+            engine.set_voice(entries[0].voice)
+            console.status("Warming the loaded model ...")
+            engine.warmup()
+            console.ready()
+
+            started = 0.0
+            if not args.no_play:
+                console.status("Preparing playback ...")
+                from RealtimeTTS.text_to_stream import TextToAudioStream, _get_stream2sentence
+                # One-time imports/tokenizer setup belong to preparation, before
+                # the user-facing START and the per-emotion TTFA clock.
+                _get_stream2sentence().init_tokenizer("nltk+rule-based", "en")
+                stream = TextToAudioStream(
+                    engine, on_audio_stream_start=lambda: console.first_audio(
+                        time.perf_counter() - started
+                    )
                 )
-                if engine.last_error is not None:
-                    raise RuntimeError(f"Synthesis failed for {entry.name}: {engine.last_error}")
-            duration = _check_wav(output)
-            profile = dict(engine.last_synthesis_profile)
-            result = dict(emotion=entry.name, device=device, output=str(output.resolve()),
-                          audio_seconds=duration, elapsed_seconds=time.perf_counter() - start,
-                          last_fragment_profile=profile)
-            results.append(result)
-            print(f"Saved {output} ({duration:.2f}s audio)", flush=True)
-    finally:
-        engine.shutdown()
+
+            console.start(no_play=args.no_play)
+            for entry in entries:
+                # Keep this loop here: this is the editable showcase, not a
+                # trampoline into a second implementation.
+                engine.set_voice(entry.voice)
+                text = args.text if args.text is not None else entry.speak_text
+                output = args.output_dir / f"{entry.name}.wav"
+                console.emotion(entry, text)
+                started = time.perf_counter()
+                if args.no_play:
+                    console.synthesizing(text)
+                    if not engine.synthesize(text):
+                        raise RuntimeError(f"Synthesis failed for {entry.name}: {engine.last_error}")
+                    _write_pcm(output, _queued_pcm(engine))
+                    first_pcm = engine.last_synthesis_profile.get("first_queue_ms")
+                    if first_pcm is not None:
+                        console.first_audio(first_pcm / 1000, played=False)
+                    console.synthesized()
+                else:
+                    stream.feed([text]).play(
+                        output_wavfile=str(output), log_synthesized_text=False,
+                        before_sentence_synthesized=console.synthesizing,
+                        on_sentence_synthesized=console.synthesized,
+                        fast_sentence_fragment=False, force_first_fragment_after_words=9999,
+                        minimum_sentence_length=25, minimum_first_fragment_length=25,
+                        comma_silence_duration=0.15, sentence_silence_duration=0.3,
+                        default_silence_duration=0.3,
+                    )
+                    if engine.last_error is not None:
+                        raise RuntimeError(f"Synthesis failed for {entry.name}: {engine.last_error}")
+                duration = _check_wav(output)
+                profile = dict(engine.last_synthesis_profile)
+                results.append(dict(
+                    emotion=entry.name, device=device, output=str(output.resolve()),
+                    audio_seconds=duration, elapsed_seconds=time.perf_counter() - started,
+                    last_fragment_profile=profile,
+                ))
+                console.saved(output, duration, no_play=args.no_play)
+            console.finish(no_play=args.no_play)
+        finally:
+            if stream is not None:
+                stream.stop()
+            engine.shutdown()
     return results
 
 
@@ -331,6 +542,7 @@ def _request(url: str, key: str, payload=None):
 
 
 def run_server(args, entries: list[EmotionEntry]) -> list[dict]:
+    console = args.console
     base = args.server.rstrip("/")
     if not base.startswith(("http://", "https://")):
         raise ValueError("--server must be an http:// or https:// URL")
@@ -348,22 +560,28 @@ def run_server(args, entries: list[EmotionEntry]) -> list[dict]:
     if args.device != "auto" and args.device != device:
         raise ValueError(f"Requested {args.device}, server reports {device}.")
     results = []
+    console.voices(entries)
+    console.start(no_play=args.no_play)
     for entry in entries:
         digest = hashlib.sha256(Path(entry.ref_audio).read_bytes()).hexdigest()[:12]
         name = f"emotions-demo-{entry.name}-{digest}"
-        print(f"Preparing server reference: {entry.name} ...", flush=True)
+        if console.verbose:
+            console.status(f"Preparing server reference: {entry.name} ...")
         with _request(base + "/v1/audio/voices", key, {
             "name": name, "ref_text": entry.ref_text,
             "wav_b64": base64.b64encode(Path(entry.ref_audio).read_bytes()).decode("ascii"),
         }) as response:
             json.load(response)
         output = args.output_dir / f"{entry.name}.wav"
+        text = args.text if args.text is not None else entry.speak_text
+        console.emotion(entry, text)
+        console.synthesizing(text)
         start = time.perf_counter()
         first_pcm_ms = None
         audio = playback = None
         try:
             if not args.no_play:
-                from ._audio_backend import pyaudio
+                from RealtimeTTS._audio_backend import pyaudio
                 audio = pyaudio.PyAudio()
                 playback = audio.open(format=pyaudio.paInt16, channels=1, rate=24000, output=True)
             with _request(base + "/v1/audio/speech", key, {
@@ -380,7 +598,7 @@ def run_server(args, entries: list[EmotionEntry]) -> list[dict]:
                             break
                         if first_pcm_ms is None:
                             first_pcm_ms = (time.perf_counter() - start) * 1000
-                            print(f"<first PCM> {first_pcm_ms:.1f}ms", flush=True)
+                            console.first_audio(first_pcm_ms / 1000, played=False)
                         pending += data
                         usable = len(pending) - len(pending) % 2
                         if usable:
@@ -400,7 +618,9 @@ def run_server(args, entries: list[EmotionEntry]) -> list[dict]:
         results.append(dict(emotion=entry.name, device=device, output=str(output.resolve()),
                             audio_seconds=duration, first_pcm_ms=first_pcm_ms,
                             elapsed_seconds=time.perf_counter() - start))
-        print(f"Saved {output} ({duration:.2f}s audio)", flush=True)
+        console.synthesized()
+        console.saved(output, duration, no_play=args.no_play)
+    console.finish(no_play=args.no_play)
     return results
 
 
@@ -410,12 +630,19 @@ def main(argv=None, *, default_reference_dir: Optional[Path] = None) -> int:
     if args.list:
         print("\n".join(ASSET_HASHES))
         return 0
+    for output_stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(output_stream, "reconfigure", None)
+        if callable(reconfigure):
+            reconfigure(encoding="utf-8", errors="replace")
+    args.console = DemoConsole(verbose=args.verbose, color=args.color)
     if args.text is not None and not args.text.strip():
         parser.error("--text must not be empty")
-    if args.server and any((args.model, args.codec, args.cpu_threads is not None)):
-        parser.error("--model, --codec and --cpu-threads configure a local engine, not an existing server")
-    if args.device == "gpu" and args.cpu_threads is not None:
-        parser.error("--cpu-threads requires a CPU engine")
+    cpu_options = any((args.cpu_threads is not None, args.cpu_codec_threads,
+                       args.cpu_stream_frames, args.cpu_affinity, args.cpu_codec_affinity))
+    if args.server and (cpu_options or any((args.model, args.codec, args.library_path))):
+        parser.error("--model, --codec and CPU scheduling options configure a local engine, not an existing server")
+    if args.device == "gpu" and cpu_options:
+        parser.error("CPU scheduling options require a CPU engine")
     reference_dir = args.reference_dir or default_reference_dir or args.cache_dir / "references"
     entries = build_emotion_entries(reference_dir.resolve())
     if args.emotions:
@@ -428,15 +655,20 @@ def main(argv=None, *, default_reference_dir: Optional[Path] = None) -> int:
         args.output_dir.mkdir(parents=True, exist_ok=True)
         results = (run_server if args.server else run_local)(args, entries)
         (args.output_dir / "results.json").write_text(json.dumps(results, indent=2), encoding="utf-8")
-        print("Emotional Qwen showcase completed successfully.", flush=True)
+        args.console.write(args.console.paint("Test completed successfully.", "92"))
         return 0
     except KeyboardInterrupt:
-        print("Cancelled.", file=sys.stderr)
+        args.console.write("Cancelled.", error=True)
         return 130
     except Exception as exc:
-        print(f"Qwen emotions demo failed: {exc}", file=sys.stderr, flush=True)
+        args.console.write(args.console.paint(f"Qwen emotions demo failed: {exc}", "91"), error=True)
+        if args.verbose:
+            traceback.print_exc()
         return 1
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    # Direct checkout use keeps the original references next to this script.
+    # In a wheel the module uses the ordinary user cache/download path.
+    reference_dir = Path(__file__).resolve().parent / "ears_emotional_speaker11"
+    raise SystemExit(main(default_reference_dir=reference_dir if reference_dir.is_dir() else None))

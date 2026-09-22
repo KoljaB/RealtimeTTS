@@ -84,7 +84,42 @@ COMPONENT_PROFILES: dict[str, dict[str, object]] = {
         "service_required": True,
         "service_name": "wwz-qwen3-tts-cpu.service",
         "publishable": True,
-        "required_dependencies": {"realtimetts-qwen-native-cpu": "0.3.0"},
+        "required_dependencies": {"realtimetts-qwen-native-cpu": "0.4.0"},
+    },
+    # Private Linux overlap installation, qualified independently of public wheels.
+    "RealtimeTTSCPUOverlap": {
+        "distribution": "realtimetts",
+        "packages": (("RealtimeTTS", "RealtimeTTS", "RealtimeTTS"),),
+        "signer": "linux-services",
+        "signer_fingerprint": "SHA256:ODuksd5J17paccWV+N0zWfczcc1iV30V5mQytjiar2w",
+        "remote_repository": "github.com/koljab/realtimetts",
+        "remote_branch": "master",
+        "service_required": True,
+        "service_name": "wwz-qwen3-tts-cpu.service",
+        "publishable": False,
+        "required_dependencies": {"realtimetts-qwen-native-cpu": "0.3.0+overlap20260920"},
+    },
+    "RealtimeTTSQwenNativeCPUOverlap": {
+        "distribution": "realtimetts-qwen-native-cpu",
+        "packages": (("qwentts_cpp_cpu", "src/qwentts_cpp_cpu", "qwentts_cpp_cpu"),),
+        "sdist_package_dirs": {"qwentts_cpp_cpu": "src/qwentts_cpp_cpu"},
+        "signer": "linux-services",
+        "signer_fingerprint": "SHA256:ODuksd5J17paccWV+N0zWfczcc1iV30V5mQytjiar2w",
+        "remote_repository": "github.com/koljab/realtimetts-qwen-native",
+        "remote_branch": "codex/qwen-cpu-overlap",
+        "service_required": True,
+        "service_name": "wwz-qwen3-tts-cpu.service",
+        "publishable": False,
+        "binary_package_prefixes": {"qwentts_cpp_cpu": ("lib/",)},
+        "required_wheel_platforms": ("linux_x86_64",),
+        "native_revision": "1e548e8e0bcb9bf5526d6ecae27d216d0bebce7c",
+        "required_native_library_groups": {
+            "linux_x86_64": (
+                ("qwentts_cpp_cpu/lib/libqwen.so",),
+                ("qwentts_cpp_cpu/lib/libggml-cpu.so.0",),
+            ),
+        },
+        "publish_sdist": False,
     },
     "RealtimeTTSQwenNativeCPU": {
         "distribution": "realtimetts-qwen-native",
@@ -136,7 +171,7 @@ COMPONENT_PROFILES: dict[str, dict[str, object]] = {
             "macosx_13_0_x86_64",
             "macosx_11_0_arm64",
         ),
-        "native_revision": "b47728bd6cb60331bd02afacb390e533479329b5",
+        "native_revision": "ec5336154a68f9e17f95c3d99b3b97489cb090a6",
         "required_native_library_groups": {
             "manylinux_2_35_x86_64": (
                 ("qwentts_cpp_cpu/lib/libqwen.so",),
@@ -258,6 +293,18 @@ COMPONENT_PROFILES: dict[str, dict[str, object]] = {
         "service_name": None,
         "publishable": False,
     },
+}
+
+
+# Private deployment profiles preserve the original overlap artifact pins.
+COMPONENT_PROFILES["RealtimeTTSCPUStartup"] = {
+    **COMPONENT_PROFILES["RealtimeTTSCPUOverlap"],
+    "required_dependencies": {"realtimetts-qwen-native-cpu": "0.3.0+startup20260920.1"},
+}
+COMPONENT_PROFILES["RealtimeTTSQwenNativeCPUStartup"] = {
+    **COMPONENT_PROFILES["RealtimeTTSQwenNativeCPUOverlap"],
+    "native_revision": "0b7862a660cafaf550f50b8da880e8eace90d425",
+    "remote_branch": "codex/cpu-startup-priority",
 }
 
 

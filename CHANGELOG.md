@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.8.7 - 2026-09-22
+
+### Added
+
+- Optional CPU decoder overlap with separate worker pools, configurable chunk
+  cadence, and logical-CPU affinity through the engine, server and emotional demo.
+- Optional native startup priority via QWENTTS_CPU_STARTUP_PRIORITY=second_chunk.
+  It trades a small amount of total generation time for earlier startup.
+
+### Changed
+
+- Pin the CPU extras to realtimetts-qwen-native-cpu 0.4.0; retain GPU native 0.2.0.
+- Restore compact colored synthesis output, with --verbose for native diagnostics.
+  Keep the full editable emotional demo in tests/faster_qwen_emotions.py.
+- Preserve the serial/unpinned defaults and 160 ms startup buffer. Models,
+  precision and sampling are unchanged. GPU startup experiments are excluded.
+
+The tested Linux profile reduced RTF by 23-26% with identical PCM in the paired
+cases. This is a measured configuration, not a universal speed guarantee.
+See [CPU scheduling](docs/qwen-cpu-scheduling.md) for settings and tradeoffs.
+
 ## 0.8.6 - 2026-09-20
 
 ### Added
