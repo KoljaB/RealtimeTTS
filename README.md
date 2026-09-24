@@ -222,6 +222,7 @@ see [docs/output-and-files.md](docs/output-and-files.md).
 | [`CartesiaEngine`](docs/engines/cartesia.md) | Cloud API | `realtimetts[cartesia]` | Cartesia API voices. |
 | [`TypecastEngine`](docs/engines/typecast.md) | Cloud API | `realtimetts[typecast]` | Typecast API voices. |
 | [`ModelsLabEngine`](docs/engines/modelslab.md) | Cloud API | `realtimetts[modelslab]` | ModelsLab API voices. |
+| [`SpeechifyEngine`](docs/engines/speechify.md) | Cloud API | `realtimetts[speechify]` | Speechify API voices, streamed PCM. |
 | [`CoquiEngine`](docs/engines/coqui.md) | Local neural | `realtimetts[coqui]` | Local XTTS voice cloning. |
 | [`PiperEngine`](docs/engines/piper.md) | Local executable | `realtimetts[piper]`, external Piper setup | Fast local executable TTS. |
 | [`StyleTTSEngine`](docs/engines/styletts.md) | Local neural | `realtimetts[styletts]`, local checkout/assets | StyleTTS experiments. |

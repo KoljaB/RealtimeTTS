@@ -89,6 +89,7 @@ These extras are present in `setup.py`:
 | `modelslab` | ModelsLab engine dependencies. |
 | `cartesia` | Cartesia SDK. |
 | `typecast` | Typecast SDK. |
+| `speechify` | Speechify engine dependencies. |
 | `orpheus` | SNAC dependency used by Orpheus. |
 | `omnivoice` | OmniVoice package. |
 | `luxtts` | LuxTTS-related Git dependencies and local stack packages. |
@@ -141,6 +142,7 @@ local checkout, model files, or Docker example.
 | [`CartesiaEngine`](engines/cartesia.md) | `pip install "realtimetts[cartesia]"` | Set `CARTESIA_API_KEY`. |
 | [`TypecastEngine`](engines/typecast.md) | `pip install "realtimetts[typecast]"` | Set `TYPECAST_API_KEY` and provide `voice_id` or `TYPECAST_VOICE_ID`. |
 | [`ModelsLabEngine`](engines/modelslab.md) | `pip install "realtimetts[modelslab]"` | Set `MODELSLAB_API_KEY`; import from `RealtimeTTS` or `RealtimeTTS.engines`. |
+| [`SpeechifyEngine`](engines/speechify.md) | `pip install "realtimetts[speechify]"` | Set `SPEECHIFY_API_KEY`. |
 | [`CoquiEngine`](engines/coqui.md) | `pip install "realtimetts[coqui]"` | Local XTTS model download/cache; GPU strongly recommended for realtime use. |
 | [`PiperEngine`](engines/piper.md) | `pip install "realtimetts[piper]"` plus Piper executable/model files. | Provide a Piper executable, model, and config; `PIPER_PATH` can point to the executable. |
 | [`StyleTTSEngine`](engines/styletts.md) | `pip install "realtimetts[styletts]"` plus StyleTTS2 checkout/model files. | Pass `style_root`, model config, checkpoint, and reference audio. |
@@ -176,6 +178,7 @@ vars, but the source constructor takes direct key and region arguments.
 | Cartesia | `CARTESIA_API_KEY` |
 | Typecast | `TYPECAST_API_KEY`, optional `TYPECAST_VOICE_ID` |
 | ModelsLab | `MODELSLAB_API_KEY` |
+| Speechify | `SPEECHIFY_API_KEY` |
 
 ## External Tools
 

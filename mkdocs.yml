@@ -64,6 +64,7 @@ nav:
       - Cartesia: engines/cartesia.md
       - Typecast: engines/typecast.md
       - ModelsLab: engines/modelslab.md
+      - Speechify: engines/speechify.md
       - Coqui: engines/coqui.md
       - Piper: engines/piper.md
       - StyleTTS: engines/styletts.md

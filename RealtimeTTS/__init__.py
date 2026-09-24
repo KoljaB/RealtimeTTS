@@ -28,6 +28,7 @@ __all__ = [
     "QwenEngine", "QwenCpuEngine", "QwenVoice", "QwenEngineError",
     "OmniVoiceEngine", "OmniVoiceVoice",
     "TypecastEngine", "TypecastVoice",
+    "SpeechifyEngine", "SpeechifyVoice",
     "LuxTTSEngine", "LuxTTSVoice",
     "ChatterboxEngine", "ChatterboxVoice",
     "InflectEngine", "InflectVoice",
@@ -380,6 +381,19 @@ def _load_typecast_engine():
     return TypecastEngine
 
 
+def _load_speechify_engine():
+    try:
+        from .engines.speechify_engine import SpeechifyEngine, SpeechifyVoice
+    except ImportError as e:
+        raise ImportError(
+            "Failed to load SpeechifyEngine and SpeechifyVoice. "
+            "Please install with:\npip install realtimetts[speechify]"
+        ) from e
+    globals()["SpeechifyEngine"] = SpeechifyEngine
+    globals()["SpeechifyVoice"] = SpeechifyVoice
+    return SpeechifyEngine
+
+
 def _load_luxtts_engine():
     try:
         from .engines.luxtts_engine import LuxTTSEngine, LuxTTSVoice
@@ -525,6 +539,8 @@ _lazy_imports = {
     "OmniVoiceVoice": _load_omni_voice_engine,
     "TypecastEngine": _load_typecast_engine,
     "TypecastVoice": _load_typecast_engine,
+    "SpeechifyEngine": _load_speechify_engine,
+    "SpeechifyVoice": _load_speechify_engine,
     "LuxTTSEngine": _load_luxtts_engine,
     "LuxTTSVoice": _load_luxtts_engine,
     "ChatterboxEngine": _load_chatterbox_engine,
