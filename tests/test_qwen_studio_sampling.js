@@ -6,7 +6,7 @@ const test = require('node:test');
 const vm = require('node:vm');
 const source = fs.readFileSync(path.join(__dirname, '../RealtimeTTS/studio/studio.js'), 'utf8');
 
-function studio(codecDefault = null) {
+function studio(codecDefault = null, device = 'cpu') {
   const controls = new Map();
   const initial = {
     voice: 'reference', language: 'de', temperature: '0.9', top_p: '1',
@@ -38,7 +38,7 @@ function studio(codecDefault = null) {
   });
   vm.runInContext(source, context);
   const caps = {
-    model: {id: 'qwen'}, engine: {clone_mode: 'speaker_only'},
+    model: {id: 'qwen'}, engine: {clone_mode: 'speaker_only', device},
     features: {model_type: 'base'},
     sampling_defaults: {
       temperature: .9, top_p: 1, top_k: 50, seed: -1, max_new_tokens: 2048,
@@ -53,6 +53,10 @@ function studio(codecDefault = null) {
     request: () => JSON.parse(vm.runInContext('JSON.stringify(requestOptions())', context))
   };
 }
+test('CPU playback defaults to 80 ms while GPU keeps its 8 ms default', () => {
+  assert.equal(studio().control('bufferMs').value, '80');
+  assert.equal(studio(null, 'cuda').control('bufferMs').value, '8');
+});
 test('null codec defaults stay omitted rather than becoming greedy false', () => {
   const ui = studio();
   const payload = ui.request();
