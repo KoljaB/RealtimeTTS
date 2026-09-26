@@ -160,31 +160,48 @@ def filtered_native_stderr(*, enabled: bool):
     sys.stderr.flush()
     saved = os.dup(2)
     read_fd, write_fd = os.pipe()
+    # A child process can inherit fd 2 and keep the pipe open after restoration.
+    # End our reader explicitly instead of waiting for every inherited writer.
+    stop = b"\x00qwen-demo-stop-" + os.urandom(16).hex().encode("ascii") + b"\n"
+
+    def write_all(fd, data):
+        view = memoryview(data)
+        while view:
+            written = os.write(fd, view)
+            view = view[written:]
+
+    def forward_line(line):
+        text = line.decode("utf-8", errors="replace").rstrip("\r\n")
+        if line and not _NATIVE_INFO.fullmatch(text):
+            write_all(saved, line)
 
     def forward():
         with os.fdopen(read_fd, "rb") as source:
             for line in source:
-                text = line.decode("utf-8", errors="replace").rstrip("\r\n")
-                if not _NATIVE_INFO.fullmatch(text):
-                    view = memoryview(line)
-                    while view:
-                        written = os.write(saved, view)
-                        view = view[written:]
+                if line.endswith(stop):
+                    forward_line(line[:-len(stop)])
+                    break
+                forward_line(line)
 
     reader = threading.Thread(target=forward, name="qwen-demo-stderr", daemon=True)
     try:
         os.dup2(write_fd, 2)
-        os.close(write_fd)
         reader.start()
         yield
     finally:
-        sys.stderr.flush()
-        os.dup2(saved, 2)
-        if reader.ident is not None:
-            reader.join()
-        else:
-            os.close(read_fd)
-        os.close(saved)
+        try:
+            sys.stderr.flush()
+        finally:
+            os.dup2(saved, 2)
+            try:
+                if reader.ident is not None:
+                    write_all(write_fd, stop)
+                    reader.join()
+                else:
+                    os.close(read_fd)
+            finally:
+                os.close(write_fd)
+                os.close(saved)
 
 
 @contextmanager

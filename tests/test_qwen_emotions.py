@@ -182,6 +182,37 @@ def test_compact_native_filter_preserves_warnings_errors_and_unknown_lines(capfd
     assert "unrecognized native diagnostic" in captured
 
 
+@pytest.mark.parametrize("raise_inside", [False, True])
+def test_compact_filter_exits_with_an_inherited_writer_and_partial_line(raise_inside):
+    # Keep a duplicate writer alive across cleanup, as multiprocessing's
+    # resource tracker does on macOS. EOF-based cleanup would deadlock.
+    script = """
+import os
+from RealtimeTTS.qwen_emotions import filtered_native_stderr
+held = None
+try:
+    try:
+        with filtered_native_stderr(enabled=True):
+            held = os.dup(2)
+            os.write(2, b"[Talker] Loaded: 28 layers\\n")
+            os.write(2, b"warning without newline")
+            if RAISE_INSIDE:
+                raise RuntimeError("expected")
+    except RuntimeError:
+        pass
+    os.write(2, b"\\nrestored stderr\\n")
+finally:
+    if held is not None:
+        os.close(held)
+""".replace("RAISE_INSIDE", repr(raise_inside))
+    result = subprocess.run(
+        [sys.executable, "-c", script], cwd=ROOT,
+        capture_output=True, timeout=15,
+    )
+    assert result.returncode == 0, result.stderr.decode(errors="replace")
+    assert result.stderr == b"warning without newline\nrestored stderr\n"
+
+
 def test_native_callback_is_removed_even_when_model_loading_fails():
     callbacks = []
 
