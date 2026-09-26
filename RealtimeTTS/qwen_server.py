@@ -2593,6 +2593,21 @@ def _prepare_demo_voice(server: QwenHttpServer, *, local_files_only: bool) -> st
     return name
 
 
+def _configure_native_logging(engine: Any) -> None:
+    """Keep native diagnostics off the synthesis thread's stderr path."""
+    setter = getattr(getattr(engine, "_backend", None), "set_log_callback", None)
+    if not callable(setter):
+        return
+
+    def native_log(level: int, message: str) -> None:
+        # qwentts.cpp: DEBUG=0, INFO=1, WARN=2, ERROR=3. Per-frame and
+        # performance messages belong to --log-level debug; warnings survive.
+        severity = logging.ERROR if level >= 3 else logging.WARNING if level == 2 else logging.DEBUG
+        LOGGER.log(severity, "%s", message)
+
+    setter(native_log)
+
+
 def main(argv: Optional[Sequence[str]] = None) -> None:
     parser = build_argument_parser()
     arguments = list(sys.argv[1:] if argv is None else argv)
@@ -2725,6 +2740,7 @@ def main(argv: Optional[Sequence[str]] = None) -> None:
         warmup_tokens=args.startup_warmup_tokens,
         **device_options,
     )
+    _configure_native_logging(engine)
     language_router = None
     if args.language_id_model is not None:
         language_router = QwenLanguageRouter(
