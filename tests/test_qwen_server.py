@@ -412,7 +412,8 @@ def test_shutdown_does_not_close_engine_until_workers_exit(tmp_path):
     assert engine.shutdown_called
 
 
-def test_websocket_terminal_events_carry_session_and_request_ids(tmp_path, monkeypatch):
+@pytest.mark.parametrize("language, expected", [("en", "english"), ("de", "german"), ("auto", "auto")])
+def test_websocket_terminal_events_carry_session_and_request_ids(tmp_path, monkeypatch, language, expected):
     async def one_fragment(source, **_kwargs):
         async for chunk in source:
             if chunk.strip():
@@ -428,7 +429,7 @@ def test_websocket_terminal_events_carry_session_and_request_ids(tmp_path, monke
                     "type": "config",
                     "session_id": "session-1",
                     "voice": "mira",
-                    "language": "en",
+                    "language": language,
                     "response_format": "pcm",
                 }
             )
@@ -448,6 +449,7 @@ def test_websocket_terminal_events_carry_session_and_request_ids(tmp_path, monke
     assert all("request_id" in event for event in events)
     assert events[-1]["type"] == "done"
     assert events[-1]["request_id"] == events[0]["request_id"]
+    assert server.engine.current_voice.language == expected
 
 
 def test_websocket_cancel_emits_cancelled_terminal_event(tmp_path, monkeypatch):

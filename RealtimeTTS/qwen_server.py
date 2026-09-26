@@ -60,6 +60,7 @@ from .language_router import (
     LanguageDetection,
     QwenLanguageRouter,
     language_lookahead_wait_ms,
+    normalize_qwen_language,
 )
 
 
@@ -1025,7 +1026,10 @@ class QwenHttpServer:
                 "invalid_request_error",
                 "'language' must be a non-empty string",
             )
-        language = language.strip().lower()
+        try:
+            language = normalize_qwen_language(language, allow_auto=True)
+        except ValueError as exc:
+            raise ApiError(400, "invalid_request_error", str(exc)) from exc
 
         sampling: dict[str, Any] = {}
         if "clone_mode" in payload:
