@@ -132,7 +132,13 @@ def _check_sdist_contents(sdist: Path) -> None:
         raise SystemExit(f"sdist is missing required release files: {', '.join(missing)}")
     if "RealtimeTTS/engines/breeze_tts_engine.py" in names:
         raise SystemExit("sdist unexpectedly contains Breeze, which is excluded from 0.8.0")
-    if any(name == "tests" or name.startswith("tests/") or "/tests/" in name for name in names):
+    # The editable emotions demo is intentionally shipped in the sdist.
+    allowed_demo_entries = {"tests", "tests/faster_qwen_emotions.py"}
+    if any(
+        name not in allowed_demo_entries
+        and (name.startswith("tests/") or "/tests/" in name)
+        for name in names
+    ):
         raise SystemExit("sdist unexpectedly contains the test suite")
     forbidden_suffixes = (
         ".wav", ".flac", ".mp3", ".ogg", ".m4a",
