@@ -62,7 +62,8 @@ older x86 CPUs, Linux ARM CPU, Windows ARM64, and Metal are outside this release
 
 The optional `--demo-voice` prepares a public neutral cloning example, ready to
 select as **demo-neutral**. On Windows Ryzen 3900X, use `--preset windows-3900x`
-instead of `--device cpu` for the explicit overlap profile. See the
+instead of `--device cpu` for the explicit overlap profile. Add
+`--cpu-fused-attention` to enable the optional CPU attention optimization. See the
 [three-command CPU/GPU uv quick start](docs/qwen-studio.md#quick-start-with-a-cloning-example).
 
 Both servers offer browser playback at `http://127.0.0.1:8080/studio`, early

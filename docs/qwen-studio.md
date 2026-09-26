@@ -18,13 +18,15 @@ nor an activated environment.
 ```bat
 uv venv --python 3.11 .venv-cpu
 uv pip install --python .venv-cpu\Scripts\python.exe "realtimetts[qwen-cpu-server]==0.8.9"
-.venv-cpu\Scripts\realtimetts-qwen-server.exe --preset windows-3900x --demo-voice
+.venv-cpu\Scripts\realtimetts-qwen-server.exe --preset windows-3900x --cpu-fused-attention --demo-voice
 ```
 
 The explicit preset is for the tested 12-core/24-thread Ryzen 3900X layout.
 It selects six generation and six decoder workers on separate core masks,
 AboveNormal process priority, one-frame chunks and an 80 ms server reserve.
-Explicit CLI values override the preset. To disable onset recovery, pass
+The separate `--cpu-fused-attention` flag enables native 0.4.1's optional F32
+attention path; the preset alone leaves it off. Explicit CLI values override
+the preset. To disable onset recovery, pass
 `--onset-silence-profile off --no-onset-silence-recovery`. For other CPUs, use `--device cpu`
 and choose worker counts for the hardware; see [CPU scheduling](qwen-cpu-scheduling.md).
 
@@ -42,7 +44,7 @@ an alias for this GPU path. On Linux, use the corresponding `.venv-gpu/bin/`
 executables; the Windows CPU preset is not portable to Linux.
 
 Start one server, then open <http://127.0.0.1:8080/studio> and connect. Select
-**demo-neutral** and click **Sofort sprechen**. To run both simultaneously,
+**demo-neutral** and click **Speak now**. To run both simultaneously,
 give the second server `--port 8081` and open its matching Studio URL.
 
 `--demo-voice` downloads only the existing public EARS neutral example, verifies
@@ -50,7 +52,7 @@ its pinned SHA-256, registers its reference transcript, and warms the selected
 voice before accepting requests. Later starts reuse the saved reference and
 encoded voice cache. Initial model download and reference preparation take
 longer than a warm start. The example is optional; upload your own recording
-under **Stimmen** for normal cloning. Full ICL remains selectable in Studio.
+under **Voices** for normal cloning. Full ICL remains selectable in Studio.
 
 The first reference download needs network access. `--local-files-only` also
 disables that download; it works once the example has been cached or registered.

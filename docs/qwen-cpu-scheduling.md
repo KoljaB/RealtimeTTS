@@ -1,6 +1,6 @@
 # Qwen CPU scheduling
 
-RealtimeTTS 0.8.9 pins realtimetts-qwen-native-cpu 0.4.0 for the CPU extras.
+RealtimeTTS 0.8.9 pins realtimetts-qwen-native-cpu 0.4.1 for the CPU extras.
 The CUDA native package remains at 0.2.0. Model weights, Q8_0 precision, voices
 and sampling settings are unchanged by the CPU scheduling options.
 
@@ -50,7 +50,7 @@ In Windows cmd, create a folder for the test and run:
 ```bat
 uv venv --python 3.11
 uv pip install --python .venv\Scripts\python.exe "realtimetts[qwen-cpu-server]==0.8.9"
-.venv\Scripts\realtimetts-qwen-server.exe --preset windows-3900x --demo-voice
+.venv\Scripts\realtimetts-qwen-server.exe --preset windows-3900x --cpu-fused-attention --demo-voice
 ```
 
 The profile now lives in the installed package. Downloading the CMD launcher is
@@ -63,7 +63,7 @@ the repository-root `.venv` when run from a checkout. It uses the normal model
 cache and permits the first-run model download. It does not require PowerShell.
 Keep the server running and open http://127.0.0.1:8080/studio. Connect without a
 key for the default local-only server and select **demo-neutral**, or add your
-own reference under **Stimmen**. An optional transcript is needed for Full ICL; speaker-only cloning
+own reference under **Voices**. An optional transcript is needed for Full ICL; speaker-only cloning
 does not require one.
 
 The optional emotional demo can also register and synthesize the neutral
@@ -90,6 +90,24 @@ from an 80 ms first chunk to 160 ms steady chunks: a seeded paired check kept
 identical PCM and removed a 41 ms initial arrival gap at the same buffer size.
 Without the preset, launcher or explicit worker
 options, the existing server scheduling defaults remain serial and unpinned.
+
+## Optional CPU fused attention
+
+Native 0.4.1 adds an explicit `--cpu-fused-attention` server switch. The quick
+start above enables it; the preset alone does not. For Python use, set
+`QWENTTS_CPU_FLASH_ATTN=1` before creating the engine. Restart the engine to
+change this setting. `--no-cpu-fused-attention` overrides an enabled environment
+setting, and the global `--no-fa` switch disables fused attention as well.
+
+The path retains F32 attention and the selected model, quantization and sampling.
+Its different floating-point evaluation order can change seeded output; it is
+not bit-identical to the default path. GPU inference is unaffected.
+
+On the tested Ryzen 3900X, four interleaved on/off runs of one English sentence
+reduced mean RTF from 1.065 to 0.996 (about 6.4%) and mean first PCM from 472 to
+436 ms. Two browser runs had zero recorded underruns and the listening check was
+clean. One API run still had a small predicted buffer shortfall, so these results
+do not establish underrun-free playback for every text or competing workload.
 
 ## Optional startup priority
 

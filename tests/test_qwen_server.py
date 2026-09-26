@@ -871,6 +871,7 @@ def test_startup_warmup_cli_is_opt_in():
     assert defaults.startup_warmup_tokens == 32
     assert defaults.fragment_lookahead_words == 0
     assert defaults.clamp_fp16 is None
+    assert defaults.cpu_fused_attention is None
     assert defaults.trim_silence is True
     assert defaults.silence_threshold == 0.005
     assert defaults.trim_pre_roll_ms == 15.0
@@ -917,6 +918,7 @@ def test_cpu_cli_constructs_cpu_engine_with_requested_threads(monkeypatch):
     assert calls[0]["clamp_fp16"] is False
     assert calls[0]["clone_mode"] == "speaker_only"
     for argv in (
+        ["--cpu-fused-attention"], ["--device", "gpu", "--no-cpu-fused-attention"],
         ["--cpu-threads", "6"], ["--device", "cpu", "--cpu-threads", "0"],
         ["--cpu-codec-threads", "4"], ["--device", "cpu", "--cpu-codec-threads", "-1"],
         ["--device", "cpu", "--cpu-stream-frames", "3"],
@@ -925,6 +927,34 @@ def test_cpu_cli_constructs_cpu_engine_with_requested_threads(monkeypatch):
     ):
         with pytest.raises(SystemExit):
             qwen_server_module.main(argv)
+
+
+@pytest.mark.parametrize("flags,initial,expected,use_fa", [
+    ([], "1", "1", True),
+    (["--cpu-fused-attention"], "0", "1", True),
+    (["--no-cpu-fused-attention"], "1", "0", True),
+    (["--cpu-fused-attention", "--no-fa"], "0", "1", False),
+])
+def test_cpu_fused_attention_is_configured_before_engine_init(
+    monkeypatch, flags, initial, expected, use_fa
+):
+    import os
+    import sys
+    from types import SimpleNamespace
+
+    class ConstructionReached(Exception):
+        pass
+
+    def cpu_engine(**kwargs):
+        assert os.environ["QWENTTS_CPU_FLASH_ATTN"] == expected
+        assert kwargs["use_fa"] is use_fa
+        raise ConstructionReached
+
+    monkeypatch.setenv("QWENTTS_CPU_FLASH_ATTN", initial)
+    monkeypatch.setitem(sys.modules, "uvicorn", SimpleNamespace())
+    monkeypatch.setattr(qwen_server_module, "QwenCpuEngine", cpu_engine)
+    with pytest.raises(ConstructionReached):
+        qwen_server_module.main(["--device", "cpu", *flags])
 
 
 def test_3900x_preset_is_opt_in_and_keeps_explicit_overrides(monkeypatch):

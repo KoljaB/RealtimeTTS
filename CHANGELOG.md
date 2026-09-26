@@ -25,10 +25,14 @@
   worker layout, affinity masks, AboveNormal process priority and 80 ms server
   reserve, plus fresh-venv and reference-voice instructions. The preset uses
   a consistent one-frame cadence to avoid the initial short-chunk scheduling gap.
+- Optional CPU fused F32 attention in native 0.4.1, enabled with
+  `--cpu-fused-attention` on the server or `QWENTTS_CPU_FLASH_ATTN=1` before
+  engine initialization. It is off by default and keeps the existing model and
+  precision; changed floating-point evaluation order can change generated audio.
 - Regression coverage for Studio sampling defaults and standalone language codes.
 
-CPU native remains 0.4.0 and GPU native remains 0.2.0. Model weights, precision,
-and native inference code are unchanged.
+CPU extras now pin native 0.4.1; GPU native remains 0.2.0. Model weights,
+quantization and sampling defaults are unchanged.
 
 ## 0.8.8 - 2026-09-26
 

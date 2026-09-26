@@ -2395,6 +2395,12 @@ def build_argument_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--cpu-codec-threads", type=int, default=0,
                         help="Separate CPU codec workers; positive values enable overlap")
+    parser.add_argument(
+        "--cpu-fused-attention",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="Opt into CPU fused F32 attention (native 0.4.1+); disabled unless explicitly enabled",
+    )
     parser.add_argument("--cpu-stream-frames", type=int, choices=(0, 1, 2, 4), default=0,
                         help="CPU streaming chunk frames; 0 keeps the native default")
     parser.add_argument("--cpu-affinity", type=lambda value: int(value, 0), default=0,
@@ -2592,6 +2598,8 @@ def main(argv: Optional[Sequence[str]] = None) -> None:
     arguments = list(sys.argv[1:] if argv is None else argv)
     args = parser.parse_args(arguments)
     _apply_server_preset(args, parser, arguments)
+    if args.cpu_fused_attention is not None and args.device != "cpu":
+        parser.error("--cpu-fused-attention/--no-cpu-fused-attention requires --device cpu")
     if args.onset_silence_recovery and args.device != "cpu":
         parser.error("--onset-silence-recovery requires --device cpu")
     if args.cpu_threads is not None and (
@@ -2690,6 +2698,8 @@ def main(argv: Optional[Sequence[str]] = None) -> None:
         if args.device == "cpu"
         else {}
     )
+    if args.cpu_fused_attention is not None:
+        os.environ["QWENTTS_CPU_FLASH_ATTN"] = "1" if args.cpu_fused_attention else "0"
     engine = engine_class(
         model_id=args.model_id,
         quant=args.quant,

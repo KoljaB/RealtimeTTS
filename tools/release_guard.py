@@ -84,7 +84,7 @@ COMPONENT_PROFILES: dict[str, dict[str, object]] = {
         "service_required": True,
         "service_name": "wwz-qwen3-tts-cpu.service",
         "publishable": True,
-        "required_dependencies": {"realtimetts-qwen-native-cpu": "0.4.0"},
+        "required_dependencies": {"realtimetts-qwen-native-cpu": "0.4.1"},
     },
     # Private Linux overlap installation, qualified independently of public wheels.
     "RealtimeTTSCPUOverlap": {
@@ -155,7 +155,7 @@ COMPONENT_PROFILES: dict[str, dict[str, object]] = {
         "signer": "linux-services",
         "signer_fingerprint": "SHA256:ODuksd5J17paccWV+N0zWfczcc1iV30V5mQytjiar2w",
         "remote_repository": "github.com/koljab/realtimetts-qwen-native",
-        "remote_branch": "codex/qwen-cpu-public-release",
+        "remote_branch": "main",
         "service_required": True,
         "service_name": "wwz-qwen3-tts-cpu.service",
         "publishable": True,
@@ -171,7 +171,7 @@ COMPONENT_PROFILES: dict[str, dict[str, object]] = {
             "macosx_13_0_x86_64",
             "macosx_11_0_arm64",
         ),
-        "native_revision": "ec5336154a68f9e17f95c3d99b3b97489cb090a6",
+        "native_revision": "791d7df22afc408b3786fbe694c421ce055ae5d5",
         "required_native_library_groups": {
             "manylinux_2_35_x86_64": (
                 ("qwentts_cpp_cpu/lib/libqwen.so",),
