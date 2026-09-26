@@ -38,7 +38,7 @@ chunk**, and about **10 ms of silence inside that chunk**. Predicted audible
 onset was **80.9 ms** and RTF was **0.108**. These are orientation figures;
 measure the complete path on your target system.
 
-RealtimeTTS 0.8.9 also provides `QwenCpuEngine`, using the maintained CPU-only
+RealtimeTTS 0.8.10 also provides `QwenCpuEngine`, using the maintained CPU-only
 native runtime with worker-pool improvements and onset recovery. Choose one of
 these server installations in a fresh Python 3.11 or 3.12 virtual environment:
 
@@ -49,9 +49,9 @@ realtimetts-qwen-server --device gpu --clone-mode speaker_only --startup-buffer-
 ```
 
 ```bash
-# CPU on Windows, Linux, Intel Mac, or Apple Silicon
+# CPU: example for a 12-physical-core machine; adjust both worker counts
 python -m pip install "realtimetts[qwen-cpu-server]"
-realtimetts-qwen-server --device cpu --demo-voice
+realtimetts-qwen-server --device cpu --cpu-threads 6 --cpu-codec-threads 6 --cpu-stream-frames 1 --cpu-fused-attention --startup-buffer-ms 80 --demo-voice
 ```
 
 Neither server extra needs Torch, a local CUDA Toolkit, or PortAudio. GPU mode
@@ -59,6 +59,14 @@ still needs a compatible NVIDIA GPU/driver. CPU wheels support Windows x86-64,
 Linux x86-64 with glibc 2.35+, Intel macOS 13+, and Apple Silicon macOS 11+.
 x86-64 CPUs require AVX2/FMA/F16C/BMI2. CPU throughput depends on the machine;
 older x86 CPUs, Linux ARM CPU, Windows ARM64, and Metal are outside this release.
+
+`--device cpu --cpu-fused-attention --demo-voice` alone keeps serial decoding.
+A positive `--cpu-codec-threads` enables overlap; `--cpu-threads` controls code
+generation and `--cpu-stream-frames 1` selects 80 ms chunks. Six plus six is an
+example for 12 physical cores, not a universal default. See the quick start for
+smaller CPUs and the full configuration used in the Windows latency checks.
+Studio starts with **0 ms additional browser buffering**, adjustable under
+Sampling & options / Codec, transport & more options.
 
 The optional `--demo-voice` prepares a public neutral cloning example, ready to
 select as **demo-neutral**. On Windows Ryzen 3900X, use `--preset windows-3900x`

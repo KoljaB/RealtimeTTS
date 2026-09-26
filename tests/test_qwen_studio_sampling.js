@@ -76,26 +76,43 @@ function studio(codecDefault = null, device = 'cpu') {
     request: () => JSON.parse(vm.runInContext('JSON.stringify(requestOptions())', context))
   };
 }
-test('CPU and GPU playback both default to 80 ms startup reserve', () => {
-  assert.equal(studio().control('bufferMs').value, '80');
-  assert.equal(studio(null, 'cuda').control('bufferMs').value, '80');
+test('CPU and GPU start without an additional browser reserve and remain configurable', () => {
+  for (const device of ['cpu', 'cuda']) {
+    const ui = studio(null, device);
+    assert.equal(ui.control('bufferMs').value, '0');
+    const immediate = ui.receiveAt([0, .04, .12]);
+    assert.deepEqual(immediate.starts.map(x => Math.round(x * 1000)), [0, 80, 160]);
+    assert.equal(immediate.underruns, 0);
+    ui.control('bufferMs').value = '20';
+    const buffered = ui.receiveAt([0, .04, .12]);
+    assert.deepEqual(buffered.starts.map(x => Math.round(x * 1000)), [20, 100, 180]);
+    assert.equal(buffered.underruns, 0);
+    ui.reset();
+    assert.equal(ui.control('bufferMs').value, '0');
+  }
 });
 test('underrun metric includes the silence added when playback restarts', () => {
-  const result = studio().receiveAt([0, .20, .25]);
+  const ui = studio();
+  ui.control('bufferMs').value = '80';
+  const result = ui.receiveAt([0, .20, .25]);
   assert.equal(result.underruns, 1);
   assert.ok(Math.abs(result.gapMs - 120) < 1e-8);
   assert.deepEqual(result.starts.map(x => Math.round(x * 1000)), [80, 280, 360]);
 });
 
 test('floating-point noise at a chunk boundary does not insert a new startup reserve', () => {
-  const result = studio().receiveAt([0, .16, .2400000000000001]);
+  const ui = studio();
+  ui.control('bufferMs').value = '80';
+  const result = ui.receiveAt([0, .16, .2400000000000001]);
   assert.equal(result.underruns, 0);
   assert.equal(result.gapMs, 0);
   assert.deepEqual(result.starts.map(x => Math.round(x * 1000)), [80, 160, 240]);
 });
 
 test('chunks arriving before the scheduled end stay contiguous', () => {
-  const result = studio().receiveAt([0, .10, .15]);
+  const ui = studio();
+  ui.control('bufferMs').value = '80';
+  const result = ui.receiveAt([0, .10, .15]);
   assert.equal(result.underruns, 0);
   assert.equal(result.gapMs, 0);
   assert.deepEqual(result.starts.map(x => Math.round(x * 1000)), [80, 160, 240]);

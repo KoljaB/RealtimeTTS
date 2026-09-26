@@ -1,6 +1,6 @@
 # Qwen CPU scheduling
 
-RealtimeTTS 0.8.9 pins realtimetts-qwen-native-cpu 0.4.1 for the CPU extras.
+RealtimeTTS 0.8.10 pins realtimetts-qwen-native-cpu 0.4.1 for the CPU extras.
 The CUDA native package remains at 0.2.0. Model weights, Q8_0 precision, voices
 and sampling settings are unchanged by the CPU scheduling options.
 
@@ -41,15 +41,15 @@ affinity layouts must be checked on the target platform.
 ## Windows Ryzen 9 3900X: ready-to-run server
 
 For the tested Windows Ryzen 9 3900X (12 physical cores, 24 logical CPUs), use
-[server_3900x.cmd](https://github.com/KoljaB/RealtimeTTS/blob/v0.8.9/tools/qwen_cpu_overlap/server_3900x.cmd). This is an explicit
+[server_3900x.cmd](https://github.com/KoljaB/RealtimeTTS/blob/v0.8.10/tools/qwen_cpu_overlap/server_3900x.cmd). This is an explicit
 machine-specific profile, not automatic CPU detection. Do not use these affinity
 masks on a different processor or logical-core layout.
 
 In Windows cmd, create a folder for the test and run:
 
 ```bat
-uv venv --python 3.11
-uv pip install --python .venv\Scripts\python.exe "realtimetts[qwen-cpu-server]==0.8.9"
+uv venv --python 3.11 --managed-python
+uv pip install --python .venv\Scripts\python.exe "realtimetts[qwen-cpu-server]==0.8.10"
 .venv\Scripts\realtimetts-qwen-server.exe --preset windows-3900x --cpu-fused-attention --demo-voice
 ```
 
@@ -76,8 +76,8 @@ reference through an existing server:
 The launcher selects six generation workers and six codec workers, one-frame
 chunks, and separate physical-core masks `0x555` / `0x555000`. It sets only its
 own Python process to Windows **AboveNormal** priority; it does not change
-system-wide settings. The server startup reserve is 80 ms. Studio adds its
-separate, editable 80 ms CPU browser buffer. Extra CLI arguments can be appended,
+system-wide settings. The server startup reserve is 80 ms. Studio's
+separate browser buffer defaults to 0 ms and remains editable. Extra CLI arguments can be appended,
 for example `server_3900x.cmd --port 8081`.
 
 Windows scheduling and competing workloads can change throughput. Earlier Ryzen
@@ -90,6 +90,11 @@ from an 80 ms first chunk to 160 ms steady chunks: a seeded paired check kept
 identical PCM and removed a 41 ms initial arrival gap at the same buffer size.
 Without the preset, launcher or explicit worker
 options, the existing server scheduling defaults remain serial and unpinned.
+In particular, `--cpu-fused-attention` does not itself enable overlap. Manual
+6+6 with one-frame chunks also leaves the 160 ms server reserve and onset
+profile defaults unchanged unless explicitly configured; it is not equivalent
+to the full preset. Follow the [reproduction procedure](qwen-studio.md#reproducing-a-latency-measurement)
+when comparing an installed package to the latency figures.
 
 ## Optional CPU fused attention
 
