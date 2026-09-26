@@ -13,9 +13,14 @@
 
 ### Added
 
+- `--demo-voice` downloads, verifies, registers and warms the public neutral
+  cloning reference for CPU and GPU servers; later starts reuse the cached voice.
+- A packaged `--preset windows-3900x` and `--device gpu` alias simplify server
+  startup without a checkout, extra scripts, or bundled model/voice assets.
 - An opt-in Windows Ryzen 9 3900X server launcher with the tested six-plus-six
   worker layout, affinity masks, AboveNormal process priority and 80 ms server
-  reserve, plus fresh-venv and reference-voice instructions.
+  reserve, plus fresh-venv and reference-voice instructions. The preset uses
+  a consistent one-frame cadence to avoid the initial short-chunk scheduling gap.
 - Regression coverage for Studio sampling defaults and standalone language codes.
 
 CPU native remains 0.4.0 and GPU native remains 0.2.0. Model weights, precision,

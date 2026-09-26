@@ -50,38 +50,46 @@ In Windows cmd, create a folder for the test and run:
 ```bat
 uv venv --python 3.11
 uv pip install --python .venv\Scripts\python.exe "realtimetts[qwen-cpu-server]==0.8.9"
-curl.exe --fail --location --output server_3900x.cmd https://raw.githubusercontent.com/KoljaB/RealtimeTTS/v0.8.9/tools/qwen_cpu_overlap/server_3900x.cmd
-server_3900x.cmd
+.venv\Scripts\realtimetts-qwen-server.exe --preset windows-3900x --demo-voice
 ```
+
+The profile now lives in the installed package. Downloading the CMD launcher is
+optional; it calls the same profile and enables the demo voice. The public neutral
+reference is registered and warmed before the server is ready. For a matching
+GPU installation, see the [CPU/GPU quick start](qwen-studio.md#quick-start-with-a-cloning-example).
 
 The launcher uses an activated venv, a `.venv` next to the downloaded file, or
 the repository-root `.venv` when run from a checkout. It uses the normal model
 cache and permits the first-run model download. It does not require PowerShell.
 Keep the server running and open http://127.0.0.1:8080/studio. Connect without a
-key for the default local-only server, add a reference under **Stimmen**, then
-select it. An optional transcript is needed for Full ICL; speaker-only cloning
+key for the default local-only server and select **demo-neutral**, or add your
+own reference under **Stimmen**. An optional transcript is needed for Full ICL; speaker-only cloning
 does not require one.
 
-To register and try the public neutral emotion-demo reference instead of
-uploading your own, run this in another terminal from the test folder:
+The optional emotional demo can also register and synthesize the neutral
+reference through an existing server:
 
 ```bat
 .venv\Scripts\python.exe -m RealtimeTTS.qwen_emotions --server http://127.0.0.1:8080 --emotions neutral --no-play
 ```
 
-The launcher selects six generation workers and six codec workers, two-frame
+The launcher selects six generation workers and six codec workers, one-frame
 chunks, and separate physical-core masks `0x555` / `0x555000`. It sets only its
 own Python process to Windows **AboveNormal** priority; it does not change
 system-wide settings. The server startup reserve is 80 ms. Studio adds its
 separate, editable 80 ms CPU browser buffer. Extra CLI arguments can be appended,
 for example `server_3900x.cmd --port 8081`.
 
-Windows scheduling and competing workloads can change throughput. A Ryzen 3900X
-browser check with this profile completed two short German streams at displayed
+Windows scheduling and competing workloads can change throughput. Earlier Ryzen
+3900X browser checks with a two-frame cadence completed short German streams at displayed
 RTF 0.95 and 0.93 with zero scheduled buffer gaps; the corresponding estimated
 audible starts were 596 and 626 ms. These are local measurements, not a guarantee
-for other texts or systems. Without this launcher, the existing server scheduling
-defaults remain serial and unpinned.
+for other texts or systems. Later release checks under concurrent CPU load also
+recorded gaps at RTF 1.11-1.13. The one-frame preset removes the abrupt change
+from an 80 ms first chunk to 160 ms steady chunks: a seeded paired check kept
+identical PCM and removed a 41 ms initial arrival gap at the same buffer size.
+Without the preset, launcher or explicit worker
+options, the existing server scheduling defaults remain serial and unpinned.
 
 ## Optional startup priority
 

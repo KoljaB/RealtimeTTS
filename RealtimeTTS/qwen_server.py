@@ -19,6 +19,7 @@ import io
 import json
 import logging
 import os
+import sys
 import queue as queue_module
 import re
 import secrets
@@ -2285,6 +2286,10 @@ def build_argument_parser() -> argparse.ArgumentParser:
     parser.add_argument("--model-id", default=DEFAULT_MODEL, help="Hugging Face model id")
     parser.add_argument("--quant", default=DEFAULT_QUANT)
     parser.add_argument("--alias", default="qwen3-tts-native-q8")
+    parser.add_argument("--preset", choices=("windows-3900x",),
+                        help="Opt-in Windows Ryzen 3900X CPU profile: 6+6 workers, separate cores, AboveNormal, 80 ms reserve")
+    parser.add_argument("--demo-voice", action=argparse.BooleanOptionalAction, default=False,
+                        help="Download/cache the public neutral cloning example and warm it before serving")
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8080)
     parser.add_argument(
@@ -2297,7 +2302,7 @@ def build_argument_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--onset-silence-recovery",
-        action="store_true",
+        action=argparse.BooleanOptionalAction, default=False,
         help=(
             "CPU only: retry once if the first 240 ms of native audio stays quiet; "
             "requires the Q8 v1 onset profile, silence trimming, and a recovery-capable native wheel"
@@ -2381,8 +2386,8 @@ def build_argument_parser() -> argparse.ArgumentParser:
     parser.add_argument("--model-cache-dir", type=Path)
     parser.add_argument("--library-path", type=Path)
     parser.add_argument(
-        "--device", choices=("native", "cpu"), default="native",
-        help="Use the default native runtime or the CPU-only Qwen engine",
+        "--device", choices=("native", "gpu", "cpu"), default="native",
+        help="Use the NVIDIA GPU runtime (gpu/native) or the CPU-only Qwen engine",
     )
     parser.add_argument(
         "--cpu-threads", type=int, default=None,
@@ -2523,9 +2528,70 @@ def _warn_for_compressed_language_id_model(model_path: Optional[Path]) -> None:
         )
 
 
+def _apply_server_preset(args: Any, parser: argparse.ArgumentParser, argv: Sequence[str]) -> None:
+    """Apply an explicitly selected hardware profile; retain explicit overrides."""
+    if args.preset is None:
+        return
+    if os.name != "nt" or (os.cpu_count() or 0) < 24:
+        parser.error("--preset windows-3900x requires Windows and at least 24 logical CPUs")
+    supplied = {argument.split("=", 1)[0] for argument in argv}
+    if "--device" in supplied and args.device != "cpu":
+        parser.error("--preset windows-3900x requires --device cpu")
+    if args.model or args.codec or args.model_id != DEFAULT_MODEL or args.quant.upper() != "Q8_0":
+        parser.error("--preset windows-3900x requires the default 0.6B Base Q8_0 model; use explicit CPU options for other models")
+    args.device = "cpu"
+    profile = {
+        "cpu_threads": 6, "cpu_codec_threads": 6, "cpu_stream_frames": 1,
+        "cpu_affinity": 0x555, "cpu_codec_affinity": 0x555000,
+        "startup_buffer_ms": 80.0, "clone_mode": "speaker_only",
+        "clamp_fp16": False, "onset_silence_recovery": True,
+        "onset_silence_profile": "qwen3_tts_12hz_0_6b_base_q8_v1",
+    }
+    for name, value in profile.items():
+        option = name.replace("_", "-")
+        if not {f"--{option}", f"--no-{option}"} & supplied:
+            setattr(args, name, value)
+
+
+def _set_windows_server_priority() -> None:
+    import ctypes
+    kernel = ctypes.windll.kernel32
+    kernel.SetPriorityClass.argtypes = [ctypes.c_void_p, ctypes.c_uint32]
+    if not kernel.SetPriorityClass(ctypes.c_void_p(-1), 0x8000):
+        raise ctypes.WinError()
+
+
+def _prepare_demo_voice(server: QwenHttpServer, *, local_files_only: bool) -> str:
+    """Register the original, pinned public neutral reference without overwriting voices."""
+    from .qwen_emotions import ASSET_HASHES, build_emotion_entries, cache_root, ensure_references
+    if getattr(server.engine, "model_type", "base") != "base":
+        raise ValueError("--demo-voice requires a Base model that supports reference cloning")
+    name = "demo-neutral"
+    entry = next(item for item in build_emotion_entries(cache_root() / "references")
+                 if item.name == "neutral")
+    expected_hash = ASSET_HASHES["neutral"]
+    existing = server.registry.get(name)
+    if existing is not None:
+        if existing.kind != "wav" or existing.sha256 != (expected_hash,) or existing.ref_text != entry.ref_text:
+            raise ValueError("Voice 'demo-neutral' already contains a different reference; choose another --voice-dir or omit --demo-voice")
+        return name
+    LOGGER.info("Preparing public demo voice 'demo-neutral' (first run may download the reference)")
+    ensure_references([entry], download=not local_files_only)
+    payload = Path(entry.ref_audio).read_bytes()
+    if hashlib.sha256(payload).hexdigest() != expected_hash:
+        raise ValueError("Demo reference checksum mismatch")
+    server.register_voice({
+        "name": name, "ref_text": entry.ref_text,
+        "wav_b64": base64.b64encode(payload).decode("ascii"),
+    })
+    return name
+
+
 def main(argv: Optional[Sequence[str]] = None) -> None:
     parser = build_argument_parser()
-    args = parser.parse_args(argv)
+    arguments = list(sys.argv[1:] if argv is None else argv)
+    args = parser.parse_args(arguments)
+    _apply_server_preset(args, parser, arguments)
     if args.onset_silence_recovery and args.device != "cpu":
         parser.error("--onset-silence-recovery requires --device cpu")
     if args.cpu_threads is not None and (
@@ -2600,6 +2666,9 @@ def main(argv: Optional[Sequence[str]] = None) -> None:
             "Uvicorn is missing. Install with: pip install \"realtimetts[qwen-server]\""
         ) from exc
 
+    if args.preset is not None:
+        _set_windows_server_priority()
+    LOGGER.info("Loading Qwen %s server; the first run may download model files", args.device)
     engine_class = QwenCpuEngine if args.device == "cpu" else QwenEngine
     from urllib.parse import urlsplit
     studio_peers = []
@@ -2674,6 +2743,14 @@ def main(argv: Optional[Sequence[str]] = None) -> None:
         comma_silence_duration=args.comma_silence_duration,
         sentence_silence_duration=args.sentence_silence_duration,
     )
+    if args.demo_voice:
+        try:
+            demo_name = _prepare_demo_voice(server, local_files_only=args.local_files_only)
+            if server.startup_warmup_voice is None:
+                server.startup_warmup_voice = demo_name
+        except Exception:
+            engine.shutdown()
+            raise
     LOGGER.info(
         "Loaded RealtimeTTS QwenEngine (native=%s, ABI=%s); listening on %s:%s",
         engine.native_version,

@@ -4,6 +4,62 @@ The Qwen server serves its built-in browser client at `/` and `/studio`. Assets 
 
 Studio streams 24 kHz mono PCM directly into Web Audio as chunks arrive. The default transport is WebSocket; HTTP PCM and complete WAV can also be tested. A user click unlocks audio playback. Pause/resume affects browser playback and sends native checkpoint controls over WebSocket; Stop cancels the request and discards pending playback. In Streaming, open a session, send text fragments, then finish input. WAV download contains the received audio, including a partial recording after Stop.
 
+## Quick start with a cloning example
+
+Create separate environments for CPU and GPU so their dependencies stay clear.
+These Windows cmd commands use Python 3.11 and need neither a source checkout
+nor an activated environment.
+
+### CPU: Windows Ryzen 9 3900X
+
+```bat
+uv venv --python 3.11 .venv-cpu
+uv pip install --python .venv-cpu\Scripts\python.exe "realtimetts[qwen-cpu-server]==0.8.9"
+.venv-cpu\Scripts\realtimetts-qwen-server.exe --preset windows-3900x --demo-voice
+```
+
+The explicit preset is for the tested 12-core/24-thread Ryzen 3900X layout.
+It selects six generation and six decoder workers on separate core masks,
+AboveNormal process priority, one-frame chunks and an 80 ms server reserve.
+Explicit CLI values override the preset. To disable onset recovery, pass
+`--onset-silence-profile off --no-onset-silence-recovery`. For other CPUs, use `--device cpu`
+and choose worker counts for the hardware; see [CPU scheduling](qwen-cpu-scheduling.md).
+
+### NVIDIA GPU: Windows
+
+```bat
+uv venv --python 3.11 .venv-gpu
+uv pip install --python .venv-gpu\Scripts\python.exe "realtimetts[qwen-server]==0.8.9"
+.venv-gpu\Scripts\realtimetts-qwen-server.exe --device gpu --clone-mode speaker_only --startup-buffer-ms 80 --demo-voice
+```
+
+A compatible NVIDIA driver is required. The extra installs the CUDA runtime;
+a CUDA Toolkit, Torch and PortAudio are not needed. `--device native` remains
+an alias for this GPU path. On Linux, use the corresponding `.venv-gpu/bin/`
+executables; the Windows CPU preset is not portable to Linux.
+
+Start one server, then open <http://127.0.0.1:8080/studio> and connect. Select
+**demo-neutral** and click **Sofort sprechen**. To run both simultaneously,
+give the second server `--port 8081` and open its matching Studio URL.
+
+`--demo-voice` downloads only the existing public EARS neutral example, verifies
+its pinned SHA-256, registers its reference transcript, and warms the selected
+voice before accepting requests. Later starts reuse the saved reference and
+encoded voice cache. Initial model download and reference preparation take
+longer than a warm start. The example is optional; upload your own recording
+under **Stimmen** for normal cloning. Full ICL remains selectable in Studio.
+
+The first reference download needs network access. `--local-files-only` also
+disables that download; it works once the example has been cached or registered.
+An existing different voice named `demo-neutral` is preserved and causes a clear
+startup error. Choose another `--voice-dir` or omit `--demo-voice` in that case.
+
+Both paths use the same 0.6B Base Q8_0 model by default. No lower-quality model,
+quantization or sampling shortcut is selected by these commands. CPU throughput
+still depends on contention: the 80 ms server reserve and Studio's separate
+80 ms CPU browser buffer cannot hide sustained generation slower than real time.
+GPU Studio retains its separate 8 ms browser buffer.
+
 ## Models and supported operations
 
 | Checkpoint | Reference cloning | Fixed speakers | Instructions | Voice design |

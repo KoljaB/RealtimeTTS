@@ -927,6 +927,115 @@ def test_cpu_cli_constructs_cpu_engine_with_requested_threads(monkeypatch):
             qwen_server_module.main(argv)
 
 
+def test_3900x_preset_is_opt_in_and_keeps_explicit_overrides(monkeypatch):
+    from types import SimpleNamespace
+    parser = build_argument_parser()
+    defaults = parser.parse_args([])
+    assert defaults.preset is None and defaults.demo_voice is False
+    assert defaults.cpu_codec_threads == 0
+    arguments = ["--preset", "windows-3900x", "--cpu-threads=4",
+                 "--startup-buffer-ms", "120", "--clamp-fp16"]
+    args = parser.parse_args(arguments)
+    monkeypatch.setattr(qwen_server_module, "os", SimpleNamespace(name="nt", cpu_count=lambda: 24))
+    qwen_server_module._apply_server_preset(args, parser, arguments)
+    assert args.device == "cpu"
+    assert args.cpu_threads == 4 and args.cpu_codec_threads == 6
+    assert args.cpu_stream_frames == 1
+    assert args.cpu_affinity == 0x555 and args.cpu_codec_affinity == 0x555000
+    assert args.startup_buffer_ms == 120 and args.clamp_fp16 is True
+    assert args.onset_silence_recovery is True
+
+
+@pytest.mark.parametrize("platform,cpus,extra", [
+    ("posix", 24, []), ("nt", 8, []), ("nt", 24, ["--device", "gpu"]),
+    ("nt", 24, ["--model-id", "Qwen/Qwen3-TTS-12Hz-1.7B-Base"]),
+])
+def test_3900x_preset_rejects_incompatible_targets(monkeypatch, platform, cpus, extra):
+    from types import SimpleNamespace
+    parser = build_argument_parser()
+    arguments = ["--preset", "windows-3900x", *extra]
+    args = parser.parse_args(arguments)
+    monkeypatch.setattr(qwen_server_module, "os", SimpleNamespace(name=platform, cpu_count=lambda: cpus))
+    with pytest.raises(SystemExit):
+        qwen_server_module._apply_server_preset(args, parser, arguments)
+
+
+@pytest.mark.parametrize("device", ["gpu", "native"])
+def test_gpu_cli_selects_gpu_engine(monkeypatch, device):
+    from types import SimpleNamespace
+    import sys
+    class ConstructionReached(Exception):
+        pass
+    calls = []
+    def gpu_engine(**kwargs):
+        calls.append(kwargs)
+        raise ConstructionReached
+    monkeypatch.setitem(sys.modules, "uvicorn", SimpleNamespace())
+    monkeypatch.setattr(qwen_server_module, "QwenEngine", gpu_engine)
+    with pytest.raises(ConstructionReached):
+        qwen_server_module.main(["--device", device, "--clone-mode", "speaker_only"])
+    assert calls[0]["clone_mode"] == "speaker_only"
+    assert "cpu_threads" not in calls[0]
+
+
+def _mock_demo_reference(monkeypatch, tmp_path, *, corrupt=False):
+    import hashlib
+    import RealtimeTTS.qwen_emotions as demo
+    payload = b"public-reference-fixture"
+    monkeypatch.setitem(demo.ASSET_HASHES, "neutral", hashlib.sha256(payload).hexdigest())
+    monkeypatch.setattr(demo, "cache_root", lambda: tmp_path / "demo-cache")
+    calls = []
+    def ensure(entries, *, download):
+        calls.append(download)
+        target = Path(entries[0].ref_audio)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(b"wrong-reference" if corrupt else payload)
+    monkeypatch.setattr(demo, "ensure_references", ensure)
+    return calls
+
+
+def test_demo_voice_is_cached_and_warmup_is_silent(monkeypatch, tmp_path):
+    calls = _mock_demo_reference(monkeypatch, tmp_path)
+    engine = FakeEngine()
+    server = _server(tmp_path, engine)
+    name = qwen_server_module._prepare_demo_voice(server, local_files_only=False)
+    assert name == "demo-neutral"
+    registered = server.registry.get(name)
+    assert registered.ref_text.startswith("That wall in the living room")
+    assert qwen_server_module._prepare_demo_voice(server, local_files_only=True) == name
+    assert server.registry.get(name) is registered and calls == [True]
+    server.startup_warmup_voice = name
+    server.startup()
+    assert engine.warmup_calls == 1 and engine.queue.empty()
+
+
+def test_demo_voice_does_not_replace_user_reference(monkeypatch, tmp_path):
+    calls = _mock_demo_reference(monkeypatch, tmp_path)
+    server = _server(tmp_path)
+    server.register_voice(_voice_payload("demo-neutral"))
+    original = server.registry.get("demo-neutral")
+    with pytest.raises(ValueError, match="different reference"):
+        qwen_server_module._prepare_demo_voice(server, local_files_only=False)
+    assert server.registry.get("demo-neutral") is original and calls == []
+
+
+def test_demo_voice_rejects_corrupt_offline_reference(monkeypatch, tmp_path):
+    calls = _mock_demo_reference(monkeypatch, tmp_path, corrupt=True)
+    server = _server(tmp_path)
+    with pytest.raises(ValueError, match="checksum"):
+        qwen_server_module._prepare_demo_voice(server, local_files_only=True)
+    assert calls == [False] and server.registry.records() == []
+
+
+def test_demo_voice_rejects_non_cloning_model(monkeypatch, tmp_path):
+    calls = _mock_demo_reference(monkeypatch, tmp_path)
+    server = _server(tmp_path)
+    server.engine.model_type = "custom_voice"
+    with pytest.raises(ValueError, match="Base model"):
+        qwen_server_module._prepare_demo_voice(server, local_files_only=False)
+    assert calls == []
+
+
 def test_cpu_capabilities_preserve_api_contract(tmp_path):
     engine = FakeEngine()
     engine.device = "cpu"

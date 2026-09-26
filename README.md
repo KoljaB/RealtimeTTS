@@ -38,20 +38,20 @@ chunk**, and about **10 ms of silence inside that chunk**. Predicted audible
 onset was **80.9 ms** and RTF was **0.108**. These are orientation figures;
 measure the complete path on your target system.
 
-RealtimeTTS 0.8.6 also provides `QwenCpuEngine`, using the maintained CPU-only
+RealtimeTTS 0.8.9 also provides `QwenCpuEngine`, using the maintained CPU-only
 native runtime with worker-pool improvements and onset recovery. Choose one of
 these server installations in a fresh Python 3.11 or 3.12 virtual environment:
 
 ```bash
 # NVIDIA GPU on Windows or Linux x86-64
 python -m pip install "realtimetts[qwen-server]"
-realtimetts-qwen-server --clone-mode speaker_only
+realtimetts-qwen-server --device gpu --clone-mode speaker_only --startup-buffer-ms 80 --demo-voice
 ```
 
 ```bash
 # CPU on Windows, Linux, Intel Mac, or Apple Silicon
 python -m pip install "realtimetts[qwen-cpu-server]"
-realtimetts-qwen-server --device cpu --clone-mode speaker_only --no-clamp-fp16 --onset-silence-profile qwen3_tts_12hz_0_6b_base_q8_v1 --onset-silence-recovery
+realtimetts-qwen-server --device cpu --demo-voice
 ```
 
 Neither server extra needs Torch, a local CUDA Toolkit, or PortAudio. GPU mode
@@ -59,6 +59,11 @@ still needs a compatible NVIDIA GPU/driver. CPU wheels support Windows x86-64,
 Linux x86-64 with glibc 2.35+, Intel macOS 13+, and Apple Silicon macOS 11+.
 x86-64 CPUs require AVX2/FMA/F16C/BMI2. CPU throughput depends on the machine;
 older x86 CPUs, Linux ARM CPU, Windows ARM64, and Metal are outside this release.
+
+The optional `--demo-voice` prepares a public neutral cloning example, ready to
+select as **demo-neutral**. On Windows Ryzen 3900X, use `--preset windows-3900x`
+instead of `--device cpu` for the explicit overlap profile. See the
+[three-command CPU/GPU uv quick start](docs/qwen-studio.md#quick-start-with-a-cloning-example).
 
 Both servers offer browser playback at `http://127.0.0.1:8080/studio`, early
 em-dash speech, streaming segment controls, and language detection. See the
