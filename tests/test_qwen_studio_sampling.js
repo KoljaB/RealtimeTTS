@@ -32,7 +32,7 @@ function studio(codecDefault = null, device = 'cpu') {
   const clone = {value: 'speaker_only', checked: true, dispatchEvent() {}};
   const context = vm.createContext({
     document: {getElementById: control, querySelectorAll: () => [], querySelector: () => clone},
-    location: {origin: 'http://localhost'}, devicePixelRatio: 1,
+    location: {origin: 'http://localhost'}, devicePixelRatio: 1, performance: {now: () => 0},
     window: {addEventListener() {}}, Event: class {},
     fetch: async () => ({ok: false})
   });
@@ -49,14 +49,58 @@ function studio(codecDefault = null, device = 'cpu') {
   vm.runInContext('caps=' + JSON.stringify(caps) + '; defaults();', context);
   return {
     control,
+    receiveAt: (arrivals) => {
+      context.arrivals = arrivals;
+      return JSON.parse(vm.runInContext(`
+        (() => {
+          const starts = [];
+          const ctx = {
+            currentTime: 0, destination: {},
+            createBuffer: () => ({copyToChannel() {}}),
+            createBufferSource: () => ({
+              connect() {}, disconnect() {}, start(when) {starts.push(when);}
+            })
+          };
+          const r = {ctx, pending: 0, samples: 0, next: 0, odd: null,
+            started: 0, audible: false, underruns: 0, gapMs: 0};
+          run = r;
+          for (const arrival of arrivals) {
+            ctx.currentTime = arrival;
+            receivePCM(r, new Int16Array(1920).buffer);
+          }
+          return JSON.stringify({starts, underruns: r.underruns, gapMs: r.gapMs});
+        })()
+      `, context));
+    },
     reset: () => vm.runInContext('defaults()', context),
     request: () => JSON.parse(vm.runInContext('JSON.stringify(requestOptions())', context))
   };
 }
-test('CPU playback defaults to 80 ms while GPU keeps its 8 ms default', () => {
+test('CPU and GPU playback both default to 80 ms startup reserve', () => {
   assert.equal(studio().control('bufferMs').value, '80');
-  assert.equal(studio(null, 'cuda').control('bufferMs').value, '8');
+  assert.equal(studio(null, 'cuda').control('bufferMs').value, '80');
 });
+test('underrun metric includes the silence added when playback restarts', () => {
+  const result = studio().receiveAt([0, .20, .25]);
+  assert.equal(result.underruns, 1);
+  assert.ok(Math.abs(result.gapMs - 120) < 1e-8);
+  assert.deepEqual(result.starts.map(x => Math.round(x * 1000)), [80, 280, 360]);
+});
+
+test('floating-point noise at a chunk boundary does not insert a new startup reserve', () => {
+  const result = studio().receiveAt([0, .16, .2400000000000001]);
+  assert.equal(result.underruns, 0);
+  assert.equal(result.gapMs, 0);
+  assert.deepEqual(result.starts.map(x => Math.round(x * 1000)), [80, 160, 240]);
+});
+
+test('chunks arriving before the scheduled end stay contiguous', () => {
+  const result = studio().receiveAt([0, .10, .15]);
+  assert.equal(result.underruns, 0);
+  assert.equal(result.gapMs, 0);
+  assert.deepEqual(result.starts.map(x => Math.round(x * 1000)), [80, 160, 240]);
+});
+
 test('null codec defaults stay omitted rather than becoming greedy false', () => {
   const ui = studio();
   const payload = ui.request();

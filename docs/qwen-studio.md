@@ -1,5 +1,8 @@
 # Qwen Voice Studio
 
+Studio opens in English, including its default example and messages. Use the
+language selector or the DE example button to synthesize German speech.
+
 The Qwen server serves its built-in browser client at `/` and `/studio`. Assets contain no credentials; API and WebSocket inference still require the server's configured key. Enter that key in Connection settings. It stays in the current tab's memory, never local storage. The browser sends WebSocket credentials as a non-echoed subprotocol rather than a query parameter.
 
 Studio streams 24 kHz mono PCM directly into Web Audio as chunks arrive. The default transport is WebSocket; HTTP PCM and complete WAV can also be tested. A user click unlocks audio playback. Pause/resume affects browser playback and sends native checkpoint controls over WebSocket; Stop cancels the request and discards pending playback. In Streaming, open a session, send text fragments, then finish input. WAV download contains the received audio, including a partial recording after Stop.
@@ -58,7 +61,7 @@ Both paths use the same 0.6B Base Q8_0 model by default. No lower-quality model,
 quantization or sampling shortcut is selected by these commands. CPU throughput
 still depends on contention: the 80 ms server reserve and Studio's separate
 80 ms CPU browser buffer cannot hide sustained generation slower than real time.
-GPU Studio retains its separate 8 ms browser buffer.
+GPU Studio also uses an 80 ms browser buffer to cover startup scheduling jitter.
 
 ## Models and supported operations
 
@@ -97,6 +100,6 @@ Talker: `seed`, `max_new_tokens`, `do_sample`, `temperature`, `top_k`, `top_p`, 
 
 The Diagnose tab exposes readiness, health, model information, capability limits, configured defaults and the last request without credentials. Startup-only settings such as CPU threads, model paths, attention mode and silence handling are configuration, not per-request changes.
 
-First PCM is measured at browser receipt, not native generation. Audible onset is estimated from the scheduled first sample with absolute int16 value at least 256, plus the browser's reported output latency. It is not a physical speaker/microphone measurement. RTF includes elapsed time through the last chunk divided by received audio duration; manual fragment waits and pauses are included. The details panel reports scheduled underruns. Engine startup buffer is an amount of audio accumulated, so changing it can cross chunk boundaries and cause stepped latency changes. The independent browser buffer defaults to 80 ms for CPU connections and 8 ms for GPU connections, and remains editable. These values are additional to the server startup reserve; selecting Server-Defaults restores them. The standard server reserve remains 160 ms unless explicitly configured, for example 80 ms in the Windows 3900X launcher.
+First PCM is measured at browser receipt, not native generation. Audible onset is estimated from the scheduled first sample with absolute int16 value at least 256, plus the browser's reported output latency. It is not a physical speaker/microphone measurement. RTF includes elapsed time through the last chunk divided by received audio duration; manual fragment waits and pauses are included. The details panel reports scheduled underruns. Engine startup buffer is an amount of audio accumulated, so changing it can cross chunk boundaries and cause stepped latency changes. The independent browser buffer defaults to 80 ms for both CPU and GPU connections, and remains editable. Reported gap duration includes the reserve inserted when playback restarts after an underrun. These values are additional to the server startup reserve; selecting Server-Defaults restores them. The standard server reserve remains 160 ms unless explicitly configured, for example 80 ms in the Windows 3900X launcher.
 
 No microphone capture is required; references are uploaded from files. Non-WAV formats are decoded and converted by the browser where supported. The API upload size limit applies after base64 encoding. Requests and voice mutations affect the selected server's voice registry only.

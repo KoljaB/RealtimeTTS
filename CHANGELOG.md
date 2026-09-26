@@ -8,8 +8,12 @@
   native synthesis, avoiding the standalone Studio's native status -3 error.
 - Preserve inherited codec sampling in Studio. A null server default no longer
   turns into an explicit false override; Server-Default, On and Off stay distinct.
-- Use an editable 80 ms browser buffer for CPU Studio connections; GPU keeps
-  its 8 ms default. This browser buffer is separate from the engine startup reserve.
+- Use an editable 80 ms browser buffer for both CPU and GPU Studio connections.
+  This browser buffer is separate from the engine startup reserve.
+- Avoid inserting a new startup reserve for floating-point rounding at contiguous
+  audio boundaries; include rebuffering silence in the reported gap duration.
+- Make Studio English by default, including its example, status and error messages.
+  German remains available as a speech language.
 
 ### Added
 
