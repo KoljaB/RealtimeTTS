@@ -480,7 +480,7 @@ class ReleaseGuardTests(unittest.TestCase):
         )
         self.assertEqual(
             public["native_revision"],
-            "ec5336154a68f9e17f95c3d99b3b97489cb090a6",
+            "791d7df22afc408b3786fbe694c421ce055ae5d5",
         )
         self.assertTrue(public["publish_sdist"])
 
