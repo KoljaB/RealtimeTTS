@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.8.9 - 2026-09-26
+
+### Fixed
+
+- Normalize Qwen HTTP/WebSocket language codes such as `de` and `en` before
+  native synthesis, avoiding the standalone Studio's native status -3 error.
+- Preserve inherited codec sampling in Studio. A null server default no longer
+  turns into an explicit false override; Server-Default, On and Off stay distinct.
+- Use an editable 80 ms browser buffer for CPU Studio connections; GPU keeps
+  its 8 ms default. This browser buffer is separate from the engine startup reserve.
+
+### Added
+
+- An opt-in Windows Ryzen 9 3900X server launcher with the tested six-plus-six
+  worker layout, affinity masks, AboveNormal process priority and 80 ms server
+  reserve, plus fresh-venv and reference-voice instructions.
+- Regression coverage for Studio sampling defaults and standalone language codes.
+
+CPU native remains 0.4.0 and GPU native remains 0.2.0. Model weights, precision,
+and native inference code are unchanged.
+
 ## 0.8.8 - 2026-09-26
 
 ### Fixed

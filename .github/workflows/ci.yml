@@ -55,6 +55,8 @@ jobs:
           tests/test_qwen_symbol_fragments.py
           tests/test_em_dash_fragments.py
           tests/test_qwen_server.py
+          tests/test_qwen_server_language_codes.py
+          tests/test_qwen_studio.py
           tests/test_release_guard.py
           tests/test_release_guard_cpu_macos.py
           tests/test_release_guard_cli.py
@@ -65,6 +67,9 @@ jobs:
           tests/test_sentence_tokenizer_defaults.py
           tests/test_stream_player_stop.py
           tests/test_text_to_stream_alignment.py
+
+      - name: Run Studio JavaScript regression tests
+        run: node --test tests/test_qwen_studio_sampling.js
 
   documentation:
     name: Build documentation strictly

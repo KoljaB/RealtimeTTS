@@ -23,7 +23,7 @@ def test_cpu_mac_delocate_payload_does_not_relax_python_source_parity(tmp_path):
         with zipfile.ZipFile(wheel, "w") as archive:
             archive.writestr("qwentts_cpp_cpu/__init__.py", "VERSION = '0.3.0rc1'\n")
             for group in profile["required_native_library_groups"][platform]:
-                archive.writestr(group[0], b"b47728b-native")
+                archive.writestr(group[0], profile["native_revision"][:7].encode("ascii") + b"-native")
             if platform.startswith("macosx"):
                 archive.writestr("qwentts_cpp_cpu/.dylibs/libggml-cpu.0.17.0.dylib", b"repaired-native")
             archive.writestr("realtimetts_qwen_native_cpu-0.3.0rc1.dist-info/METADATA", "Name: realtimetts-qwen-native-cpu\nVersion: 0.3.0rc1\n")

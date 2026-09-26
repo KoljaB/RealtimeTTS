@@ -654,6 +654,7 @@ class QwenHttpServer:
         self.language = str(language).strip().lower()
         if not self.alias or not self.language:
             raise ValueError("alias and language must not be empty")
+        self.language = normalize_qwen_language(self.language, allow_auto=True)
         self.startup_warmup_voice = (
             str(startup_warmup_voice).strip() if startup_warmup_voice is not None else None
         )
@@ -902,6 +903,7 @@ class QwenHttpServer:
         )
         if not voice_language:
             raise ValueError("startup warmup language must not be empty")
+        voice_language = normalize_qwen_language(voice_language, allow_auto=True)
         if getattr(self.engine, "model_type", "base") == "base" and self.registry.get(voice_name) is None:
             raise RuntimeError(f"startup warmup voice {voice_name!r} is not registered in {self.registry.root}")
         selected_voice = self.synthesis_voice(voice_name, voice_language,

@@ -67,6 +67,7 @@ language routing, and reproducing the deployed CPU settings.
 
 CPU decoder overlap is available through explicit worker and chunk settings.
 See [CPU scheduling and measured results](docs/qwen-cpu-scheduling.md).
+Windows Ryzen 9 3900X users can use the [tested cmd launcher and fresh-venv guide](docs/qwen-cpu-scheduling.md#windows-ryzen-9-3900x-ready-to-run-server).
 
 ### Emotional Qwen demo from the video
 

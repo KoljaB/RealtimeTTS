@@ -5,3 +5,6 @@ include requirements.txt
 include README.md
 prune tests
 include tests/faster_qwen_emotions.py
+include tools/qwen_cpu_overlap/server_3900x.cmd
+include docs/qwen-cpu-scheduling.md
+include docs/qwen-studio.md

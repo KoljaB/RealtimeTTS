@@ -21,6 +21,7 @@ def test_server_rejects_non_base_before_registering_a_voice(monkeypatch, model_t
 
     monkeypatch.setattr(demo, "_request", request)
     args = demo.build_parser().parse_args(["--server", "http://localhost:8080"])
+    args.console = demo.DemoConsole(stdout=io.StringIO(), stderr=io.StringIO())
     with pytest.raises(ValueError, match="requires a Base model"):
         demo.run_server(args, [])
     assert calls == ["http://localhost:8080/v1/capabilities"]
