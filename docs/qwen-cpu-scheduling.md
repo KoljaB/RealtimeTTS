@@ -1,8 +1,12 @@
 # Qwen CPU scheduling
 
-RealtimeTTS 0.8.7 pins realtimetts-qwen-native-cpu 0.4.0 for the CPU extras.
+RealtimeTTS 0.8.8 pins realtimetts-qwen-native-cpu 0.4.0 for the CPU extras.
 The CUDA native package remains at 0.2.0. Model weights, Q8_0 precision, voices
 and sampling settings are unchanged by the CPU scheduling options.
+
+Intel Mac installations select Numba 0.62.x for prebuilt dependencies; use
+Python 3.10-3.13 on that platform. Apple Silicon uses its ordinary dependency
+selection. See the [Numba support change](https://numba.readthedocs.io/en/latest/release/0.63.0-notes.html).
 
 ## Enable overlap
 

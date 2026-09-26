@@ -23,7 +23,7 @@ def _version_from_source() -> str:
 
 
 def test_release_version_is_single_source_and_current_candidate():
-    assert re.fullmatch(r"0\.8\.7(?:rc[1-9]\d*)?", _version_from_source())
+    assert re.fullmatch(r"0\.8\.8(?:rc[1-9]\d*)?", _version_from_source())
 
     setup_text = (ROOT / "setup.py").read_text(encoding="utf-8")
     assert "_version.py" in setup_text
@@ -64,6 +64,36 @@ def test_qwen_native_candidates_keep_validated_platform_pins():
     assert all(candidate in setup_text for candidate in expected)
     assert "requirements.get(\"realtimetts-qwen-native\"" not in setup_text
 
+
+
+def test_qwen_numba_pin_selects_prebuilt_intel_mac_versions(monkeypatch):
+    import runpy
+    import setuptools
+    from packaging.requirements import Requirement
+
+    captured = {}
+    monkeypatch.setattr(setuptools, "setup", lambda **kwargs: captured.update(kwargs))
+    runpy.run_path(str(ROOT / "setup.py"), run_name="release_metadata_probe")
+    requirements = [
+        Requirement(value)
+        for value in captured["extras_require"]["qwen-cpu-server"]
+    ]
+    def active(platform, machine):
+        environment = {"sys_platform": platform, "platform_machine": machine}
+        return [
+            item.specifier for item in requirements
+            if item.name == "numba"
+            and (item.marker is None or item.marker.evaluate(environment))
+        ]
+
+    intel = active("darwin", "x86_64")
+    assert len(intel) == 1
+    assert "0.62.1" in intel[0] and "0.63.0" not in intel[0]
+    assert active("darwin", "arm64") == []
+    assert active("linux", "x86_64") == []
+    windows = active("win32", "AMD64")
+    assert len(windows) == 1
+    assert "0.66.0" in windows[0] and "0.67.0" not in windows[0]
 
 def test_source_distribution_manifest_keeps_release_metadata_and_excludes_tests():
     lines = {

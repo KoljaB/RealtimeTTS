@@ -148,6 +148,8 @@ qwen_audio_requirements = [
     requirements.get("numpy", "numpy"),
     requirements.get("soundfile", "soundfile>=0.13.1"),
     'numba>=0.66,<0.67; sys_platform == "win32"',
+    # Numba 0.63+ no longer ships Intel Mac wheels; keep binary installation.
+    'numba>=0.62,<0.63; sys_platform == "darwin" and platform_machine == "x86_64"',
 ]
 qwen_common_requirements = qwen_native_requirements + qwen_audio_requirements
 qwen_requirements = qwen_common_requirements + pyaudio_requirements

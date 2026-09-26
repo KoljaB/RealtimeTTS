@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.8.8 - 2026-09-26
+
+### Fixed
+
+- Constrain Qwen extras to Numba 0.62.x on Intel Macs, the last release line
+  with prebuilt Intel Mac wheels. This avoids an unintended LLVM source build.
+  Windows, Linux and Apple Silicon dependency selections are unchanged.
+- Includes the Qwen CPU scheduling and demo improvements prepared in 0.8.7.
+  Version 0.8.7 was retained as TestPyPI qualification evidence.
+
 ## 0.8.7 - 2026-09-22
 
 ### Added
