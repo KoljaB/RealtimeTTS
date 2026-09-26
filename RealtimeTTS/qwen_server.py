@@ -28,7 +28,7 @@ import time
 import uuid
 import wave
 from collections.abc import AsyncIterator, Callable, Iterator, Mapping, Sequence
-from contextlib import asynccontextmanager, suppress
+from contextlib import asynccontextmanager, contextmanager, suppress
 from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any, Optional
@@ -2593,6 +2593,34 @@ def _prepare_demo_voice(server: QwenHttpServer, *, local_files_only: bool) -> st
     return name
 
 
+@contextmanager
+def _queued_server_logging(level: str) -> Iterator[None]:
+    """Write CLI logs on a worker, never on the ASGI or synthesis thread."""
+    from logging.handlers import QueueHandler, QueueListener
+
+    loggers = [logging.getLogger(name) for name in ("", "uvicorn", "uvicorn.error", "uvicorn.access")]
+    saved = [(logger, list(logger.handlers), logger.level, logger.propagate) for logger in loggers]
+    sinks = saved[0][1] or [logging.StreamHandler()]
+    records = queue_module.SimpleQueue()
+    handler = QueueHandler(records)
+    listener = QueueListener(records, *sinks, respect_handler_level=True)
+    severity = getattr(logging, level.upper(), logging.INFO)
+    for index, logger in enumerate(loggers):
+        logger.handlers = [handler] if index == 0 else []
+        logger.setLevel(severity)
+        logger.propagate = index != 0
+    listener.start()
+    try:
+        yield
+    finally:
+        for logger, handlers, old_level, propagate in saved:
+            logger.handlers = handlers
+            logger.setLevel(old_level)
+            logger.propagate = propagate
+        listener.stop()
+        handler.close()
+
+
 def _configure_native_logging(engine: Any) -> None:
     """Keep native diagnostics off the synthesis thread's stderr path."""
     setter = getattr(getattr(engine, "_backend", None), "set_log_callback", None)
@@ -2785,14 +2813,16 @@ def main(argv: Optional[Sequence[str]] = None) -> None:
         args.port,
     )
     app = create_app(server)
-    uvicorn.run(
-        app,
-        host=args.host,
-        port=args.port,
-        log_level=str(args.log_level).lower(),
-        workers=1,
-        timeout_keep_alive=5,
-    )
+    with _queued_server_logging(str(args.log_level)):
+        uvicorn.run(
+            app,
+            host=args.host,
+            port=args.port,
+            log_level=str(args.log_level).lower(),
+            workers=1,
+            timeout_keep_alive=5,
+            log_config=None,
+        )
 
 
 if __name__ == "__main__":  # pragma: no cover
