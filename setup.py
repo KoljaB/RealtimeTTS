@@ -80,6 +80,7 @@ Available engine options include:
 - **styletts**: StyleTTS integration
 - **piper**: Piper executable engine support
 - **typecast**: Typecast API integration
+- **speechify**: Speechify API integration
 - **nltk**: Default NLTK plus rule-based sentence tokenizer (included by default)
 - **stanza**: Add the optional Stanza sentence tokenizer
 - **minimal**: Core package only (for custom engine development)
@@ -305,6 +306,7 @@ extras_require = {
     "modelslab": standard_requirements + requests_requirements,
     "cartesia": standard_requirements + cartesia_requirements,
     "typecast": standard_requirements + typecast_requirements,
+    "speechify": standard_requirements + requests_requirements,
     "orpheus": standard_requirements + orpheus_requirements,
     "omnivoice": standard_requirements + omnivoice_requirements,
     "luxtts": standard_requirements + luxtts_requirements,
