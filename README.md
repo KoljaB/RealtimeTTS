@@ -45,7 +45,7 @@ these server installations in a fresh Python 3.11 or 3.12 virtual environment:
 ```bash
 # NVIDIA GPU on Windows or Linux x86-64
 python -m pip install "realtimetts[qwen-server]"
-realtimetts-qwen-server --device gpu --clone-mode speaker_only --startup-buffer-ms 80 --demo-voice
+realtimetts-qwen-server --device gpu --clone-mode speaker_only --demo-voice
 ```
 
 ```bash

@@ -59,8 +59,13 @@ configuration; do not copy its affinity masks to another CPU topology.
 ```bat
 uv venv --python 3.11 --managed-python .venv-gpu
 uv pip install --python .venv-gpu\Scripts\python.exe "realtimetts[qwen-server]==0.8.10"
-.venv-gpu\Scripts\realtimetts-qwen-server.exe --device gpu --clone-mode speaker_only --startup-buffer-ms 80 --demo-voice
+.venv-gpu\Scripts\realtimetts-qwen-server.exe --device gpu --clone-mode speaker_only --demo-voice
 ```
+
+The GPU command keeps the standard **160 ms server reserve**. The GPU decoder
+uses growing chunks, so the CPU preset's 80 ms reserve is not a general GPU
+recommendation. Both commands keep **0 ms additional browser buffering**;
+`--startup-buffer-ms` and the Studio browser-buffer control remain configurable.
 
 A compatible NVIDIA driver is required. The extra installs the CUDA runtime;
 a CUDA Toolkit, Torch and PortAudio are not needed. `--device native` remains
