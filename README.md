@@ -49,9 +49,9 @@ realtimetts-qwen-server --device gpu --clone-mode speaker_only --demo-voice
 ```
 
 ```bash
-# CPU: example for a 12-physical-core machine; adjust both worker counts
+# CPU on Windows: example for 12 physical cores; adjust both worker counts
 python -m pip install "realtimetts[qwen-cpu-server]"
-realtimetts-qwen-server --device cpu --cpu-threads 6 --cpu-codec-threads 6 --cpu-stream-frames 1 --cpu-fused-attention --startup-buffer-ms 80 --demo-voice
+realtimetts-qwen-server --device cpu --cpu-threads 6 --cpu-codec-threads 6 --cpu-core-split --cpu-stream-frames 1 --cpu-fused-attention --startup-buffer-ms 80 --onset-silence-profile qwen3_tts_12hz_0_6b_base_q8_v1 --demo-voice
 ```
 
 Neither server extra needs Torch, a local CUDA Toolkit, or PortAudio. GPU mode
@@ -63,7 +63,10 @@ older x86 CPUs, Linux ARM CPU, Windows ARM64, and Metal are outside this release
 `--device cpu --cpu-fused-attention --demo-voice` alone keeps serial decoding.
 A positive `--cpu-codec-threads` enables overlap; `--cpu-threads` controls code
 generation and `--cpu-stream-frames 1` selects 80 ms chunks. Six plus six is an
-example for 12 physical cores, not a universal default. See the quick start for
+example for 12 physical cores, not a universal default. On Windows,
+`--cpu-core-split` discovers the topology and separates the pools without changing
+process priority. It requires enough available cores in the highest performance
+class. Omit that Windows-only option on Linux/macOS. See the quick start for
 smaller CPUs and the full configuration used in the Windows latency checks.
 Studio starts with **0 ms additional browser buffering**, adjustable under
 Sampling & options / Codec, transport & more options.

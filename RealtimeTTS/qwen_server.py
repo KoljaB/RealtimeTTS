@@ -56,6 +56,7 @@ from .engines.qwen_engine import (
     QwenVoice,
 )
 from .engines.qwen_cpu_engine import QwenCpuEngine
+from .qwen_cpu_topology import split_windows_cpu_cores
 from .language_router import (
     FastTextLanguageDetector,
     LanguageDetection,
@@ -2393,6 +2394,9 @@ def build_argument_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--cpu-stream-frames", type=int, choices=(0, 1, 2, 4), default=0,
                         help="CPU streaming chunk frames; 0 keeps the native default")
+    parser.add_argument("--cpu-core-split", action="store_true",
+                        help="Windows: place the two pools on separate physical cores; "
+                             "requires explicit positive worker counts")
     parser.add_argument("--cpu-affinity", type=lambda value: int(value, 0), default=0,
                         help="Generation pool logical CPU mask, e.g. 0x555; 0 is unpinned")
     parser.add_argument("--cpu-codec-affinity", type=lambda value: int(value, 0), default=0,
@@ -2638,7 +2642,7 @@ def main(argv: Optional[Sequence[str]] = None) -> None:
     ):
         parser.error("--cpu-threads requires --device cpu and a value between 1 and 256")
     if any((args.cpu_codec_threads, args.cpu_stream_frames, args.cpu_affinity,
-            args.cpu_codec_affinity)) and args.device != "cpu":
+            args.cpu_codec_affinity, args.cpu_core_split)) and args.device != "cpu":
         parser.error("CPU scheduling options require --device cpu")
     if not 0 <= args.cpu_codec_threads <= 256:
         parser.error("--cpu-codec-threads must be between 0 and 256")
@@ -2647,6 +2651,17 @@ def main(argv: Optional[Sequence[str]] = None) -> None:
             parser.error(f"--{name.replace('_', '-')} must be an unsigned 64-bit mask")
     if args.cpu_codec_affinity and not args.cpu_codec_threads:
         parser.error("--cpu-codec-affinity requires --cpu-codec-threads")
+    if args.cpu_core_split:
+        if args.preset or args.cpu_affinity or args.cpu_codec_affinity:
+            parser.error("--cpu-core-split cannot be combined with a preset or manual affinity masks")
+        if not args.cpu_threads or not args.cpu_codec_threads:
+            parser.error("--cpu-core-split requires positive --cpu-threads and --cpu-codec-threads")
+        try:
+            args.cpu_affinity, args.cpu_codec_affinity = split_windows_cpu_cores(
+                args.cpu_threads, args.cpu_codec_threads
+            )
+        except (ValueError, OSError) as exc:
+            parser.error(str(exc))
     if bool(args.model) != bool(args.codec):
         parser.error("--model and --codec must be supplied together")
     if not 1 <= args.port <= 65535:
@@ -2697,6 +2712,10 @@ def main(argv: Optional[Sequence[str]] = None) -> None:
         level=getattr(logging, str(args.log_level).upper(), logging.INFO),
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",
     )
+    if args.cpu_core_split:
+        LOGGER.info("CPU core split: generation=%#x (%d workers), codec=%#x (%d workers)",
+                    args.cpu_affinity, args.cpu_threads,
+                    args.cpu_codec_affinity, args.cpu_codec_threads)
     _warn_for_compressed_language_id_model(args.language_id_model)
     try:
         import uvicorn

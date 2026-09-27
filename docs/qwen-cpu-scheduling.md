@@ -31,6 +31,13 @@ or 4. At 12.5 acoustic frames/s, these correspond to 80/160/320 ms steady-state
 chunks. This is separate from startup_buffer_ms, which remains 160 by default.
 Overlap supports one utterance per context (max_batch=1).
 
+On 64-bit Windows, add `--cpu-core-split` with explicit positive worker counts
+to discover the physical cores and place the pools separately. It selects one
+allowed logical processor per core, using only the highest performance core
+class, and leaves process priority unchanged. Too few cores or multiple Windows
+processor groups produce an error before model loading. This option cannot be
+combined with a preset or manual affinity masks.
+
 Optional cpu_affinity and cpu_codec_affinity are unsigned 64-bit logical-CPU
 masks, defaulting to zero (unpinned). CLI names use hyphens. Check topology
 before choosing masks: physical cores and SMT siblings share resources. Do

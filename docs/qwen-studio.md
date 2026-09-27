@@ -13,46 +13,43 @@ Create separate environments for CPU and GPU so their dependencies stay clear.
 These Windows cmd commands use Python 3.11 and need neither a source checkout
 nor an activated environment.
 
-### CPU: Windows Ryzen 9 3900X
+### CPU: Windows with separate physical cores
+
+This example uses 12 physical cores. Adjust both worker counts for your CPU:
 
 ```bat
 uv venv --python 3.11 --managed-python .venv-cpu
 uv pip install --python .venv-cpu\Scripts\python.exe "realtimetts[qwen-cpu-server]==0.8.10"
-.venv-cpu\Scripts\realtimetts-qwen-server.exe --preset windows-3900x --cpu-fused-attention --demo-voice
+.venv-cpu\Scripts\realtimetts-qwen-server.exe --device cpu --cpu-threads 6 --cpu-codec-threads 6 --cpu-core-split --cpu-stream-frames 1 --cpu-fused-attention --startup-buffer-ms 80 --onset-silence-profile qwen3_tts_12hz_0_6b_base_q8_v1 --demo-voice
 ```
 
-The explicit preset is for the tested 12-core/24-thread Ryzen 3900X layout.
-It selects six generation and six decoder workers on separate core masks,
-AboveNormal process priority, one-frame chunks and an 80 ms server reserve.
-The separate `--cpu-fused-attention` flag enables native 0.4.2's optional F32
-attention path; the preset alone leaves it off. Explicit CLI values override
-the preset. Quiet onset audio is trimmed without cancelling or restarting synthesis.
-For other CPUs, use `--device cpu`
-and choose worker counts for the hardware; see [CPU scheduling](qwen-cpu-scheduling.md).
+`--cpu-core-split` reads the Windows physical-core topology and the process's
+allowed CPUs. It assigns one logical processor per physical core to disjoint
+generation and decoder pools. It does not raise process priority or assume a
+particular SMT numbering scheme. No processor-specific preset or hexadecimal
+mask is needed.
 
-### CPU: explicit worker settings on other machines
+For eight available physical cores, try 4+4; for six, try 3+3. Leave capacity
+for other active applications. On hybrid CPUs this option uses only the highest
+performance core class available to the process. If there are too few such
+cores, reduce the worker counts. Multiple Windows processor groups are not
+supported by this option. It reports unsupported layouts before loading models.
 
 The minimal `--device cpu --cpu-fused-attention --demo-voice` command still uses
-serial decoding. Fused attention alone does not enable the decoder worker pool.
-For a machine with 12 physical cores, an overlap starting point is:
+serial decoding. Positive `--cpu-codec-threads` enables overlap; fused attention
+alone does not. On Linux/macOS omit the Windows-only `--cpu-core-split` option.
+See [CPU scheduling](qwen-cpu-scheduling.md) for manual affinity settings.
 
-```bat
-.venv-cpu\Scripts\realtimetts-qwen-server.exe --device cpu --cpu-threads 6 --cpu-codec-threads 6 --cpu-stream-frames 1 --cpu-fused-attention --startup-buffer-ms 80 --demo-voice
-```
+These commands are tuning starting points, not latency promises for every CPU.
+They explicitly select one-frame (80 ms) chunks, an 80 ms server reserve and the
+onset profile for the default 0.6B Base Q8 model. Without explicit options the
+standard server reserve is 160 ms and the onset profile is off. Quiet onset
+audio is trimmed without cancelling or restarting synthesis.
 
-Adjust both thread counts to the CPU: for example, start with 4+4 on eight
-physical cores or 3+3 on six. Count physical cores, not SMT/logical threads, and
-leave capacity for other active applications. These are tuning starting points,
-not measured performance promises for those CPUs. One stream frame is 80 ms of
-audio; the server startup reserve and browser buffer are separate controls.
-
-**Manual 6+6 is not equivalent to `--preset windows-3900x`.** The preset also
-sets physical-core masks `0x555` / `0x555000`, AboveNormal process priority,
-speaker-only cloning, the checkpoint-specific onset profile
-`qwen3_tts_12hz_0_6b_base_q8_v1` and the 80 ms server reserve.
-Without explicit options the standard server reserve is 160 ms and the onset
-profile is off. Use the preset command above to reproduce the tested 3900X
-configuration; do not copy its affinity masks to another CPU topology.
+The optional `--preset windows-3900x` remains available for that particular
+12-core/24-thread layout. It additionally selects fixed masks and AboveNormal
+process priority. Do not combine it with `--cpu-core-split` or copy its masks to
+a different CPU topology.
 
 ### NVIDIA GPU: Windows
 
