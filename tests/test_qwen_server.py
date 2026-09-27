@@ -973,7 +973,8 @@ def test_3900x_preset_is_opt_in_and_keeps_explicit_overrides(monkeypatch):
     assert args.cpu_stream_frames == 1
     assert args.cpu_affinity == 0x555 and args.cpu_codec_affinity == 0x555000
     assert args.startup_buffer_ms == 120 and args.clamp_fp16 is True
-    assert args.onset_silence_recovery is True
+    assert not hasattr(args, "onset_silence_recovery")
+    assert args.trim_silence is True
 
 
 @pytest.mark.parametrize("platform,cpus,extra", [

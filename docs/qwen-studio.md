@@ -24,10 +24,10 @@ uv pip install --python .venv-cpu\Scripts\python.exe "realtimetts[qwen-cpu-serve
 The explicit preset is for the tested 12-core/24-thread Ryzen 3900X layout.
 It selects six generation and six decoder workers on separate core masks,
 AboveNormal process priority, one-frame chunks and an 80 ms server reserve.
-The separate `--cpu-fused-attention` flag enables native 0.4.1's optional F32
+The separate `--cpu-fused-attention` flag enables native 0.4.2's optional F32
 attention path; the preset alone leaves it off. Explicit CLI values override
-the preset. To disable onset recovery, pass
-`--onset-silence-profile off --no-onset-silence-recovery`. For other CPUs, use `--device cpu`
+the preset. Quiet onset audio is trimmed without cancelling or restarting synthesis.
+For other CPUs, use `--device cpu`
 and choose worker counts for the hardware; see [CPU scheduling](qwen-cpu-scheduling.md).
 
 ### CPU: explicit worker settings on other machines
@@ -49,7 +49,7 @@ audio; the server startup reserve and browser buffer are separate controls.
 **Manual 6+6 is not equivalent to `--preset windows-3900x`.** The preset also
 sets physical-core masks `0x555` / `0x555000`, AboveNormal process priority,
 speaker-only cloning, the checkpoint-specific onset profile
-`qwen3_tts_12hz_0_6b_base_q8_v1`, onset recovery and the 80 ms server reserve.
+`qwen3_tts_12hz_0_6b_base_q8_v1` and the 80 ms server reserve.
 Without explicit options the standard server reserve is 160 ms and the onset
 profile is off. Use the preset command above to reproduce the tested 3900X
 configuration; do not copy its affinity masks to another CPU topology.

@@ -1,6 +1,6 @@
 # Qwen CPU scheduling
 
-RealtimeTTS 0.8.10 pins realtimetts-qwen-native-cpu 0.4.1 for the CPU extras.
+RealtimeTTS 0.8.10 pins realtimetts-qwen-native-cpu 0.4.2 for the CPU extras.
 The CUDA native package remains at 0.2.0. Model weights, Q8_0 precision, voices
 and sampling settings are unchanged by the CPU scheduling options.
 

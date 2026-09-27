@@ -39,7 +39,7 @@ onset was **80.9 ms** and RTF was **0.108**. These are orientation figures;
 measure the complete path on your target system.
 
 RealtimeTTS 0.8.10 also provides `QwenCpuEngine`, using the maintained CPU-only
-native runtime with worker-pool improvements and onset recovery. Choose one of
+native runtime with worker-pool improvements and streaming silence trimming. Choose one of
 these server installations in a fresh Python 3.11 or 3.12 virtual environment:
 
 ```bash
@@ -230,7 +230,7 @@ see [docs/output-and-files.md](docs/output-and-files.md).
 | Engine | Type | Install/status note | Best first use |
 | --- | --- | --- | --- |
 | **[`QwenEngine`](docs/engines/qwen.md) (recommended)** | Local native neural / HTTP server | `realtimetts[qwen]` or `realtimetts[qwen-server]` with a matching native wheel | High-quality multilingual realtime speech, voice cloning, and fast cancellation. |
-| [`QwenCpuEngine`](docs/engines/qwen.md#cpu-engine) | Local CPU native / HTTP server | `realtimetts[qwen-cpu]` or `realtimetts[qwen-cpu-server]` | CPU-only Qwen on Windows/Linux x86-64 and Intel/Apple Silicon macOS; onset recovery and the same streaming controls. |
+| [`QwenCpuEngine`](docs/engines/qwen.md#cpu-engine) | Local CPU native / HTTP server | `realtimetts[qwen-cpu]` or `realtimetts[qwen-cpu-server]` | CPU-only Qwen on Windows/Linux x86-64 and Intel/Apple Silicon macOS; silence trimming and the same streaming controls. |
 | [`InflectEngine`](docs/engines/inflect.md) | Local lightweight | `realtimetts[inflect]` | Fast fixed English voice through PyTorch CUDA or ONNX CPU. |
 | [`SystemEngine`](docs/engines/system.md) | Local | `realtimetts[system]` | First local audio smoke test. |
 | [`GTTSEngine`](docs/engines/gtts.md) | Free service | `realtimetts[gtts]` | Simple network-backed speech. |

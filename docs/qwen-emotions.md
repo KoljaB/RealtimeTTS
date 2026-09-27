@@ -8,7 +8,7 @@ strong language. Emotion comes from the recording, not an instruction prompt.
 
 ## Release and platform support
 
-These commands target RealtimeTTS 0.8.9 and CPU native runtime 0.4.0. Use
+These commands target RealtimeTTS 0.8.10 and CPU native runtime 0.4.2. Use
 Python 3.11 or 3.12 for the Qwen workflows. Core-package Python support does
 not imply that every optional audio/native dependency supports newer Python.
 
@@ -65,7 +65,7 @@ realtimetts-qwen-server --host 127.0.0.1 --port 8080 --clone-mode speaker_only
 
 ```bash
 python -m pip install "realtimetts[qwen-cpu-server]"
-realtimetts-qwen-server --device cpu --host 127.0.0.1 --port 8080 --clone-mode speaker_only --no-clamp-fp16 --onset-silence-profile qwen3_tts_12hz_0_6b_base_q8_v1 --onset-silence-recovery
+realtimetts-qwen-server --device cpu --host 127.0.0.1 --port 8080 --clone-mode speaker_only --no-clamp-fp16 --onset-silence-profile qwen3_tts_12hz_0_6b_base_q8_v1
 ```
 
 The server extras do not install local sound-device dependencies. Open the

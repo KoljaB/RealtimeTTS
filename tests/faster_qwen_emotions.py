@@ -464,7 +464,6 @@ def run_local(args, entries: list[EmotionEntry]) -> list[dict]:
             cpu_affinity=args.cpu_affinity,
             cpu_codec_affinity=args.cpu_codec_affinity,
             onset_silence_profile="qwen3_tts_12hz_0_6b_base_q8_v1",
-            onset_silence_recovery=True,
         )
 
     console.status(f"Loading native Qwen {device.upper()} 0.6B Base Q8_0 ...")

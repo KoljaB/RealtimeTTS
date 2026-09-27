@@ -1,5 +1,8 @@
 # Qwen CPU onset recovery: measured results, 2026-09-13
 
+Automatic quiet-onset cancellation/retry was removed in RealtimeTTS 0.8.10
+because restarting synthesis can interrupt streaming playback.
+
 This is a historical benchmark and private-deployment record, not the current
 public installation guide. For RealtimeTTS 0.8.6 and the portable CPU package,
 use the [Qwen setup guide](engines/qwen.md#cpu-engine) and

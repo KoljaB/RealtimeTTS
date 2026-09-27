@@ -111,9 +111,7 @@ def test_native_demo_preserves_model_mode_and_voice_switching(cpu, tmp_path, mon
     assert engine.options["quant"] == "Q8_0"
     if cpu:
         assert engine.options["onset_silence_profile"] == "qwen3_tts_12hz_0_6b_base_q8_v1"
-        assert engine.options["onset_silence_recovery"] is True
-    else:
-        assert "onset_silence_recovery" not in engine.options
+    assert "onset_silence_recovery" not in engine.options
     assert engine.voices[-2:] == ["neutral", "anger"]
     assert demo._check_wav(tmp_path / "neutral.wav") == .1
     assert len(json.loads((tmp_path / "results.json").read_text())) == 2

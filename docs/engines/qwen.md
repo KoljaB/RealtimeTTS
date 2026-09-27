@@ -64,18 +64,17 @@ process-wide GPU visibility. The binding checks the actual library before
 loading a model and rejects an incompatible library, including a custom
 `library_path`.
 
-The CPU extras pin `realtimetts-qwen-native-cpu==0.4.0`, which installs
+The CPU extras pin `realtimetts-qwen-native-cpu==0.4.2`, which installs
 `qwentts_cpp_cpu` without CUDA dependencies or files shared with the GPU
 package. Use `qwen-cpu` for local playback or `qwen-cpu-server` for
 HTTP/WebSocket serving without PyAudio. See the
 [installation and platform guide](../qwen-emotions.md).
 
 The public CPU runtime includes the Linux worker-pool and strict-affinity
-improvements. The engine also retains the deployed onset-recovery profile,
-streaming segment controls, language detection, and early em-dash speech.
+improvements, streaming segment controls, language detection, and early em-dash speech.
 For the deployed speaker-only profile, use `--clone-mode speaker_only`,
-`--no-clamp-fp16`, `--onset-silence-profile qwen3_tts_12hz_0_6b_base_q8_v1`,
-and `--onset-silence-recovery`. Reproducing a particular server additionally
+`--no-clamp-fp16`, and `--onset-silence-profile qwen3_tts_12hz_0_6b_base_q8_v1`.
+Reproducing a particular server additionally
 requires its model/voice assets, seed, CPU thread/affinity settings, startup
 buffer, and language-route configuration; preserve those alongside the wheels.
 
@@ -120,30 +119,13 @@ The existing Q8 onset-suppression profile also works on CPU. It remains limited
 to its exact validated Q8 model/codec pair and x-vector cloning; Q4 and ICL must
 not silently inherit that profile.
 
-### Conditional CPU onset recovery (experimental)
+### CPU onset handling
 
-`QwenCpuEngine(onset_silence_recovery=True)` can restart generation once when
-the first 240 ms of generated PCM contains no speech. The retry uses the
-CPU-specific `qwen3_tts_12hz_0_6b_base_q8_cpu_recovery_v2` native profile. It
-requires silence trimming and the normal
-`onset_silence_profile="qwen3_tts_12hz_0_6b_base_q8_v1"` profile. Requests using
-full ICL remain unchanged. Recovery is disabled by default.
-
-The server option is `--onset-silence-recovery`, together with `--device cpu`
-and the normal v1 onset profile. This requires a native binding containing
-the new recovery profile; the existing `0.2.0+cpu1` deployment does not contain
-it. Initialization fails clearly if that capability is missing. The binding
-also verifies the CPU library and exact model/codec hashes.
-
-This targets unusually long silent starts, not the computation time of the
-first native frame. The ordinary stream and PCM remain unchanged when speech
-starts within the detection window. Do not select the recovery profile for
-every request: broader suppression produced an extra initial syllable in
-testing. The retry retains the configured startup buffer and reports its
-timings separately in `last_synthesis_profile["onset_recovery"]`.
-The outer `native` profile describes the first attempt. Its
-`callback_to_queue_ms` spans the original first callback through recovery to
-the first queued output; the nested `retry_attempt` timings start with the retry.
+Leading quiet PCM is trimmed while the original native synthesis continues.
+RealtimeTTS 0.8.10 removes automatic quiet-onset cancellation and retry from the
+CPU engine, server, presets, and demos. The former `onset_silence_recovery`
+argument and `--onset-silence-recovery` switch are no longer accepted. Silence
+trimming, the onset pre-roll, and the configured startup buffer remain active.
 
 CPU defaults to `clone_mode="speaker_only"`. This uses the cached speaker
 embedding even when a registered voice also has a transcript; the original
@@ -430,7 +412,7 @@ source qwen-cpu-env/bin/activate
 python -m pip install --upgrade pip
 python -m pip install "realtimetts[qwen-cpu-server]"
 python -m qwentts_cpp_cpu doctor
-realtimetts-qwen-server --device cpu --clone-mode speaker_only --no-clamp-fp16 --onset-silence-profile qwen3_tts_12hz_0_6b_base_q8_v1 --onset-silence-recovery
+realtimetts-qwen-server --device cpu --clone-mode speaker_only --no-clamp-fp16 --onset-silence-profile qwen3_tts_12hz_0_6b_base_q8_v1
 ```
 
 The wheels target Intel macOS 13+ and Apple Silicon macOS 11+. Install arm64
@@ -460,7 +442,7 @@ For a Windows/Linux/macOS CPU wheel, use a separate fresh environment instead:
 python -m venv /path/to/fresh-cpu-venv
 /path/to/fresh-cpu-venv/bin/python -m pip install \
   --find-links /path/to/wheelhouse \
-  "realtimetts-qwen-native-cpu==0.4.0"
+  "realtimetts-qwen-native-cpu==0.4.2"
 /path/to/fresh-cpu-venv/bin/python -c \
   "from qwentts_cpp_cpu import QwenLibrary, QT_ABI_VERSION; print(QwenLibrary().version(), QT_ABI_VERSION)"
 ```

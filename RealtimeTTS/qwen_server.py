@@ -857,9 +857,7 @@ class QwenHttpServer:
             "playback": {
                 "startup_buffer_ms": getattr(self.engine, "startup_buffer_ms", None),
                 "trim_silence": getattr(self.engine, "trim_silence", None),
-                "onset_silence_recovery": bool(
-                    getattr(self.engine, "onset_silence_recovery", False)
-                ),
+                "onset_silence_recovery": False,
             },
             "ready": self.is_ready(),
         }
@@ -2301,14 +2299,6 @@ def build_argument_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
-        "--onset-silence-recovery",
-        action=argparse.BooleanOptionalAction, default=False,
-        help=(
-            "CPU only: retry once if the first 240 ms of native audio stays quiet; "
-            "requires the Q8 v1 onset profile, silence trimming, and a recovery-capable native wheel"
-        ),
-    )
-    parser.add_argument(
         "--fragment-lookahead-words",
         type=int,
         default=0,
@@ -2550,7 +2540,7 @@ def _apply_server_preset(args: Any, parser: argparse.ArgumentParser, argv: Seque
         "cpu_threads": 6, "cpu_codec_threads": 6, "cpu_stream_frames": 1,
         "cpu_affinity": 0x555, "cpu_codec_affinity": 0x555000,
         "startup_buffer_ms": 80.0, "clone_mode": "speaker_only",
-        "clamp_fp16": False, "onset_silence_recovery": True,
+        "clamp_fp16": False,
         "onset_silence_profile": "qwen3_tts_12hz_0_6b_base_q8_v1",
     }
     for name, value in profile.items():
@@ -2643,8 +2633,6 @@ def main(argv: Optional[Sequence[str]] = None) -> None:
     _apply_server_preset(args, parser, arguments)
     if args.cpu_fused_attention is not None and args.device != "cpu":
         parser.error("--cpu-fused-attention/--no-cpu-fused-attention requires --device cpu")
-    if args.onset_silence_recovery and args.device != "cpu":
-        parser.error("--onset-silence-recovery requires --device cpu")
     if args.cpu_threads is not None and (
         args.device != "cpu" or not 1 <= args.cpu_threads <= 256
     ):
@@ -2736,7 +2724,6 @@ def main(argv: Optional[Sequence[str]] = None) -> None:
             "cpu_stream_frames": args.cpu_stream_frames,
             "cpu_affinity": args.cpu_affinity,
             "cpu_codec_affinity": args.cpu_codec_affinity,
-            "onset_silence_recovery": args.onset_silence_recovery,
         }
         if args.device == "cpu"
         else {}
