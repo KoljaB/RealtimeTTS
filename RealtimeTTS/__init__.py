@@ -10,6 +10,7 @@ __all__ = [
     "ElevenlabsEngine", "ElevenlabsVoice",
     "CoquiEngine", "CoquiVoice",
     "OpenAIEngine", "OpenAIVoice",
+    "AtlasCloudEngine", "AtlasCloudVoice",
     "GTTSEngine", "GTTSVoice",
     "ParlerEngine", "ParlerVoice",
     "EdgeEngine", "EdgeVoice",
@@ -125,6 +126,19 @@ def _load_openai_engine():
     globals()["OpenAIEngine"] = OpenAIEngine
     globals()["OpenAIVoice"] = OpenAIVoice
     return OpenAIEngine
+
+
+def _load_atlascloud_engine():
+    try:
+        from .engines.atlascloud_engine import AtlasCloudEngine, AtlasCloudVoice
+    except ImportError as e:
+        raise ImportError(
+            "Failed to load AtlasCloudEngine and AtlasCloudVoice. "
+            "Please install with:\npip install realtimetts[atlascloud]"
+        ) from e
+    globals()["AtlasCloudEngine"] = AtlasCloudEngine
+    globals()["AtlasCloudVoice"] = AtlasCloudVoice
+    return AtlasCloudEngine
 
 
 def _load_gtts_engine():
@@ -487,6 +501,8 @@ _lazy_imports = {
     "CoquiVoice": _load_coqui_engine,
     "OpenAIEngine": _load_openai_engine,
     "OpenAIVoice": _load_openai_engine,
+    "AtlasCloudEngine": _load_atlascloud_engine,
+    "AtlasCloudVoice": _load_atlascloud_engine,
     "GTTSEngine": _load_gtts_engine,
     "GTTSVoice": _load_gtts_engine,
     "ParlerEngine": _load_parler_engine,
