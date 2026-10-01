@@ -242,6 +242,7 @@ see [docs/output-and-files.md](docs/output-and-files.md).
 | [`AzureEngine`](docs/engines/azure.md) | Cloud API | `realtimetts[azure]` | Azure voices and word timings. |
 | [`ElevenlabsEngine`](docs/engines/elevenlabs.md) | Cloud API | `realtimetts[elevenlabs]`, needs `mpv` | High-quality API voices. |
 | [`CambEngine`](docs/engines/camb.md) | Cloud API | `realtimetts[camb]` | CAMB MARS API voices. |
+| `SixtyDBEngine` | Cloud API | `realtimetts[playback]`; no provider SDK required | Authenticated 60db workspace voices; mono PCM16 at 24 kHz. |
 | [`MiniMaxEngine`](docs/engines/minimax.md) | Cloud API | `realtimetts[minimax]` | MiniMax cloud voices. |
 | [`CartesiaEngine`](docs/engines/cartesia.md) | Cloud API | `realtimetts[cartesia]` | Cartesia API voices. |
 | [`TypecastEngine`](docs/engines/typecast.md) | Cloud API | `realtimetts[typecast]` | Typecast API voices. |
@@ -327,6 +328,35 @@ provide.
 
 Audio samples derived from the EARS dataset by Meta are licensed under CC BY-NC
 4.0. See the original dataset terms for details.
+
+### 60db workspace voices
+
+Set `SIXTYDB_API_KEY` and select a voice ID from your authenticated workspace
+(`engine.get_voices()` for quality, or `engine.get_voices(model="fast")`).
+No voice list is fetched during import or construction.
+
+```python
+from RealtimeTTS import SixtyDBEngine, TextToAudioStream
+
+engine = SixtyDBEngine(voice="YOUR_WORKSPACE_VOICE_ID", speed=1.0)
+TextToAudioStream(engine).feed("Hello from 60db.").play()
+```
+
+Pass `api_key` explicitly instead of the environment variable if needed, and
+optionally pass a provider `model` ID (for example, `60db-fast-v01`). Speed
+must be between 0.5 and 2.0. Requests use `LINEAR16`, 24000 Hz, and WAV output;
+NDJSON PCM chunks stream to playback, while binary WAV is buffered and validated
+before its header is removed. Audio identified as compressed or incompatible
+fails; metadata-free binary responses are treated as raw PCM.
+`engine.last_error` records synthesis failures; a failed or cancelled streamed
+request can already have queued partial audio. Cancellation waits for connection
+setup or the current read to finish, subject to `timeout` (default 60 seconds);
+the synthesis thread then closes the response.
+Run `python tests/sixtydb_test.py` with `SIXTYDB_API_KEY` and
+`SIXTYDB_VOICE_ID` for a manual playback smoke.
+See the [60db TTS API](https://docs.60db.ai/api-reference/tts/text-to-speech)
+and [workspace voices API](https://docs.60db.ai/api-reference/voices/get-voices).
+
 
 ## Author
 
