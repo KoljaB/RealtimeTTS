@@ -21,6 +21,7 @@ __all__ = [
     "CambEngine", "CambVoice",
     "ModelsLabEngine", "ModelsLabVoice",
     "MiniMaxEngine", "MiniMaxVoice",
+    "SixtyDBEngine", "SixtyDBVoice",
     "CartesiaEngine", "CartesiaVoice",
     "QwenEngine", "QwenCpuEngine", "QwenVoice", "QwenEngineError",
     "OmniVoiceEngine", "OmniVoiceVoice",
@@ -139,6 +140,13 @@ def _load_modelslab_engine():
     globals()["ModelsLabEngine"] = ModelsLabEngine
     globals()["ModelsLabVoice"] = ModelsLabVoice
     return ModelsLabEngine
+
+
+def _load_sixtydb_engine():
+    from .sixtydb_engine import SixtyDBEngine, SixtyDBVoice
+    globals()["SixtyDBEngine"] = SixtyDBEngine
+    globals()["SixtyDBVoice"] = SixtyDBVoice
+    return SixtyDBEngine
 
 
 def _load_minimax_engine():
@@ -301,6 +309,8 @@ _lazy_imports = {
     "CambVoice": _load_camb_engine,
     "ModelsLabEngine": _load_modelslab_engine,
     "ModelsLabVoice": _load_modelslab_engine,
+    "SixtyDBEngine": _load_sixtydb_engine,
+    "SixtyDBVoice": _load_sixtydb_engine,
     "MiniMaxEngine": _load_minimax_engine,
     "MiniMaxVoice": _load_minimax_engine,
     "CartesiaEngine": _load_cartesia_engine,
