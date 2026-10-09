@@ -85,6 +85,7 @@ nav:
       - Soprano: engines/soprano.md
       - MOSS-TTS: engines/moss-tts.md
       - Higgs Audio v3: engines/higgs.md
+  - Universal Alignment: universal-alignment.md
   - Forced Alignment: ctc-forced-alignment.md
   - Streaming Alignment: streaming-alignment.md
   - Pronunciation Exchanges: text-exchange.md

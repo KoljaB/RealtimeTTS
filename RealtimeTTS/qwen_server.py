@@ -487,6 +487,7 @@ class SpeechOptions:
     language: str
     exchange: Optional[TextExchange] = None
     split_sentences: bool = True
+    alignment: Any = None
 
 
 @dataclass(frozen=True)
@@ -498,6 +499,9 @@ class SpeechRequest:
     sampling: Mapping[str, Any]
     language: str
     exchange: Optional[TextExchange] = None
+    alignment: Any = None
+    source_text: Optional[str] = None
+    source_ranges: Any = None
 
 
 class SynthesisState:
@@ -895,6 +899,8 @@ class QwenHttpServer:
                 "sentence_splitting": True,
                 "text_exchange": True,
                 "streaming_alignment": getattr(self.engine, "streaming_aligner", None) is not None,
+                "universal_alignment": True,
+                "alignment_modes": ["live", "synced", "export"],
                 "alignment_timestamps": getattr(getattr(self.engine, "streaming_aligner", None), "timestamp_levels", []),
                 "alignment_language": getattr(getattr(getattr(self.engine, "streaming_aligner", None), "backend", None), "language", None),
                 "alignment_language_timestamps": getattr(getattr(self.engine, "streaming_aligner", None), "language_timestamps", {}),
@@ -1140,8 +1146,13 @@ class QwenHttpServer:
         split_sentences = payload.get("split_sentences", True)
         if not isinstance(split_sentences, bool):
             raise ApiError(400, "invalid_request_error", "'split_sentences' must be a boolean")
+        from .alignment.server import parse_alignment_request
+        try:
+            alignment = parse_alignment_request(payload.get("alignment"), self.engine, language)
+        except (TypeError, ValueError) as exc:
+            raise ApiError(400, "invalid_request_error", str(exc)) from exc
         return SpeechOptions(
-            voice, response_format, instructions, sampling, language, exchange, split_sentences
+            voice, response_format, instructions, sampling, language, exchange, split_sentences, alignment
         )
 
     def parse_speech(self, payload: Mapping[str, Any]) -> SpeechRequest:
@@ -1149,6 +1160,8 @@ class QwenHttpServer:
         if not isinstance(text, str) or not text.strip():
             raise ApiError(400, "invalid_request_error", "'input' must be a non-empty string")
         options = self.parse_speech_options(payload)
+        if options.alignment is not None:
+            raise ApiError(400, "invalid_request_error", "Alignment metadata requires WebSocket speech streaming")
         return SpeechRequest(
             text.strip(),
             options.voice,
@@ -1233,8 +1246,9 @@ class QwenHttpServer:
         try:
             request, _detection = self.route_request(request)
             if request.exchange is not None:
-                text, _ranges = request.exchange.apply(request.text, request.language)
-                request = replace(request, text=text, exchange=None)
+                text, source_ranges = request.exchange.apply(request.text, request.language)
+                request = replace(request, text=text, exchange=None,
+                                  source_text=request.text, source_ranges=source_ranges)
             selected_voice = self.synthesis_voice(request.voice, request.language, request.instructions)
             with self._operation_lock:
                 if state.cancelled.is_set() or self._shutting_down.is_set():
@@ -1251,7 +1265,9 @@ class QwenHttpServer:
                 original_alignment_gate = getattr(self.engine, "alignment_start_event", None)
                 original_alignment_cancel = getattr(self.engine, "alignment_cancel_event", None)
                 previous_alignment_session = getattr(self.engine, "last_alignment", None)
-                alignment_enabled = getattr(self.engine, "streaming_aligner", None) is not None
+                alignment_enabled = request.alignment is None and getattr(self.engine, "streaming_aligner", None) is not None
+                shared_alignment = None
+                ok = False
                 if alignment_enabled:
                     state.alignment_done.clear()
 
@@ -1275,6 +1291,9 @@ class QwenHttpServer:
                 if callable(set_context):
                     set_context(getattr(state, "stream_context", None))
                 try:
+                    if request.alignment is not None:
+                        from .alignment.server import ServerAlignment
+                        shared_alignment = ServerAlignment(self.engine, request, state)
                     if not state.begin_engine():
                         return
                     try:
@@ -1285,6 +1304,8 @@ class QwenHttpServer:
                         if callable(resume):
                             resume()
                 finally:
+                    if shared_alignment is not None:
+                        shared_alignment.finish(success=bool(ok))
                     if callable(set_context):
                         set_context(None)
                     self.engine.queue = original_queue
@@ -1651,6 +1672,9 @@ async def _send_alignment_events(
     finally:
         # Late callbacks belong to this fragment and must not accumulate after closure.
         state.alignment_closed.set()
+        close = getattr(state.alignment_session, "close", None)
+        if callable(close):
+            await asyncio.to_thread(close)
 
 
 async def _send_stream_pcm(
@@ -1792,7 +1816,7 @@ def create_app(server: QwenHttpServer) -> Any:
         if (
             server.api_key is not None
             and request.method != "OPTIONS"
-            and request.url.path not in {"/health", "/", "/studio", "/studio/studio.css", "/studio/studio.js"}
+            and request.url.path not in {"/health", "/", "/studio", "/studio/studio.css", "/studio/studio.js", "/studio/alignment-timeline.js"}
             and not server.authorized(request.headers.get("authorization"))
         ):
             response = JSONResponse(
@@ -1822,7 +1846,7 @@ def create_app(server: QwenHttpServer) -> Any:
 
     @app.get("/studio/{asset}", include_in_schema=False)
     def studio_asset(asset: str) -> Any:
-        if asset not in {"studio.css", "studio.js"}:
+        if asset not in {"studio.css", "studio.js", "alignment-timeline.js"}:
             return Response(status_code=404)
         return FileResponse(studio_root / asset, headers={"Cache-Control": "no-cache"})
 
@@ -2383,6 +2407,7 @@ def create_app(server: QwenHttpServer) -> Any:
                     options.instructions,
                     options.sampling,
                     options.language,
+                    alignment=options.alignment,
                 )
                 if fragment_index == 1:
                     request = await route_first_fragment(request)
@@ -2404,12 +2429,14 @@ def create_app(server: QwenHttpServer) -> Any:
                 if options.exchange is not None:
                     text, source_ranges = options.exchange.apply(source_text, request.language)
                     request = replace(request, text=text)
+                if options.alignment is not None:
+                    request = replace(request, source_text=source_text, source_ranges=source_ranges)
                 synthesis_started = time.monotonic()
                 state = server.start_synthesis(
                     request, request_id=fragment_request_id, stream_context=stream_context
                 )
                 current_state[0] = state
-                alignment_enabled = getattr(server.engine, "streaming_aligner", None) is not None
+                alignment_enabled = options.alignment is not None or getattr(server.engine, "streaming_aligner", None) is not None
                 if alignment_enabled:
                     await _send_websocket_json(websocket, {
                         "type": "fragment_start", "session_id": session_id,
@@ -2417,6 +2444,9 @@ def create_app(server: QwenHttpServer) -> Any:
                         "sample_rate_hz": SAMPLE_RATE,
                         **_alignment_fragment_metadata(
                             server.engine, request.text, source_text, source_ranges),
+                        **({"text": source_text, "spoken_text": request.text,
+                            "text_offset_unit": "unicode_codepoint", "time_base": "fragment"}
+                           if options.alignment is not None else {}),
                     }, send_lock)
                     alignment_tasks.append(asyncio.create_task(_send_alignment_events(
                         websocket, state, session_id=session_id,

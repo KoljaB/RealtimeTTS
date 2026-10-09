@@ -1030,7 +1030,8 @@ class QwenEngine(BaseEngine):
                 elif event["type"] == "alignment_stalled" and self.hallucination_guard:
                     cancel_event.finish_generation()
                 if alignment_callback is not None:
-                    alignment_callback(event)
+                    measured = bool(event.get("words") or event.get("characters"))
+                    alignment_callback({**event, "engine_audio_offset": timing_offset} if measured else event)
 
             if self.streaming_aligner is not None:
                 try:

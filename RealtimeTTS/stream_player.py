@@ -485,6 +485,8 @@ class StreamPlayer:
         self.first_chunk_played = False
         self.muted = muted or config.muted
         self.seconds_played = 0
+        self.on_audio_progress = None
+        self.before_audio_chunk = None
         self.volume = 1.0  # Default volume at 100%
 
     def _play_mpeg_chunk(self, chunk):
@@ -570,6 +572,8 @@ class StreamPlayer:
 
         for i in range(0, len(chunk), sub_chunk_size):
             sub_chunk = chunk[i: i + sub_chunk_size]
+            if self.before_audio_chunk is not None:
+                self.before_audio_chunk(self.seconds_played)
 
             # Apply volume scaling if volume is not 1.0
             if self.volume != 1.0:
@@ -591,8 +595,9 @@ class StreamPlayer:
             if not self.muted:
                 try:
                     self.audio_stream.stream.write(sub_chunk)
+                    playback_rate = self.audio_stream.actual_sample_rate or self.audio_stream.config.rate
                     self.seconds_played += len(sub_chunk) / (
-                        self.audio_stream.config.rate * sample_width * channels
+                        playback_rate * sample_width * channels
                     )
                     while True:
                         try:
@@ -609,6 +614,12 @@ class StreamPlayer:
                             break
                 except Exception as e:
                     print(f"RealtimeTTS error sending audio data: {e}")
+
+            if self.on_audio_progress is not None:
+                if self.muted:
+                    playback_rate = self.audio_stream.actual_sample_rate or self.audio_stream.config.rate
+                    self.seconds_played += len(sub_chunk) / (playback_rate * sample_width * channels)
+                self.on_audio_progress(self.seconds_played)
 
             if self.on_audio_chunk:
                 self.on_audio_chunk(sub_chunk)

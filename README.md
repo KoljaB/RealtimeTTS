@@ -289,6 +289,8 @@ old README and source audit.
   patterns and latency tuning.
 - [Output and files](docs/output-and-files.md): WAV files, audio chunks, muted
   mode, output devices, mpv, buffering, and volume.
+- [Universal alignment and Studio](docs/universal-alignment.md): one timestamp
+  API for every engine, live highlighting, timeline inspection and subtitle export.
 - [Forced alignment](docs/ctc-forced-alignment.md): optional word and character
   timing for engines without native timings.
 - [Engine setup pages](docs/engine-selection.md) now link one focused page for

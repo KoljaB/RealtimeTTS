@@ -11,3 +11,5 @@ include docs/qwen-studio.md
 include tools/prepare_breeze_cpp.py
 include tools/breeze_cpp_controls.json
 include docs/engines/breeze.md
+include docs/universal-alignment.md
+include docs/streaming-alignment.md

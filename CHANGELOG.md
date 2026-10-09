@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.9.0rc1 - Unreleased
+## 0.9.0rc2 - Unreleased
 
 ### Added
 
@@ -14,6 +14,11 @@
   multilingual word timestamps, and an opt-in completion guard. Alignment models
   are installed separately; synthesis does not wait for recognition results.
 - Pronunciation exchanges and fragment metadata for speech-stream clients.
+- A shared alignment API for every engine: native/model timestamps, word and
+  character spans, original text offsets, bounded live/synced/export modes,
+  incremental MP3 decoding, and JSON/SRT/WebVTT export.
+- Studio alignment controls, live highlighting, waveform and word inspection,
+  replay and downloads; an optional programmatic Studio host for any BaseEngine.
 
 ### Release scope
 

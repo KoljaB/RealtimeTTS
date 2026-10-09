@@ -63,6 +63,9 @@ class TextToAudioStream:
         align_words: bool = False,
         word_aligner=None,
         alignment_blocking: bool = False,
+        alignment=None,
+        on_alignment=None,
+        on_character_spoken=None,
     ):
         """
         Initializes the TextToAudioStream.
@@ -176,8 +179,17 @@ class TextToAudioStream:
                 is created lazily.
 
             alignment_blocking (bool, optional):
-                If True, finish alignment after each synthesized sentence before
-                continuing. Defaults to False so generation is not blocked.
+                Legacy shorthand for bounded synced alignment playback.
+
+            alignment (optional):
+                None/off, auto, a mapping or AlignmentConfig. Native timestamps
+                are preferred; configured model alignment works across engines.
+
+            on_alignment (callable, optional):
+                Receives immutable, coalesced AlignmentSnapshot updates.
+
+            on_character_spoken (callable, optional):
+                Receives measured character spans at their playback positions.
         """
         self.log_characters = log_characters
         self.on_text_stream_start = on_text_stream_start
@@ -203,6 +215,20 @@ class TextToAudioStream:
         self._alignment_lock = threading.Lock()
         self._alignment_threads = []
         self._alignment_generation = 0
+        from .alignment.timeline import AlignmentConfig
+        from .alignment.controller import AlignmentController
+        if alignment is None and align_words:
+            alignment = {"mode": "synced" if alignment_blocking else "live"}
+        alignment_config = AlignmentConfig.coerce(
+            alignment, aligner=word_aligner, language=language
+        )
+        self.alignment = (
+            AlignmentController(alignment_config, on_update=on_alignment,
+                                on_word=on_word, on_character=on_character_spoken)
+            if alignment_config is not None else None
+        )
+        self._alignment_binding = None
+        self._alignment_player_offset = 0.0
         self.player = None
         self.play_lock = threading.Lock()
         self.is_playing_flag = False
@@ -252,9 +278,13 @@ class TextToAudioStream:
 
         # Extract stream information (format, channels, rate) from the engine
         format, channels, rate = self.engine.get_stream_info()
+        if self.alignment is not None:
+            self._alignment_binding = self.alignment.bind(self.engine)
+            format, channels, rate = self._alignment_binding.output_format
+            self._alignment_player_offset = self.alignment.snapshot().duration
 
         self._alignment_capture_queue = None
-        if self._should_capture_alignment_audio(format, channels, rate):
+        if self.alignment is None and self._should_capture_alignment_audio(format, channels, rate):
             if isinstance(self.engine.queue, CapturingAudioQueue):
                 self._alignment_capture_queue = self.engine.queue
             else:
@@ -291,8 +321,11 @@ class TextToAudioStream:
             self.engine.timings,
             config,
             on_playback_start=self._on_audio_stream_start,
-            on_word_spoken=self._on_word_spoken,
+            on_word_spoken=None if self.alignment is not None else self._on_word_spoken,
         )
+        if self.alignment is not None:
+            self.player.on_audio_progress = self._on_alignment_progress
+            self.player.before_audio_chunk = self._before_alignment_audio
         
         # Set initial volume if player was created
         if hasattr(self, '_volume'):
@@ -591,6 +624,10 @@ class TextToAudioStream:
                 return
             self._alignment_generation += 1
             self.engine.reset_audio_duration()
+            if self.alignment is not None:
+                self.alignment.reset()
+                self._alignment_player_offset = 0.0
+                self.player.seconds_played = 0.0
             if self._alignment_capture_queue:
                 self._alignment_capture_queue.reset_tracking()
 
@@ -622,7 +659,7 @@ class TextToAudioStream:
                 self.wf = open(output_wavfile, "wb")
             else:
                 self.wf = wave.open(output_wavfile, "wb")
-                _, channels, rate = self.engine.get_stream_info()
+                _, channels, rate = self._output_stream_info()
                 self.wf.setnchannels(channels)
                 self.wf.setsampwidth(2)
                 self.wf.setframerate(rate)
@@ -642,7 +679,15 @@ class TextToAudioStream:
                 # Directly synthesize audio using the character iterator
                 self.char_iter.log_characters = self.log_characters
 
-                self.engine.synthesize(self.char_iter)
+                if self._alignment_binding is not None:
+                    self._alignment_binding.begin("", dynamic=True)
+                    success = False
+                    try:
+                        success = self.engine.synthesize(self._aligned_input(self.char_iter)) is not False
+                    finally:
+                        self._alignment_binding.finish(success=success)
+                else:
+                    self.engine.synthesize(self.char_iter)
 
             finally:
 
@@ -675,6 +720,7 @@ class TextToAudioStream:
                 self._create_iterators()
 
                 if is_external_call:
+                    self._finish_alignment_run()
                     self._alignment_generation += 1
                     self.is_playing_flag = False
                     self.play_lock.release()
@@ -762,17 +808,21 @@ class TextToAudioStream:
                                 if before_sentence_synthesized:
                                     before_sentence_synthesized(sentence)
 
-                                alignment_segment = None
-                                capture_started = self._start_alignment_capture(sentence)
-                                try:
-                                    success = self.engine.synthesize(sentence, sentence_count)
-                                finally:
-                                    alignment_segment = self._finish_alignment_capture(
-                                        capture_started
-                                    )
-
-                                if success and alignment_segment:
-                                    self._schedule_alignment(alignment_segment)
+                                if self._alignment_binding is not None:
+                                    self._alignment_binding.begin(sentence)
+                                    success = False
+                                    try:
+                                        success = self.engine.synthesize(sentence, sentence_count)
+                                    finally:
+                                        self._alignment_binding.finish(success=bool(success))
+                                else:
+                                    capture_started = self._start_alignment_capture(sentence)
+                                    try:
+                                        success = self.engine.synthesize(sentence, sentence_count)
+                                    finally:
+                                        alignment_segment = self._finish_alignment_capture(capture_started)
+                                    if success and alignment_segment:
+                                        self._schedule_alignment(alignment_segment)
 
                                 end_sentence_delimeters = ".!?…。¡¿"
                                 mid_sentence_delimeters = ";:,\n()[]{}-“”„”—/|《》"
@@ -918,6 +968,7 @@ class TextToAudioStream:
                 if self.on_audio_stream_stop:
                     self.on_audio_stream_stop()
 
+                self._finish_alignment_run()
                 self._alignment_generation += 1
                 self.is_playing_flag = False
                 self.play_lock.release()
@@ -944,6 +995,8 @@ class TextToAudioStream:
         Stops the playback of the synthesized audio stream immediately.
         """
         self._alignment_generation += 1
+        if self.alignment is not None:
+            self.alignment.cancel()
 
         if self.engine:
             self.engine.stop()
@@ -1014,7 +1067,7 @@ class TextToAudioStream:
         Args:
             chunk (bytes): The audio data chunk to be processed.
         """
-        format, channels, sample_rate = self.engine.get_stream_info()
+        format, channels, sample_rate = self._output_stream_info()
 
         if format == pyaudio.paFloat32:
             audio_data = np.frombuffer(chunk, dtype=np.float32)
@@ -1025,6 +1078,10 @@ class TextToAudioStream:
             if self._is_engine_mpeg():
                 self.wf.write(chunk)
             else:
+                if self.wf.getnframes() == 0 and self.player:
+                    actual_rate = self.player.audio_stream.actual_sample_rate
+                    if actual_rate > 0:
+                        self.wf.setframerate(actual_rate)
                 self.wf.writeframes(chunk)
 
         if self.chunk_callback:
@@ -1077,6 +1134,8 @@ class TextToAudioStream:
         Args:
             char (str): The character currently being processed.
         """
+        if self.alignment is not None:
+            self.alignment.append_source(char)
         # If an on_character callback is defined, invoke it for the current character
         if self.on_character:
             self.on_character(char)
@@ -1182,6 +1241,41 @@ class TextToAudioStream:
         pause_tag = match.group("tag").strip()
         pause_duration = float(match.group("duration"))
         return pause_tag, pause_duration
+
+    def _output_stream_info(self):
+        if self._alignment_binding is not None:
+            return self._alignment_binding.output_format
+        return self.engine.get_stream_info()
+
+    def _aligned_input(self, source):
+        for character in source:
+            self._alignment_binding.append_text(character)
+            yield character
+
+    def _before_alignment_audio(self, position):
+        self.alignment.before_playback(self._alignment_player_offset + position)
+
+    def _on_alignment_progress(self, position):
+        self.alignment.advance(self._alignment_player_offset + position)
+
+    def _finish_alignment_run(self):
+        if self.alignment is not None:
+            self.alignment.finish()
+            if self.alignment.config.mode == "export":
+                self.alignment.wait()
+            self.alignment.playback_finished()
+
+    def close(self):
+        """Stop this stream and release its optional alignment worker."""
+        self.stop()
+        if self.alignment is not None:
+            self.alignment.close()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_exc):
+        self.close()
 
     def _should_capture_alignment_audio(self, stream_format, channels, rate):
         if not self.align_words:
@@ -1308,6 +1402,9 @@ class TextToAudioStream:
         """
         if silence_duration <= 0:
             return
+        if self._alignment_binding is not None:
+            self._alignment_binding.silence(silence_duration)
+            return
 
         stream_format, channels, sample_rate = self.engine.get_stream_info()
         if sample_rate <= 0 or stream_format == pyaudio.paCustomFormat:
@@ -1333,7 +1430,7 @@ class TextToAudioStream:
         Returns:
             Boolean indicating if the engine is an MPEG engine.
         """
-        format, channel, rate = self.engine.get_stream_info()
+        format, channel, rate = self._output_stream_info()
         return format == pyaudio.paCustomFormat and channel == -1 and rate == -1
 
     def _synthesis_chunk_generator(

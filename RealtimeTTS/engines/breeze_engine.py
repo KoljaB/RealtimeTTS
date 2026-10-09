@@ -533,7 +533,8 @@ class BreezeEngine(BaseEngine):
                             ))
                         if alignment_callback is not None:
                             try:
-                                alignment_callback(event)
+                                measured = bool(event.get("words") or event.get("characters"))
+                                alignment_callback({**event, "engine_audio_offset": timing_offset} if measured else event)
                             except Exception:
                                 LOGGER.exception("Breeze alignment callback failed")
 

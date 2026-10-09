@@ -77,6 +77,12 @@ def _check_wheel_contents(wheel: Path) -> None:
         'RealtimeTTS/alignment/streaming.py',
         'RealtimeTTS/alignment/onnx_ctc.py',
         'RealtimeTTS/alignment/onnx_parakeet.py',
+        'RealtimeTTS/alignment/timeline.py',
+        'RealtimeTTS/alignment/controller.py',
+        'RealtimeTTS/alignment/backends.py',
+        'RealtimeTTS/alignment/decoder.py',
+        'RealtimeTTS/alignment/server.py',
+        'RealtimeTTS/server.py',
     })
     missing = sorted(required_files - names)
     if missing:
@@ -144,6 +150,13 @@ def _check_sdist_contents(sdist: Path) -> None:
         'RealtimeTTS/alignment/streaming.py',
         'RealtimeTTS/alignment/onnx_ctc.py',
         'RealtimeTTS/alignment/onnx_parakeet.py',
+        'RealtimeTTS/alignment/timeline.py',
+        'RealtimeTTS/alignment/controller.py',
+        'RealtimeTTS/alignment/backends.py',
+        'RealtimeTTS/alignment/decoder.py',
+        'RealtimeTTS/alignment/server.py',
+        'RealtimeTTS/server.py',
+        'docs/universal-alignment.md',
         'tools/prepare_breeze_cpp.py',
         'tools/breeze_cpp_controls.json',
         'docs/engines/breeze.md',

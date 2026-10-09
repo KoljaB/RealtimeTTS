@@ -1,5 +1,9 @@
 # CPU streaming timestamps and Qwen decoder guard
 
+For the engine-independent Python API, playback modes and Voice Studio timeline,
+see [Universal alignment](universal-alignment.md). This page covers model setup
+and the Qwen decoder guard.
+
 Install `pip install "realtimetts[alignment-cpu]"`. Download `model.int8.onnx`
 and `tokens.txt` from
 [the sherpa-onnx OmniASR 300M INT8 export](https://huggingface.co/csukuangfj/sherpa-onnx-omnilingual-asr-1600-languages-300M-ctc-int8-2025-11-12)

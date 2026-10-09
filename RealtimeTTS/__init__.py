@@ -5,6 +5,7 @@ from ._version import __version__
 __all__ = [
     "__version__",
     "TextToAudioStream", "BaseEngine", "TimingInfo",
+    "AlignmentConfig", "AlignedSpan", "AlignmentSnapshot", "AlignmentTimeline",
     "SystemEngine", "SystemVoice",
     "AzureEngine", "AzureVoice",
     "ElevenlabsEngine", "ElevenlabsVoice",
@@ -580,6 +581,11 @@ _lazy_imports = {
 
 
 def __getattr__(name):
+    if name in {"AlignmentConfig", "AlignedSpan", "AlignmentSnapshot", "AlignmentTimeline"}:
+        from .alignment import timeline
+        value = getattr(timeline, name)
+        globals()[name] = value
+        return value
     if name in _lazy_imports:
         _lazy_imports[name]()
         return globals()[name]

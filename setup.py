@@ -75,8 +75,8 @@ Available engine options include:
 - **zipvoice**: ZipVoice dependency support
 - **moss**: MOSS-TTS dependency support
 - **higgs**: SGLang-Omni Higgs Audio v3 raw-PCM HTTP streaming integration
-- **alignment-cpu**: Optional CPU streaming character/word timestamps for Qwen
-- **alignment-multilingual**: Optional Parakeet CPU word timestamps for Qwen
+- **alignment-cpu**: Optional CPU streaming character/word timestamps for any engine
+- **alignment-multilingual**: Optional Parakeet CPU word timestamps for any engine
 - **alignment**: Torchaudio MMS forced character alignment
 - **omniasr**: Experimental omniASR CTC word/character alignment
 - **pockettts**: PocketTTS integration
@@ -336,8 +336,10 @@ extras_require = {
     "moss": standard_requirements + moss_requirements,
     "moss-tts": standard_requirements + moss_requirements,
     "higgs": standard_requirements + higgs_requirements,
-    "alignment-cpu": base_requirements + ["onnxruntime>=1.18,<2", "scipy>=1.10", "num2words>=0.5.14"],
-    "alignment-multilingual": base_requirements + ["onnxruntime>=1.18,<2", "scipy>=1.10", "onnx-asr>=0.12,<0.13"],
+    "alignment-audio": base_requirements + ["av>=14,<20"],
+    "studio": base_requirements + ["av>=14,<20", "fastapi>=0.115,<1", "uvicorn>=0.34,<1", "wsproto>=1.2,<2"],
+    "alignment-cpu": base_requirements + ["onnxruntime>=1.18,<2", "scipy>=1.10", "num2words>=0.5.14", "av>=14,<20"],
+    "alignment-multilingual": base_requirements + ["onnxruntime>=1.18,<2", "scipy>=1.10", "onnx-asr>=0.12,<0.13", "av>=14,<20"],
     "alignment": standard_requirements + alignment_requirements,
     "omniasr": standard_requirements + omniasr_requirements,
     "piper": standard_requirements,
