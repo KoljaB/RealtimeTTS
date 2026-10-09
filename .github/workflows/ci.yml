@@ -80,9 +80,6 @@ jobs:
           tests/test_text_to_stream_alignment.py
 
       - name: Run Studio JavaScript regression tests
-        run: node --test tests/test_qwen_studio_sampling.js
-
-      - name: Run Studio regressions
         run: node --test tests/test_breeze_studio.mjs tests/test_qwen_studio_sampling.js
 
   documentation:
