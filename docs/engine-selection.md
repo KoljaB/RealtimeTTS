@@ -13,7 +13,7 @@ Each current concrete engine source now has a focused page under `docs/engines/`
 | --- | --- |
 | Verify local audio quickly | `SystemEngine` |
 | Free simple service, no API key | `GTTSEngine` or `EdgeEngine` |
-| Commercial cloud API | `OpenAIEngine`, `AzureEngine`, `ElevenlabsEngine`, `CartesiaEngine`, `MiniMaxEngine`, `CambEngine`, or `ModelsLabEngine` |
+| Commercial cloud API | `OpenAIEngine`, `AzureEngine`, `ElevenlabsEngine`, `CartesiaEngine`, `MiniMaxEngine`, `CambEngine`, `ModelsLabEngine`, or `SpeechifyEngine` |
 | Word timings | `AzureEngine`; `KokoroEngine` for supported English voices |
 | Fixed local English voice | `InflectEngine` |
 | Local neural voice cloning | `QwenEngine`, `CoquiEngine`, `ZipVoiceEngine`, `OmniVoiceEngine`, `LuxTTSEngine`, `ChatterboxEngine`, `SoproTTSEngine`, `PocketTTSEngine`, `PocketTTSGpuEngine`, `NeuTTSEngine`, or `MossTTSEngine` |
@@ -34,6 +34,7 @@ Each current concrete engine source now has a focused page under `docs/engines/`
 | [`MiniMaxEngine`](engines/minimax.md) | Cloud API | `realtimetts[minimax]` | `MINIMAX_API_KEY`, `mpv` | MP3 output, pytest coverage exists. |
 | [`CartesiaEngine`](engines/cartesia.md) | Cloud API | `realtimetts[cartesia]` | `CARTESIA_API_KEY` | Raw PCM formats in source. |
 | [`ModelsLabEngine`](engines/modelslab.md) | Cloud API | `realtimetts[modelslab]` | `MODELSLAB_API_KEY`, `mpv` | Available from both `RealtimeTTS` and `RealtimeTTS.engines`. |
+| [`SpeechifyEngine`](engines/speechify.md) | Cloud API | `realtimetts[speechify]` | `SPEECHIFY_API_KEY` | Streamed raw PCM through PyAudio. |
 | [`CoquiEngine`](engines/coqui.md) | Local neural | `realtimetts[coqui]` | Local model files, likely GPU | Voice cloning; call `shutdown()` in scripts. |
 | [`PiperEngine`](engines/piper.md) | Local executable | `realtimetts[piper]` plus Piper binary | Piper binary, model/config files | Very practical for local deployment; uses `PIPER_PATH`. |
 | [`StyleTTSEngine`](engines/styletts.md) | Local neural | `realtimetts[styletts]` plus StyleTTS2 checkout | StyleTTS2 checkout/model assets | Local voice/reference-audio workflow. |

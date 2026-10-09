@@ -19,7 +19,7 @@ gtts>=2.5.4
 # openai is for OpenAIEngine
 openai>=2.38.0
 
-# requests is for MiniMaxEngine and ModelsLabEngine
+# requests is for MiniMaxEngine, ModelsLabEngine and SpeechifyEngine
 requests>=2.34.2
 
 # pyttsx3 is for SystemEngine
