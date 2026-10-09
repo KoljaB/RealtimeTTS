@@ -57,6 +57,8 @@ Available engine options include:
 - **cartesia**: Cartesia API integration
 - **modelslab**: ModelsLab API integration
 - **orpheus**: Orpheus TTS support
+- **breeze**: Breeze TTS 2 native-worker client
+- **breeze-server**: Breeze HTTP/WebSocket server and Voice Studio
 - **qwen**: Native qwentts.cpp Qwen3 TTS integration
 - **qwen-server**: OpenAI-compatible native Qwen3 TTS HTTP server
 - **qwen-cpu**: Native Qwen3 TTS on CPU, without CUDA dependencies
@@ -73,6 +75,8 @@ Available engine options include:
 - **zipvoice**: ZipVoice dependency support
 - **moss**: MOSS-TTS dependency support
 - **higgs**: SGLang-Omni Higgs Audio v3 raw-PCM HTTP streaming integration
+- **alignment-cpu**: Optional CPU streaming character/word timestamps for Qwen
+- **alignment-multilingual**: Optional Parakeet CPU word timestamps for Qwen
 - **alignment**: Torchaudio MMS forced character alignment
 - **omniasr**: Experimental omniASR CTC word/character alignment
 - **pockettts**: PocketTTS integration
@@ -271,6 +275,7 @@ all_engine_requirements = (
     + typecast_requirements
     + qwen_requirements
     + qwen_server_requirements
+    + ["websocket-client>=1.8,<2", "wsproto>=1.2,<2"]
     + orpheus_requirements
     + omnivoice_requirements
     + chatterbox_requirements
@@ -331,6 +336,8 @@ extras_require = {
     "moss": standard_requirements + moss_requirements,
     "moss-tts": standard_requirements + moss_requirements,
     "higgs": standard_requirements + higgs_requirements,
+    "alignment-cpu": base_requirements + ["onnxruntime>=1.18,<2", "scipy>=1.10", "num2words>=0.5.14"],
+    "alignment-multilingual": base_requirements + ["onnxruntime>=1.18,<2", "scipy>=1.10", "onnx-asr>=0.12,<0.13"],
     "alignment": standard_requirements + alignment_requirements,
     "omniasr": standard_requirements + omniasr_requirements,
     "piper": standard_requirements,
@@ -338,6 +345,8 @@ extras_require = {
     # headless and therefore intentionally leaves PyAudio out.
     "qwen": base_requirements + qwen_requirements,
     "qwen-server": base_requirements + qwen_common_requirements + qwen_server_requirements,
+    "breeze": base_requirements + ["numpy", "requests>=2.31", "websocket-client>=1.8,<2"],
+    "breeze-server": base_requirements + ["numpy", "requests>=2.31", "websocket-client>=1.8,<2", "fastapi>=0.115,<1", "uvicorn>=0.34,<1", "wsproto>=1.2,<2", "fasttext-predict>=0.9.2.4"],
     "qwen-cpu": base_requirements + qwen_cpu_common_requirements + pyaudio_requirements,
     "qwen-cpu-server": base_requirements + qwen_cpu_common_requirements + qwen_server_requirements,
     "jp": standard_requirements +["mecab-python3>=1.0.12", "unidic-lite>=1.0.8", "cutlet", "fugashi>=1.5.2", "jaconv>=0.5.0", "mojimoji>=0.0.13", "pyopenjtalk>=0.4.1"],
@@ -377,6 +386,7 @@ setuptools.setup(
     entry_points={
         "console_scripts": [
             "realtimetts-qwen-server=RealtimeTTS.qwen_server:main",
+            "realtimetts-breeze-server=RealtimeTTS.breeze_server:main",
             "realtimetts-qwen-emotions=RealtimeTTS.qwen_emotions:main",
         ],
     },

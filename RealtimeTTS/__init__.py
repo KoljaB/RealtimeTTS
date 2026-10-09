@@ -26,6 +26,7 @@ __all__ = [
     "MiniMaxEngine", "MiniMaxVoice",
     "CartesiaEngine", "CartesiaVoice",
     "QwenEngine", "QwenCpuEngine", "QwenVoice", "QwenEngineError",
+    "BreezeEngine", "BreezeVoice", "BreezeEngineError",
     "OmniVoiceEngine", "OmniVoiceVoice",
     "TypecastEngine", "TypecastVoice",
     "SpeechifyEngine", "SpeechifyVoice",
@@ -325,6 +326,23 @@ def _load_cartesia_engine():
     return CartesiaEngine
 
 
+def _load_breeze_engine():
+    from .engines.breeze_engine import BreezeEngine, BreezeVoice, BreezeEngineError
+    globals().update(BreezeEngine=BreezeEngine, BreezeVoice=BreezeVoice,
+                     BreezeEngineError=BreezeEngineError)
+    return BreezeEngine
+
+
+def _load_breeze_voice():
+    _load_breeze_engine()
+    return globals()["BreezeVoice"]
+
+
+def _load_breeze_error():
+    _load_breeze_engine()
+    return globals()["BreezeEngineError"]
+
+
 def _load_qwen_engine():
     try:
         from .engines.qwen_engine import QwenEngine, QwenEngineError, QwenVoice
@@ -531,6 +549,9 @@ _lazy_imports = {
     "MiniMaxVoice": _load_minimax_engine,
     "CartesiaEngine": _load_cartesia_engine,
     "CartesiaVoice": _load_cartesia_engine,
+    "BreezeEngine": _load_breeze_engine,
+    "BreezeVoice": _load_breeze_voice,
+    "BreezeEngineError": _load_breeze_error,
     "QwenEngine": _load_qwen_engine,
     "QwenCpuEngine": _load_qwen_cpu_engine,
     "QwenVoice": _load_qwen_voice,

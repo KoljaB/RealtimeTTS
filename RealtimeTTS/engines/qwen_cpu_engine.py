@@ -78,6 +78,7 @@ class QwenCpuEngine(QwenEngine):
         super().__init__(model_id, **kwargs)
 
     def post_init(self) -> None:
+        super().post_init()
         self.engine_name = "qwen_cpu"
 
     def _backend_options(self) -> dict[str, Any]:

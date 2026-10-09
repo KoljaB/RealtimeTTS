@@ -14,7 +14,7 @@ Each current concrete engine source now has a focused page under `docs/engines/`
 | Verify local audio quickly | `SystemEngine` |
 | Free simple service, no API key | `GTTSEngine` or `EdgeEngine` |
 | Commercial cloud API | `OpenAIEngine`, `AzureEngine`, `ElevenlabsEngine`, `CartesiaEngine`, `MiniMaxEngine`, `CambEngine`, `ModelsLabEngine`, or `SpeechifyEngine` |
-| Word timings | `AzureEngine`; `KokoroEngine` for supported English voices |
+| Word timings | `AzureEngine`; `KokoroEngine` for supported English voices; Qwen with optional [CPU streaming alignment](streaming-alignment.md) |
 | Fixed local English voice | `InflectEngine` |
 | Local neural voice cloning | `QwenEngine`, `CoquiEngine`, `ZipVoiceEngine`, `OmniVoiceEngine`, `LuxTTSEngine`, `ChatterboxEngine`, `SoproTTSEngine`, `PocketTTSEngine`, `PocketTTSGpuEngine`, `NeuTTSEngine`, or `MossTTSEngine` |
 | Separate local synthesis server | `HiggsEngine` for a trusted SGLang-Omni Higgs Audio v3 endpoint |
@@ -41,6 +41,7 @@ Each current concrete engine source now has a focused page under `docs/engines/`
 | [`ParlerEngine`](engines/parler.md) | Local neural | `realtimetts[parler]` | Parler stack, GPU recommended | Heavy local model setup. |
 | [`KokoroEngine`](engines/kokoro.md) | Local neural | `realtimetts[kokoro]` plus language extras | Optional `jp`, `zh`, `ko` extras | Word timings for supported English voices. |
 | [`OrpheusEngine`](engines/orpheus.md) | Local/API-style | `realtimetts[orpheus]` | OpenAI-compatible endpoint or local model stack | LM Studio path documented from Zaphod notes. |
+| [`BreezeEngine`](engines/breeze.md) | Local native worker | `realtimetts[breeze]` or `realtimetts[breeze-server]` | Patched Breeze-TTS-2.cpp worker, model assets | English/Mandarin PCM streaming, voice cloning/design and native controls. |
 | [`QwenEngine`](engines/qwen.md) | Local native neural | `realtimetts[qwen]` after coordinated wheel release | NVIDIA GPU, reference audio, matching native wheel | In-process Q8 streaming, cached x-vector/ICL cloning, 24 kHz PCM. |
 | [`OmniVoiceEngine`](engines/omnivoice.md) | Local neural | `realtimetts[omnivoice]` | OmniVoice stack, reference audio/text | Multilingual voice cloning. |
 | [`PocketTTSEngine`](engines/pockettts.md) / `PocketTTSGpuEngine` | Local lightweight | `realtimetts[pockettts]`, or `realtimetts[pockettts-gpu]` plus CUDA PyTorch and the pinned GPU fork | `pocket-tts` package or CUDA fork | CPU-oriented voice cloning path plus optional CUDA fork engine. |

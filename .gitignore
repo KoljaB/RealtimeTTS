@@ -192,3 +192,14 @@ qwen_emotions_output/
 
 # Local conversation attachments; never publish them.
 .codex-remote-attachments/
+
+# Local recordings, diagnostics and preserved development artifacts
+.codex-edit-backups/
+.pytest-tmp-*/
+QWEN_LATENCY_HANDOFF_MIEP.md
+tests/nora_en_reference.wav
+tests/qwen_highlight.py
+tests/test_qwen_highlight.py
+tools/qwen_alignment_repro.py
+/tools/qwen_cpu_overlap/
+/tools/qwen_gpu_startup/

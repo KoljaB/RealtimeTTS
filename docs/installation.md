@@ -109,6 +109,10 @@ These extras are present in `setup.py`:
 | `alignment` | Torch/torchaudio MMS forced character alignment. |
 | `omniasr` | Experimental omniASR CTC alignment and Silero VAD dependencies. |
 | `piper` | Core RealtimeTTS dependencies; Piper binary/model assets remain external. |
+| `breeze` | Headless client for a separately running patched Breeze-TTS-2.cpp worker. |
+| `breeze-server` | Breeze HTTP/WebSocket server; build the native worker and obtain model assets separately. |
+| `alignment-cpu` | Optional ONNX CPU streaming character/word alignment for Qwen; models downloaded separately. |
+| `alignment-multilingual` | Optional ONNX Parakeet word timestamps for Qwen; models downloaded separately. |
 | `qwen` | Native in-process qwentts.cpp backend with PyAudio playback (`realtimetts-qwen-native==0.2.0` on supported Windows and Linux targets). |
 | `qwen-server` | OpenAI-compatible HTTP server for the native Qwen backend (same platform-specific native wheel pins, without PyAudio). |
 | `qwen-cpu` | CPU-only native Qwen with local PyAudio playback; uses `realtimetts-qwen-native-cpu==0.3.0`. |
@@ -149,6 +153,7 @@ local checkout, model files, or Docker example.
 | [`ParlerEngine`](engines/parler.md) | `pip install "realtimetts[parler]"` plus the upstream Parler package. | Torch/torchaudio and GPU setup are usually required for realtime performance. |
 | [`KokoroEngine`](engines/kokoro.md) | `pip install "realtimetts[kokoro]"` | Add `jp`, `zh`, or `ko` extras for those language stacks. |
 | [`OrpheusEngine`](engines/orpheus.md) | `pip install "realtimetts[orpheus]"` | Requires an OpenAI-compatible completions endpoint such as a local LM Studio server. |
+| [`BreezeEngine`](engines/breeze.md) | `pip install "realtimetts[breeze-server]"` | Separate patched native worker and model assets; see the Breeze guide. |
 | [`QwenEngine`](engines/qwen.md) | `pip install "realtimetts[qwen]"` | Matching native wheel and NVIDIA CUDA-12 driver; no local CUDA Toolkit. Use the headless `realtimetts[qwen-server]` extra for the HTTP server without PyAudio. |
 | [`OmniVoiceEngine`](engines/omnivoice.md) | `pip install "realtimetts[omnivoice]"` | Requires reference audio and exact reference text. |
 | [`PocketTTSEngine`](engines/pockettts.md) / `PocketTTSGpuEngine` | `pip install "realtimetts[pockettts]"`; for GPU use `pip install "realtimetts[pockettts-gpu]"`, install CUDA PyTorch, then install the pinned PocketTTS GPU fork. | Optional prompt WAV for voice cloning; CPU-oriented default, separate CUDA fork engine. |

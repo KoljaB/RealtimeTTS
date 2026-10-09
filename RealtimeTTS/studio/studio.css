@@ -9,3 +9,11 @@
 main>footer{display:none}@media(min-width:1201px){main{padding-bottom:10px}.reference{margin-bottom:0}.reference form{gap:16px}}
 
 .settings{padding-bottom:10px}.advanced{margin-top:6px}
+
+/* Breeze controls share Qwen's existing layout and untouched audio player. */
+.vocal-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:10px 0}
+.vocal-controls label{margin:0}.vocal-controls select{width:auto;min-width:130px}
+#breezeModes,#designFields{margin-bottom:12px}
+#designFields textarea{min-height:88px}
+#designFields label+label{margin-top:8px}
+[hidden]{display:none!important}

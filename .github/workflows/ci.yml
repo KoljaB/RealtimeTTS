@@ -25,7 +25,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install --yes portaudio19-dev
           python -m pip install --upgrade pip
-          python -m pip install pytest "setuptools>=68" numpy requests fastapi httpx soundfile
+          python -m pip install pytest "setuptools>=68" numpy requests fastapi httpx soundfile "websocket-client>=1.8,<2"
           python -m pip install -e .
           python -m pip install pyaudio
       - name: Run focused unit tests
@@ -33,6 +33,17 @@ jobs:
           python -m pytest -q
           tests/test_audio_backend.py
           tests/test_base_engine_silence_trim.py
+          tests/test_breeze_engine_server.py
+          tests/test_breeze_continuity.py
+          tests/test_breeze_failure_diagnostics.py
+          tests/test_breeze_fragment_metadata.py
+          tests/test_breeze_sentence_splitting.py
+          tests/test_breeze_studio.py
+          tests/test_streaming_alignment.py
+          tests/test_multilingual_alignment.py
+          tests/test_alignment_completion_guard.py
+          tests/test_shared_language_detection.py
+          tests/test_text_exchange.py
           tests/test_character_alignment.py
           tests/test_ctc_alignment.py
           tests/test_higgs_engine.py
@@ -70,6 +81,9 @@ jobs:
 
       - name: Run Studio JavaScript regression tests
         run: node --test tests/test_qwen_studio_sampling.js
+
+      - name: Run Studio regressions
+        run: node --test tests/test_breeze_studio.mjs tests/test_qwen_studio_sampling.js
 
   documentation:
     name: Build documentation strictly

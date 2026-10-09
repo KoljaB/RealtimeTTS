@@ -1,0 +1,103 @@
+[
+  {
+    "path": "include/breeze/generation.h",
+    "replacements": [
+      [
+        "    double first_audio = 0, first_vocoder = 0;",
+        "    double first_audio = 0, first_vocoder = 0, first_token = 0;"
+      ],
+      [
+        "    std::string text;\n    std::string instruction",
+        "    // Called between GPU stages. False cancels; it may block to acknowledge pause.\n    std::function<bool()> checkpoint;\n    std::string text;\n    std::string instruction"
+      ]
+    ]
+  },
+  {
+    "path": "src/generation.cpp",
+    "replacements": [
+      [
+        "    int cb0 = sample_token(comb, bp, rng, &hist, &suppress);",
+        "    int cb0 = sample_token(comb, bp, rng, &hist, &suppress);\n    if (!tm.first_token) tm.first_token = since(t_start);"
+      ],
+      [
+        "    std::mt19937 rng(seed);",
+        "    if (req.checkpoint && !req.checkpoint()) return false;\n    std::mt19937 rng(seed);"
+      ],
+      [
+        "        while (have - emitted >= chunk || (final_flush && have > emitted)) {",
+        "        while (have - emitted >= chunk || (final_flush && have > emitted)) {\n            if (req.checkpoint && !req.checkpoint()) return false;"
+      ],
+      [
+        "    for (int step = 0; step < max_new; step++) {\n        if (cb0",
+        "    for (int step = 0; step < max_new; step++) {\n        if (req.checkpoint && !req.checkpoint()) { stopped = true; break; }\n        if (cb0"
+      ],
+      [
+        "        tm.depth += since(td);\n        std::vector<int> frame",
+        "        tm.depth += since(td);\n        if (req.checkpoint && !req.checkpoint()) { stopped = true; break; }\n        std::vector<int> frame"
+      ]
+    ]
+  },
+  {
+    "path": "apps/server/ws_api.cpp",
+    "replacements": [
+      [
+        "    bool speaking = false;\n    std::atomic<bool>",
+        "    bool speaking = false;\n    bool paused = false;\n    bool pause_ack = false;\n    std::atomic<bool>"
+      ],
+      [
+        "        if (s.cancel) { s.cancel = false; continue; }\n\n        std::unique_lock",
+        "        if (s.cancel) { s.cancel = false; event(conn, \"cancelled\"); continue; }\n\n        std::unique_lock"
+      ],
+      [
+        "        if (s.cancel) { s.cancel = false; continue; }\n\n        {",
+        "        if (s.cancel) { s.cancel = false; event(conn, \"cancelled\"); continue; }\n\n        {"
+      ],
+      [
+        "        int sent = 0;\n        const bool ok",
+        "        int sent = 0;\n        GenTimings timings;\n        const auto started = std::chrono::steady_clock::now();\n        const bool ok"
+      ],
+      [
+        "            return conn.send_binary(pcm.data(), pcm.size());\n        });\n        hold.unlock();",
+        "            return conn.send_binary(pcm.data(), pcm.size());\n        }, &timings);\n        hold.unlock();\n        const double elapsed = std::chrono::duration<double>(std::chrono::steady_clock::now() - started).count();\n        printf(\"BREEZE_WS_METRIC {\\\"ttft_ms\\\":%.3f,\\\"first_audio_ms\\\":%.3f,\\\"audio_s\\\":%.6f,\\\"generation_s\\\":%.6f,\\\"cancelled\\\":%s}\\n\",\n               timings.first_token, timings.first_audio, sent / 24000.0, elapsed, s.cancel ? \"true\" : \"false\");\n        fflush(stdout);"
+      ],
+      [
+        "    g.top_k = (int) json_num(msg, \"top_k\", 0);",
+        "    g.top_k = (int) json_num(msg, \"top_k\", 0);\n    g.top_p = (float) json_num(msg, \"top_p\", 0);\n    g.repetition_penalty = (float) json_num(msg, \"repetition_penalty\", 0);\n    g.max_new_tokens = (int) json_num(msg, \"max_new_tokens\", 0);\n    g.checkpoint = [&s, &conn] {\n        std::unique_lock<std::mutex> lock(s.mu);\n        while (s.paused && !s.cancel && !s.quit && conn.alive()) {\n            if (!s.pause_ack) { s.pause_ack = true; event(conn, \"paused\"); }\n            s.cv.wait(lock);\n        }\n        return !s.cancel && !s.quit && conn.alive();\n    };"
+      ],
+      [
+        "    s.cancel = false;\n    event(conn, \"started\"",
+        "    s.cancel = false;\n    s.paused = false;\n    s.pause_ack = false;\n    event(conn, \"started\""
+      ],
+      [
+        "            if (type == \"end\") s.ending = true;",
+        "            if (type == \"end\") {\n                s.ending = true;\n                if (s.queue.empty() && !s.speaking) {\n                    s.ending = false;\n                    event(conn, \"done\");\n                }\n            }"
+      ],
+      [
+        "        } else if (type == \"cancel\") {",
+        "        } else if (type == \"pause\") {\n            std::lock_guard<std::mutex> lock(s.mu);\n            s.paused = true;\n            s.pause_ack = false;\n            if (!s.speaking) { s.pause_ack = true; event(conn, \"paused\"); }\n        } else if (type == \"resume\") {\n            {\n                std::lock_guard<std::mutex> lock(s.mu);\n                s.paused = false;\n                s.pause_ack = false;\n            }\n            s.cv.notify_all();\n            event(conn, \"resumed\");\n        } else if (type == \"cancel\") {"
+      ],
+      [
+        "            s.cancel = s.speaking;\n        } else {",
+        "            s.cancel = s.speaking;\n            s.paused = false;\n            s.cv.notify_all();\n            if (!s.speaking) event(conn, \"cancelled\");\n        } else {"
+      ]
+    ]
+  },
+  {
+    "path": "apps/server/server.cpp",
+    "replacements": [
+      [
+        "\",\\\"ws_port\\\":\" + std::to_string(ws_port > 0 ? ws_port : 0) + \"}\",",
+        "\",\\\"native_checkpoints\\\":true,\\\"ws_port\\\":\" + std::to_string(ws_port > 0 ? ws_port : 0) + \"}\","
+      ]
+    ]
+  },
+  {
+    "path": "third_party/ggml/src/ggml-cpu/ggml-cpu.c",
+    "replacements": [
+      [
+        "        THREAD_POWER_THROTTLING_STATE t;",
+        "        // Older MinGW headers omit this Windows SDK ABI definition.\n        #ifndef THREAD_POWER_THROTTLING_CURRENT_VERSION\n        #define THREAD_POWER_THROTTLING_CURRENT_VERSION 1\n        #define THREAD_POWER_THROTTLING_EXECUTION_SPEED 0x1\n        typedef struct {\n            ULONG Version;\n            ULONG ControlMask;\n            ULONG StateMask;\n        } THREAD_POWER_THROTTLING_STATE;\n        #endif\n        THREAD_POWER_THROTTLING_STATE t;"
+      ]
+    ]
+  }
+]

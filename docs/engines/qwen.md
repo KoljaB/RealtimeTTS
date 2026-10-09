@@ -6,6 +6,9 @@ RealtimeTTS queue, and supports cached x-vector and full ICL voice cloning.
 The optional HTTP server wraps that same in-process engine without adding a
 second model process.
 
+The HTTP and WebSocket servers support optional global and language-specific
+[whole-word pronunciation exchanges](../text-exchange.md).
+
 ## Why Qwen is recommended
 
 On supported Windows and Linux systems with an NVIDIA GPU, `QwenEngine` is the

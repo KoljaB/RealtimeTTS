@@ -8,3 +8,6 @@ include tests/faster_qwen_emotions.py
 include tools/qwen_cpu_overlap/server_3900x.cmd
 include docs/qwen-cpu-scheduling.md
 include docs/qwen-studio.md
+include tools/prepare_breeze_cpp.py
+include tools/breeze_cpp_controls.json
+include docs/engines/breeze.md

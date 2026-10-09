@@ -72,6 +72,7 @@ nav:
       - Kokoro: engines/kokoro.md
       - Orpheus: engines/orpheus.md
       - Qwen: engines/qwen.md
+      - Breeze TTS 2: engines/breeze.md
       - Qwen Emotional Showcase: qwen-emotions.md
       - OmniVoice: engines/omnivoice.md
       - PocketTTS: engines/pockettts.md
@@ -85,6 +86,8 @@ nav:
       - MOSS-TTS: engines/moss-tts.md
       - Higgs Audio v3: engines/higgs.md
   - Forced Alignment: ctc-forced-alignment.md
+  - Streaming Alignment: streaming-alignment.md
+  - Pronunciation Exchanges: text-exchange.md
   - Feed And Playback: feed-and-playback.md
   - LLM Streaming: llm-streaming.md
   - Output And Files: output-and-files.md

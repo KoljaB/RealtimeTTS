@@ -396,7 +396,12 @@ def test_streams_24khz_pcm_and_selects_clone_mode(tmp_path, ref_text, expect_icl
     try:
         # This exercises the real BaseInitMeta-created queue/event, not constructor state.
         assert engine.synthesize("hello") is True
-        assert engine.get_stream_info()[1:] == (1, 24000)
+        import importlib.util
+        if importlib.util.find_spec("pyaudio") is not None:
+            assert engine.get_stream_info()[1:] == (1, 24000)
+        else:
+            with pytest.raises(ImportError, match="local playback requires PyAudio"):
+                engine.get_stream_info()
         pcm = np.frombuffer(engine.queue.get_nowait(), dtype="<i2")
         assert pcm.tolist() == [0, 16384, -16384, 0, 32767]
         call = backend.stream_calls[-1]

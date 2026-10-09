@@ -68,11 +68,19 @@ def _check_wheel_contents(wheel: Path) -> None:
         "RealtimeTTS/engines/higgs_engine.py",
         "RealtimeTTS/alignment/__init__.py",
     }
+    required_files.update({
+        'RealtimeTTS/engines/breeze_engine.py',
+        'RealtimeTTS/engines/speechify_engine.py',
+        'RealtimeTTS/breeze_server.py',
+        'RealtimeTTS/breeze_diagnostics.py',
+        'RealtimeTTS/text_exchange.py',
+        'RealtimeTTS/alignment/streaming.py',
+        'RealtimeTTS/alignment/onnx_ctc.py',
+        'RealtimeTTS/alignment/onnx_parakeet.py',
+    })
     missing = sorted(required_files - names)
     if missing:
         raise SystemExit(f"wheel is missing required runtime files: {', '.join(missing)}")
-    if "RealtimeTTS/engines/breeze_tts_engine.py" in names:
-        raise SystemExit("wheel unexpectedly contains Breeze, which is excluded from 0.8.0")
     if any(name == "tests" or name.startswith("tests/") or "/tests/" in name for name in names):
         raise SystemExit("wheel unexpectedly contains the test suite")
     dist_info_names = [name for name in names if ".dist-info/" in name]
@@ -127,11 +135,22 @@ def _check_sdist_contents(sdist: Path) -> None:
         "RealtimeTTS/engines/higgs_engine.py",
         "RealtimeTTS/alignment/__init__.py",
     }
+    required_files.update({
+        'RealtimeTTS/engines/breeze_engine.py',
+        'RealtimeTTS/engines/speechify_engine.py',
+        'RealtimeTTS/breeze_server.py',
+        'RealtimeTTS/breeze_diagnostics.py',
+        'RealtimeTTS/text_exchange.py',
+        'RealtimeTTS/alignment/streaming.py',
+        'RealtimeTTS/alignment/onnx_ctc.py',
+        'RealtimeTTS/alignment/onnx_parakeet.py',
+        'tools/prepare_breeze_cpp.py',
+        'tools/breeze_cpp_controls.json',
+        'docs/engines/breeze.md',
+    })
     missing = sorted(required_files - names)
     if missing:
         raise SystemExit(f"sdist is missing required release files: {', '.join(missing)}")
-    if "RealtimeTTS/engines/breeze_tts_engine.py" in names:
-        raise SystemExit("sdist unexpectedly contains Breeze, which is excluded from 0.8.0")
     # The editable emotions demo is intentionally shipped in the sdist.
     allowed_demo_entries = {"tests", "tests/faster_qwen_emotions.py"}
     if any(
@@ -205,10 +224,11 @@ def main() -> int:
                         "assert Path(RealtimeTTS.__file__).is_file()",
                         "extras = set(dist.metadata.get_all('Provides-Extra') or [])",
                         "assert {'qwen-server', 'qwen-cpu-server', 'qwen-cpu', 'inflect', 'higgs', 'alignment', 'omniasr'} <= extras",
-                        "assert 'breeze' not in extras",
+                        "assert {'breeze', 'breeze-server', 'speechify', 'alignment-cpu', 'alignment-multilingual'} <= extras",
                         "assert dist.metadata['Requires-Python'].replace(' ', '') == '>=3.10,<3.15'",
                         "assert any(ep.name == 'realtimetts-qwen-server' for ep in dist.entry_points)",
                         "assert any(ep.name == 'realtimetts-qwen-emotions' for ep in dist.entry_points)",
+                        "assert any(ep.name == 'realtimetts-breeze-server' for ep in dist.entry_points)",
                         "import RealtimeTTS.qwen_emotions as demo",
                         "assert demo.main(['--list']) == 0",
                         "assert (Path(RealtimeTTS.__file__).parent / '_version.py').is_file()",

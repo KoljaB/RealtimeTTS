@@ -24,6 +24,13 @@ testing, more bug reports, more fixes, and better releases for everyone.
 
 https://github.com/KoljaB/RealtimeTTS/assets/7604638/87dcd9a5-3a4e-4f57-be45-837fc63237e7
 
+## Breeze TTS 2
+
+BreezeEngine adds reference voice cloning, direct delivery instructions and inline
+vocal events through a local Breeze-TTS-2.cpp worker. The compatible HTTP/WebSocket
+server supports native pause and cancellation. See the [Breeze guide](docs/engines/breeze.md)
+for the required worker patch, Windows Vulkan setup and server/engine examples.
+
 ## Recommended Engine: Qwen (GPU and CPU)
 
 For supported Windows and Linux systems with an NVIDIA GPU, **QwenEngine is
@@ -232,6 +239,7 @@ see [docs/output-and-files.md](docs/output-and-files.md).
 
 | Engine | Type | Install/status note | Best first use |
 | --- | --- | --- | --- |
+| [`BreezeEngine`](docs/engines/breeze.md) | Local native worker / HTTP server | `realtimetts[breeze]` or `realtimetts[breeze-server]`, separate patched Breeze worker | English/Mandarin voice cloning and design, directions and native stream controls. |
 | **[`QwenEngine`](docs/engines/qwen.md) (recommended)** | Local native neural / HTTP server | `realtimetts[qwen]` or `realtimetts[qwen-server]` with a matching native wheel | High-quality multilingual realtime speech, voice cloning, and fast cancellation. |
 | [`QwenCpuEngine`](docs/engines/qwen.md#cpu-engine) | Local CPU native / HTTP server | `realtimetts[qwen-cpu]` or `realtimetts[qwen-cpu-server]` | CPU-only Qwen on Windows/Linux x86-64 and Intel/Apple Silicon macOS; silence trimming and the same streaming controls. |
 | [`InflectEngine`](docs/engines/inflect.md) | Local lightweight | `realtimetts[inflect]` | Fast fixed English voice through PyTorch CUDA or ONNX CPU. |

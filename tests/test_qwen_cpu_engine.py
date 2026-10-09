@@ -19,6 +19,7 @@ def test_cpu_engine_rejects_gpu_binding_before_constructing_context(monkeypatch)
     def forbidden(*args, **kwargs):
         pytest.fail("GPU context must not be created")
 
+    monkeypatch.setitem(sys.modules, "qwentts_cpp_cpu", None)
     monkeypatch.setitem(sys.modules, "qwentts_cpp", SimpleNamespace(QwenTTS=forbidden))
     with pytest.raises(QwenEngineError, match="CPU wheel"):
         QwenCpuEngine(warmup=False)

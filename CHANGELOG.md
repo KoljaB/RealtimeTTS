@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.9.0rc1 - Unreleased
+
+### Added
+
+- Breeze TTS 2 support through `BreezeEngine` and the optional `breeze-server`
+  HTTP/WebSocket API, with voice cloning/design, direction and vocal-event
+  controls, native pause/resume/cancel, and Breeze-aware Voice Studio controls.
+  Requires a separately built, patched Breeze-TTS-2.cpp worker and model assets.
+- Speechify cloud streaming with selectable PCM rates, voice discovery and
+  empty-response failure handling, from PR #381.
+- Optional CPU streaming alignment for Qwen: English character/word timestamps,
+  multilingual word timestamps, and an opt-in completion guard. Alignment models
+  are installed separately; synthesis does not wait for recognition results.
+- Pronunciation exchanges and fragment metadata for speech-stream clients.
+
+### Release scope
+
+- Retains the public 0.8.10 CPU scheduling, language, sampling and playback fixes.
+- Native Qwen dependency pins are unchanged. No models, voice recordings or
+  private benchmark artifacts are included.
+
 ## 0.8.9 - 2026-09-26
 
 ### Fixed

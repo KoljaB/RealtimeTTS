@@ -57,6 +57,7 @@ from .engines.qwen_engine import (
 )
 from .engines.qwen_cpu_engine import QwenCpuEngine
 from .qwen_cpu_topology import split_windows_cpu_cores
+from .text_exchange import TextExchange
 from .language_router import (
     FastTextLanguageDetector,
     LanguageDetection,
@@ -70,6 +71,7 @@ LOGGER = logging.getLogger(__name__)
 AUDIBLE_AVERAGE_ABS_THRESHOLD = 80.0
 DEFAULT_STALL_TIMEOUT_SECONDS = 30.0
 DEFAULT_SYNTHESIS_TIMEOUT_SECONDS = 120.0
+ALIGNMENT_FINALIZE_TIMEOUT_SECONDS = 2.0
 DEFAULT_SHUTDOWN_TIMEOUT_SECONDS = 5.0
 PAUSE_ACK_TIMEOUT_SECONDS = 2.0
 DEFAULT_MAX_ACTIVE_REQUESTS = 1
@@ -103,6 +105,16 @@ _TEXT_FLUSH = object()
 class _SegmentBoundary:
     segment_id: int
     started: bool
+
+
+@dataclass(frozen=True)
+class _VoiceBoundary:
+    voice: str
+
+
+@dataclass(frozen=True)
+class _InstructionBoundary:
+    instructions: Optional[str]
 _END_SENTENCE_DELIMITERS = ".!?。！？…"
 _MID_SENTENCE_DELIMITERS = ";:,\n()[]{}-“”„”—/|《》"
 LANGUAGE_LOOKAHEAD_MAX_ADDITIONAL_WORDS = 3
@@ -473,6 +485,8 @@ class SpeechOptions:
     instructions: Optional[str]
     sampling: Mapping[str, Any]
     language: str
+    exchange: Optional[TextExchange] = None
+    split_sentences: bool = True
 
 
 @dataclass(frozen=True)
@@ -483,6 +497,7 @@ class SpeechRequest:
     instructions: Optional[str]
     sampling: Mapping[str, Any]
     language: str
+    exchange: Optional[TextExchange] = None
 
 
 class SynthesisState:
@@ -498,6 +513,14 @@ class SynthesisState:
         self.request_id = request_id
         self.output: queue_module.Queue[Any] = queue_module.Queue(maxsize=output_queue_chunks)
         self.chunks: list[bytes] = []
+        self.diagnostic_chunks: list[bytes] = []
+        self.engine_diagnostics: dict[str, Any] = {}
+        self.alignment_events: queue_module.Queue[dict[str, Any]] = queue_module.Queue()
+        self.alignment_done = threading.Event()
+        self.alignment_closed = threading.Event()
+        self.alignment_session: Any = None
+        self.first_pcm_published = threading.Event()
+        self.alignment_done.set()
         self.header_ready = threading.Event()
         self.done = threading.Event()
         self.engine_done = threading.Event()
@@ -597,9 +620,13 @@ class _CaptureQueue:
             self.state.received_pcm = True
             self.metrics.progress()
             return
-        if not self.state.audible and _pcm_is_audible(pcm):
-            self.state.audible = True
-            self.state.header_ready.set()
+        if not self.state.audible:
+            if _pcm_is_audible(pcm):
+                self.state.audible = True
+                self.state.diagnostic_chunks.clear()
+                self.state.header_ready.set()
+            else:
+                self.state.diagnostic_chunks.append(pcm)
         while not self.state.cancelled.is_set():
             try:
                 self.state.output.put(pcm, timeout=0.1)
@@ -646,6 +673,7 @@ class QwenHttpServer:
         studio_peers: Optional[Sequence[Mapping[str, str]]] = None,
         clock: Callable[[], float] = time.monotonic,
         language_router: Optional[QwenLanguageRouter] = None,
+        language_detector: Optional[FastTextLanguageDetector] = None,
         fragment_lookahead_words: int = 0,
         comma_silence_duration: float = 0.15,
         sentence_silence_duration: float = 0.30,
@@ -684,6 +712,10 @@ class QwenHttpServer:
         self.registry = VoiceRegistry(voice_dir)
         self.metrics = RequestMetrics(stall_timeout_seconds, clock)
         self.language_router = language_router
+        self.language_detector = (
+            language_detector if language_detector is not None
+            else language_router.detector if language_router is not None else None
+        )
         self.synthesis_timeout_seconds = float(synthesis_timeout_seconds)
         self.shutdown_timeout_seconds = float(shutdown_timeout_seconds)
         self.max_active_requests = int(max_active_requests)
@@ -748,6 +780,11 @@ class QwenHttpServer:
             if self._startup_complete:
                 return
             warmup_targets: list[tuple[str, str]] = []
+            if self.language_detector is not None and (
+                self.language_router is None
+                or self.language_detector is not self.language_router.detector
+            ):
+                self.language_detector.warmup()
             if self.language_router is not None:
                 started = time.monotonic()
                 self.language_router.warmup()
@@ -854,6 +891,14 @@ class QwenHttpServer:
                 "model_type": getattr(self.engine, "model_type", "base"),
                 "voice_cloning": getattr(self.engine, "model_type", "base") == "base",
                 "instruction_control": bool(getattr(self.engine, "instruction_control", False)),
+                "per_text_voice": True,
+                "sentence_splitting": True,
+                "text_exchange": True,
+                "streaming_alignment": getattr(self.engine, "streaming_aligner", None) is not None,
+                "alignment_timestamps": getattr(getattr(self.engine, "streaming_aligner", None), "timestamp_levels", []),
+                "alignment_language": getattr(getattr(getattr(self.engine, "streaming_aligner", None), "backend", None), "language", None),
+                "alignment_language_timestamps": getattr(getattr(self.engine, "streaming_aligner", None), "language_timestamps", {}),
+                "hallucination_guard": bool(getattr(self.engine, "streaming_aligner", None) is not None and getattr(self.engine, "hallucination_guard", False)),
             },
             "playback": {
                 "startup_buffer_ms": getattr(self.engine, "startup_buffer_ms", None),
@@ -998,18 +1043,24 @@ class QwenHttpServer:
         with self._operation_lock:
             return self.registry.remove(name)
 
-    def parse_speech_options(self, payload: Mapping[str, Any]) -> SpeechOptions:
+    def _validate_voice(self, value: Any) -> str:
         mode = getattr(self.engine, "model_type", "base")
-        if payload.get("model", self.alias) != self.alias:
-            raise ApiError(400, "invalid_request_error", "requested model is not loaded on this server")
-        voice = payload.get("voice", "design" if mode == "voice_design" else "")
-        if not isinstance(voice, str) or not voice.strip():
+        if not isinstance(value, str) or not value.strip():
             raise ApiError(400, "invalid_request_error", "'voice' must name a registered voice")
-        voice = voice.strip()
+        voice = value.strip()
         if mode == "base" and self.registry.get(voice) is None:
             raise ApiError(400, "invalid_request_error", f"unknown voice: {voice}")
         if mode == "custom_voice" and voice not in getattr(self.engine, "built_in_speakers", ()):
             raise ApiError(400, "invalid_request_error", f"unknown built-in speaker: {voice}")
+        return voice
+
+    def parse_speech_options(self, payload: Mapping[str, Any]) -> SpeechOptions:
+        mode = getattr(self.engine, "model_type", "base")
+        if payload.get("model", self.alias) != self.alias:
+            raise ApiError(400, "invalid_request_error", "requested model is not loaded on this server")
+        voice = self._validate_voice(
+            payload.get("voice", "design" if mode == "voice_design" else "")
+        )
         response_format = payload.get("response_format", "pcm")
         if not isinstance(response_format, str) or response_format not in {"pcm", "wav"}:
             raise ApiError(400, "invalid_request_error", "response_format must be 'pcm' or 'wav'")
@@ -1077,7 +1128,21 @@ class QwenHttpServer:
             if not lower_ok or numeric > high or not np.isfinite(numeric):
                 raise ApiError(400, "invalid_request_error", f"'{field}' is out of domain")
             sampling[field] = numeric
-        return SpeechOptions(voice, response_format, instructions, sampling, language)
+        exchange = None
+        if payload.get("exchange") is not None or payload.get("exchange_by_language") is not None:
+            try:
+                exchange = TextExchange(payload.get("exchange"), payload.get("exchange_by_language"))
+            except (TypeError, ValueError) as exc:
+                raise ApiError(400, "invalid_request_error", str(exc)) from exc
+        if payload.get("exchange_by_language") and language == "auto" and self.language_router is None:
+            raise ApiError(400, "invalid_request_error",
+                           "language-specific exchanges in Auto mode require a language router")
+        split_sentences = payload.get("split_sentences", True)
+        if not isinstance(split_sentences, bool):
+            raise ApiError(400, "invalid_request_error", "'split_sentences' must be a boolean")
+        return SpeechOptions(
+            voice, response_format, instructions, sampling, language, exchange, split_sentences
+        )
 
     def parse_speech(self, payload: Mapping[str, Any]) -> SpeechRequest:
         text = payload.get("input")
@@ -1091,10 +1156,12 @@ class QwenHttpServer:
             options.instructions,
             options.sampling,
             options.language,
+            options.exchange,
         )
 
     def start_synthesis(
-        self, request: SpeechRequest, *, request_id: Optional[str] = None
+        self, request: SpeechRequest, *, request_id: Optional[str] = None,
+        stream_context: Any = None,
     ) -> SynthesisState:
         if self._shutting_down.is_set():
             raise ApiError(503, "server_error", "server is shutting down")
@@ -1115,6 +1182,7 @@ class QwenHttpServer:
             daemon=True,
         )
         state.worker = worker
+        state.stream_context = stream_context
         try:
             worker.start()
         except BaseException:
@@ -1164,6 +1232,9 @@ class QwenHttpServer:
         self.metrics.started()
         try:
             request, _detection = self.route_request(request)
+            if request.exchange is not None:
+                text, _ranges = request.exchange.apply(request.text, request.language)
+                request = replace(request, text=text, exchange=None)
             selected_voice = self.synthesis_voice(request.voice, request.language, request.instructions)
             with self._operation_lock:
                 if state.cancelled.is_set() or self._shutting_down.is_set():
@@ -1176,12 +1247,33 @@ class QwenHttpServer:
                 if state.cancelled.is_set():
                     return
                 original_queue = self.engine.queue
+                original_alignment = getattr(self.engine, "on_alignment", None)
+                original_alignment_gate = getattr(self.engine, "alignment_start_event", None)
+                original_alignment_cancel = getattr(self.engine, "alignment_cancel_event", None)
+                previous_alignment_session = getattr(self.engine, "last_alignment", None)
+                alignment_enabled = getattr(self.engine, "streaming_aligner", None) is not None
+                if alignment_enabled:
+                    state.alignment_done.clear()
+
+                    def on_alignment(event: dict[str, Any]) -> None:
+                        if state.alignment_closed.is_set():
+                            return
+                        state.alignment_events.put(event)
+                        if event["type"] == "alignment_done":
+                            state.alignment_done.set()
+
+                    self.engine.on_alignment = on_alignment
+                    self.engine.alignment_start_event = state.first_pcm_published if state.response_format == "pcm" else None
+                    self.engine.alignment_cancel_event = state.cancelled
                 self.engine.queue = _CaptureQueue(
                     state,
                     self.metrics,
                     abort=self._abort_state,
                     max_output_bytes=self.max_output_bytes,
                 )
+                set_context = getattr(self.engine, "set_stream_context", None)
+                if callable(set_context):
+                    set_context(getattr(state, "stream_context", None))
                 try:
                     if not state.begin_engine():
                         return
@@ -1193,7 +1285,21 @@ class QwenHttpServer:
                         if callable(resume):
                             resume()
                 finally:
+                    if callable(set_context):
+                        set_context(None)
                     self.engine.queue = original_queue
+                    snapshot = getattr(self.engine, "synthesis_diagnostics", None)
+                    if callable(snapshot):
+                        state.engine_diagnostics = snapshot()
+                    if alignment_enabled:
+                        self.engine.on_alignment = original_alignment
+                        self.engine.alignment_start_event = original_alignment_gate
+                        self.engine.alignment_cancel_event = original_alignment_cancel
+                        alignment_session = getattr(self.engine, "last_alignment", None)
+                        if alignment_session is previous_alignment_session:
+                            state.alignment_done.set()
+                        else:
+                            state.alignment_session = alignment_session
                     with state._lifecycle_lock:
                         state.engine_done.set()
             if state.cancelled.is_set():
@@ -1231,6 +1337,13 @@ class QwenHttpServer:
                 self.metrics.synthesis_failure()
                 LOGGER.exception("Qwen HTTP synthesis worker failed")
         finally:
+            if state.error_type is not None and not state.cancelled.is_set():
+                record_failure = getattr(self, "record_synthesis_failure", None)
+                if callable(record_failure):
+                    try:
+                        record_failure(request, state)
+                    except Exception:
+                        LOGGER.exception("Could not persist synthesis diagnostics for %s", state.request_id)
             state.end_engine()
             with state._lifecycle_lock:
                 state.engine_done.set()
@@ -1308,6 +1421,7 @@ class QwenHttpServer:
                 if state.cancelled.is_set():
                     break
                 yield chunk
+                state.first_pcm_published.set()
         finally:
             if not state.done.is_set():
                 self.cancel(state)
@@ -1365,7 +1479,7 @@ async def _json_object(request: Any) -> Mapping[str, Any]:
 
 async def _stream_token_source(
     items: asyncio.Queue[Any], ended: Optional[asyncio.Event] = None,
-    boundaries: Optional[list[_SegmentBoundary]] = None,
+    boundaries: Optional[list[_SegmentBoundary | _VoiceBoundary | _InstructionBoundary]] = None,
 ) -> AsyncIterator[str]:
     while True:
         item = await items.get()
@@ -1375,25 +1489,34 @@ async def _stream_token_source(
             return
         if item is _TEXT_FLUSH:
             return
-        if isinstance(item, _SegmentBoundary):
+        if isinstance(item, (_SegmentBoundary, _VoiceBoundary, _InstructionBoundary)):
             if boundaries is not None:
                 boundaries.append(item)
             return
         yield str(item)
 
 
-async def _stream_sentence_fragments(items: asyncio.Queue[Any], **options: Any) -> AsyncIterator[Any]:
+async def _stream_sentence_fragments(
+    items: asyncio.Queue[Any], *, split_sentences: bool = True, **options: Any,
+) -> AsyncIterator[Any]:
     """Flush an explicitly finished speech segment without closing the session.
 
     A model tool call ends its preceding narration. Waiting for the next model
     round as sentence lookahead would hide that narration behind tool execution.
-    The ordinary splitter still handles all text inside each segment unchanged.
+    With splitting disabled, collect one complete input per explicit boundary.
+    Voice, instruction, flush and segment boundaries keep their existing meaning.
     """
     ended = asyncio.Event()
     while not ended.is_set():
-        boundaries: list[_SegmentBoundary] = []
-        async for fragment in generate_sentences_async(_stream_token_source(items, ended, boundaries), **options):
-            yield fragment
+        boundaries: list[_SegmentBoundary | _VoiceBoundary | _InstructionBoundary] = []
+        source = _stream_token_source(items, ended, boundaries)
+        if split_sentences:
+            async for fragment in generate_sentences_async(source, **options):
+                yield fragment
+        else:
+            text = "".join([part async for part in source])
+            if text.strip():
+                yield text
         for boundary in boundaries:
             yield boundary
 
@@ -1456,6 +1579,80 @@ async def _send_websocket_json(
         await websocket.send_json(dict(event))
 
 
+def _alignment_fragment_metadata(engine, text, source_text, source_ranges):
+    """Keep non-spoken control tags out of alignment while retaining UI offsets."""
+    spans = getattr(engine, "alignment_non_speech_ranges", None)
+    ignored = spans(text) if callable(spans) else ()
+    if ignored:
+        characters, mapped, offset = [], [], 0
+        for index, character in enumerate(text):
+            end = offset + len(character.encode("utf-16-le")) // 2
+            if not any(span["start"] < end and span["end"] > offset for span in ignored):
+                characters.append(character)
+                mapped.append(source_ranges[index] if source_ranges is not None else [offset, end])
+            offset = end
+        text, source_ranges = "".join(characters), mapped
+    result = {"text": text}
+    if source_ranges is not None:
+        result.update(source_text=source_text, source_ranges=source_ranges)
+    return result
+
+
+async def _send_alignment_events(
+    websocket: Any, state: SynthesisState, *, session_id: str,
+    fragment_index: int, cancelled: asyncio.Event, send_lock: asyncio.Lock,
+) -> None:
+    """Keep optional metadata bounded without failing or truncating completed PCM."""
+    tail_deadline = None
+
+    async def send(event: dict[str, Any]) -> None:
+        await _send_websocket_json(websocket, {
+            **event, "session_id": session_id, "request_id": state.request_id,
+            "fragment_index": fragment_index, "sample_rate_hz": SAMPLE_RATE,
+        }, send_lock)
+
+    try:
+        while not cancelled.is_set() and not state.cancelled.is_set():
+            if state.done.is_set():
+                if state.alignment_done.is_set() and state.alignment_events.empty():
+                    return
+                if tail_deadline is None:
+                    tail_deadline = min(
+                        state.deadline, time.monotonic() + ALIGNMENT_FINALIZE_TIMEOUT_SECONDS
+                    )
+                if time.monotonic() >= tail_deadline:
+                    # PCM is complete. Retain published timestamps and release the
+                    # response normally rather than making metadata a fatal dependency.
+                    state.alignment_closed.set()
+                    state.alignment_done.set()
+                    finish = getattr(state.alignment_session, "finish", None)
+                    if callable(finish):
+                        try:
+                            finish(cancelled=True)
+                        except Exception:
+                            LOGGER.warning("Could not stop expired alignment %s", state.request_id,
+                                           exc_info=True)
+                    LOGGER.warning("Alignment tail expired for %s; completing audio normally",
+                                   state.request_id)
+                    await send({
+                        "type": "alignment_done", "complete": False,
+                        "finish_reason": "alignment_timeout",
+                    })
+                    return
+            elif time.monotonic() >= state.deadline:
+                return
+            try:
+                event = await asyncio.to_thread(state.alignment_events.get, True, 0.05)
+            except queue_module.Empty:
+                continue
+            if cancelled.is_set() or state.cancelled.is_set():
+                return
+            await send(event)
+    finally:
+        # Late callbacks belong to this fragment and must not accumulate after closure.
+        state.alignment_closed.set()
+
+
 async def _send_stream_pcm(
     websocket: Any,
     state: SynthesisState,
@@ -1489,6 +1686,7 @@ async def _send_stream_pcm(
         if cancelled.is_set() or state.cancelled.is_set():
             return False
         await websocket.send_bytes(bytes(chunk))
+        state.first_pcm_published.set()
         first_chunk = False
         return True
 
@@ -1653,20 +1851,19 @@ def create_app(server: QwenHttpServer) -> Any:
                     or any(not isinstance(t, str) or not t.strip() for t in texts)
                     or sum(len(t) for t in texts) > 200_000):
                 raise ApiError(400, "invalid_request_error", "texts must contain 1-128 non-empty sentences, at most 200000 characters")
-            if server.language_router is None:
+            if server.language_detector is None:
                 raise ApiError(503, "server_error", "language detector is not configured")
             from dataclasses import asdict
             from .language_router import normalize_qwen_language, SUPPORTED_QWEN_LANGUAGES
             fallback = normalize_qwen_language(payload.get("fallback_language", "english"))
             def classify():
-                router = server.language_router
+                detector = server.language_detector
                 values = []
                 for text in texts:
-                    detector = router.detector
                     value = (detector.detect(text, fallback_language=fallback)
                              if isinstance(detector, FastTextLanguageDetector)
                              else detector.detect(text))
-                    values.append(asdict(router._detector_result(value)))
+                    values.append(asdict(QwenLanguageRouter._detector_result(value)))
                 return values
             return {"languages": await asyncio.to_thread(classify),
                     "supported_languages": sorted(SUPPORTED_QWEN_LANGUAGES)}
@@ -1855,6 +2052,8 @@ def create_app(server: QwenHttpServer) -> Any:
                         "streaming response_format must be 'pcm'",
                     )
                 config_ready.set_result(options)
+                current_voice = options.voice
+                current_instructions = options.instructions
                 while True:
                     event = await _websocket_json(websocket)
                     event_type = event.get("type")
@@ -1872,6 +2071,22 @@ def create_app(server: QwenHttpServer) -> Any:
                                 "invalid_request_error",
                                 "text event requires a string",
                             )
+                        voice = current_voice
+                        if "voice" in event:
+                            voice = server._validate_voice(event.get("voice"))
+                            if voice != current_voice:
+                                await items.put(_VoiceBoundary(voice))
+                                current_voice = voice
+                        if "instructions" in event:
+                            if not getattr(server.engine, "direct_voice_control", False):
+                                raise ApiError(400, "unsupported_operation", "per-text instructions are not supported by this engine")
+                            instructions = event["instructions"]
+                            if instructions is not None and not isinstance(instructions, str):
+                                raise ApiError(400, "invalid_request_error", "instructions must be a string or null")
+                            instructions = instructions.strip() if instructions else None
+                            if instructions != current_instructions:
+                                await items.put(_InstructionBoundary(instructions))
+                                current_instructions = instructions
                         encoded_size = len(text.encode("utf-8"))
                         total_text_bytes += encoded_size
                         if total_text_bytes > MAX_STREAM_TEXT_BYTES:
@@ -2078,18 +2293,25 @@ def create_app(server: QwenHttpServer) -> Any:
             return locked_request
         receiver = asyncio.create_task(receive_text())
         fragment_index = 0
+        make_context = getattr(server.engine, "create_stream_context", None)
+        stream_context = make_context() if callable(make_context) else None
+        alignment_tasks: list[asyncio.Task] = []
         try:
             options = await config_ready
             async for fragment in _stream_sentence_fragments(
                 items,
+                split_sentences=options.split_sentences,
                 tokenizer="rule-based",
                 language=_QWEN_TO_TOKENIZER_LANGUAGE.get(options.language, "en"),
                 minimum_sentence_length=10,
-                minimum_first_fragment_length=10,
+                minimum_first_fragment_length=9,
                 quick_yield_single_sentence_fragment=True,
                 quick_yield_for_all_sentences=True,
                 quick_yield_every_fragment=False,
-                sentence_fragment_delimiters=".?!;:,\n…)]}。-—",
+                sentence_fragment_delimiters=(
+                    ".?!;:,\n…。-—" if getattr(server.engine, "direct_voice_control", False)
+                    else ".?!;:,\n…)]}。-—"
+                ),
                 force_first_fragment_after_words=_NO_FORCED_FIRST_FRAGMENT,
                 fragment_lookahead_words=server.fragment_lookahead_words,
             ):
@@ -2097,6 +2319,12 @@ def create_app(server: QwenHttpServer) -> Any:
                     break
                 if receiver_error[0] is not None:
                     raise receiver_error[0]
+                if isinstance(fragment, _InstructionBoundary):
+                    options = replace(options, instructions=fragment.instructions)
+                    continue
+                if isinstance(fragment, _VoiceBoundary):
+                    options = replace(options, voice=fragment.voice)
+                    continue
                 if isinstance(fragment, _SegmentBoundary):
                     if fragment.started:
                         active_segment = fragment.segment_id
@@ -2172,9 +2400,28 @@ def create_app(server: QwenHttpServer) -> Any:
                     break
                 if active_segment in skipped_segments:
                     continue
+                source_text, source_ranges = request.text, None
+                if options.exchange is not None:
+                    text, source_ranges = options.exchange.apply(source_text, request.language)
+                    request = replace(request, text=text)
                 synthesis_started = time.monotonic()
-                state = server.start_synthesis(request, request_id=fragment_request_id)
+                state = server.start_synthesis(
+                    request, request_id=fragment_request_id, stream_context=stream_context
+                )
                 current_state[0] = state
+                alignment_enabled = getattr(server.engine, "streaming_aligner", None) is not None
+                if alignment_enabled:
+                    await _send_websocket_json(websocket, {
+                        "type": "fragment_start", "session_id": session_id,
+                        "request_id": state.request_id, "fragment_index": fragment_index,
+                        "sample_rate_hz": SAMPLE_RATE,
+                        **_alignment_fragment_metadata(
+                            server.engine, request.text, source_text, source_ranges),
+                    }, send_lock)
+                    alignment_tasks.append(asyncio.create_task(_send_alignment_events(
+                        websocket, state, session_id=session_id,
+                        fragment_index=fragment_index, cancelled=cancelled, send_lock=send_lock,
+                    )))
                 if cancelled.is_set():
                     server.cancel(state)
                 await _send_stream_pcm(
@@ -2187,6 +2434,12 @@ def create_app(server: QwenHttpServer) -> Any:
                     resumed=stream_resumed,
                     send_lock=send_lock,
                 )
+                if alignment_enabled:
+                    await _send_websocket_json(websocket, {
+                        "type": "fragment_end", "session_id": session_id,
+                        "request_id": state.request_id, "fragment_index": fragment_index,
+                        "sample_rate_hz": SAMPLE_RATE,
+                    }, send_lock)
                 if active_segment is not None and state.cancelled.is_set():
                     # Do not acknowledge completion or start a successor while the
                     # cancelled native worker can still own the engine/queue.
@@ -2200,6 +2453,8 @@ def create_app(server: QwenHttpServer) -> Any:
                     send_lock=send_lock,
                 )
                 current_state[0] = None
+            if alignment_tasks and not cancelled.is_set():
+                await asyncio.gather(*alignment_tasks)
             # Terminal commit point: after all synthesis/PCM has completed,
             # stop accepting controls and emit done. A cancel processed before
             # this point wins and emits cancelled instead.
@@ -2263,6 +2518,12 @@ def create_app(server: QwenHttpServer) -> Any:
                 )
         finally:
             stream_resumed.set()
+            if stream_context is not None:
+                server.engine.close_stream_context(stream_context)
+            for task in alignment_tasks:
+                task.cancel()
+            if alignment_tasks:
+                await asyncio.gather(*alignment_tasks, return_exceptions=True)
             if not receiver.done():
                 receiver.cancel()
             with suppress(asyncio.CancelledError, WebSocketDisconnect):
@@ -2375,6 +2636,14 @@ def build_argument_parser() -> argparse.ArgumentParser:
         help="Maximum hidden synthesis tokens used by --startup-warmup-voice",
     )
     parser.add_argument("--model-cache-dir", type=Path)
+    parser.add_argument("--alignment-model", type=Path,
+                        help="CPU CTC alignment model directory")
+    parser.add_argument("--alignment-language",
+                        help="Language supported by a language-specific alignment model, e.g. english")
+    parser.add_argument("--alignment-multilingual-model", type=Path,
+                        help="CPU INT8 Parakeet model directory for EN/DE/ES/FR/IT/PT/RU alignment")
+    parser.add_argument("--hallucination-guard", action=argparse.BooleanOptionalAction,
+                        default=True, help="Stop a verified text-complete decoder tail (requires alignment)")
     parser.add_argument("--library-path", type=Path)
     parser.add_argument(
         "--device", choices=("native", "gpu", "cpu"), default="native",
@@ -2755,6 +3024,10 @@ def main(argv: Optional[Sequence[str]] = None) -> None:
         talker_path=args.model,
         codec_path=args.codec,
         model_cache_dir=args.model_cache_dir,
+        alignment_model=args.alignment_model,
+        alignment_language=args.alignment_language,
+        alignment_multilingual_model=args.alignment_multilingual_model,
+        hallucination_guard=args.hallucination_guard,
         voice_cache_dir=args.voice_dir / "encoded-cache",
         local_files_only=args.local_files_only,
         library_path=args.library_path,

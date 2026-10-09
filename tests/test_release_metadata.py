@@ -23,7 +23,7 @@ def _version_from_source() -> str:
 
 
 def test_release_version_is_single_source_and_current_candidate():
-    assert re.fullmatch(r"0\.8\.10(?:rc[1-9]\d*)?", _version_from_source())
+    assert re.fullmatch(r"0\.9\.0(?:rc[1-9]\d*)?", _version_from_source())
 
     setup_text = (ROOT / "setup.py").read_text(encoding="utf-8")
     assert "_version.py" in setup_text
@@ -171,23 +171,19 @@ def test_080_release_components_are_packaged_and_exported():
     assert 'python_requires=">=3.10, <3.15"' in setup_text
 
 
-def test_breeze_is_excluded_from_080_release():
-    for path in (
-        ROOT / "RealtimeTTS" / "engines" / "breeze_tts_engine.py",
-        ROOT / "docs" / "engines" / "breeze-tts.md",
-        ROOT / "tools" / "benchmark_breeze_engine.py",
-    ):
-        assert not path.exists()
-
-    for path in (
-        ROOT / "README.md",
-        ROOT / "CHANGELOG.md",
-        ROOT / "LICENSING_ADDENDUM.md",
-        ROOT / "mkdocs.yml",
-        ROOT / "setup.py",
-        ROOT / "RealtimeTTS" / "__init__.py",
-        ROOT / "RealtimeTTS" / "engines" / "__init__.py",
-        ROOT / "docs" / "engine-selection.md",
-        ROOT / "docs" / "installation.md",
-    ):
-        assert "breeze" not in path.read_text(encoding="utf-8").lower()
+def test_breeze_speechify_and_streaming_alignment_exports_are_available():
+    _run_isolated_import(
+        """
+import sys
+from RealtimeTTS import BreezeEngine, BreezeVoice, SpeechifyEngine, SpeechifyVoice
+from RealtimeTTS.engines import BreezeEngine as EngineBreeze
+from RealtimeTTS.engines import SpeechifyEngine as EngineSpeechify
+from RealtimeTTS.alignment import StreamingTextAligner
+assert BreezeEngine is EngineBreeze
+assert SpeechifyEngine is EngineSpeechify
+assert BreezeVoice.__name__ == 'BreezeVoice'
+assert SpeechifyVoice.__name__ == 'SpeechifyVoice'
+assert StreamingTextAligner.__name__ == 'StreamingTextAligner'
+assert 'onnxruntime' not in sys.modules
+"""
+    )

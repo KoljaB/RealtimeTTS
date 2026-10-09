@@ -240,6 +240,7 @@ def test_protocol_capabilities_readiness_ids_and_audio_metadata(tmp_path):
         assert payload["engine"]["backend"] == "qwentts.cpp"
         assert payload["engine"]["device"] == "native"
         assert payload["engine"]["name"] == "qwen"
+        assert payload["features"]["per_text_voice"] is True
         assert payload["audio"] == {
             "encoding": "s16le",
             "sample_rate_hz": 24_000,
@@ -1358,6 +1359,139 @@ def test_stream_fragment_lookahead_prefers_sentence_end_then_comma(tmp_path):
         "dass Sie sich nach so langer Zeit wieder einmal hier einfinden.",
     ]
 
+def test_stream_text_voice_switch_flushes_before_next_text_and_same_voice_does_not_flush(
+    tmp_path,
+):
+    class RecordingEngine(FakeEngine):
+        def __init__(self):
+            super().__init__()
+            self.calls = []
+
+        def synthesize(self, text):
+            self.calls.append((text, self.current_voice.name))
+            return super().synthesize(text)
+
+    _persist_voice(tmp_path, name="mira")
+    _persist_voice(tmp_path, name="nora")
+    engine = RecordingEngine()
+
+    with TestClient(create_app(_server(tmp_path, engine))) as client:
+        with client.websocket_connect("/v1/audio/speech-stream") as websocket:
+            websocket.send_json(
+                {
+                    "type": "config",
+                    "voice": "mira",
+                    "language": "English",
+                    "response_format": "pcm",
+                }
+            )
+            websocket.send_json(
+                {"type": "text", "text": "First phrase ", "voice": "mira"}
+            )
+            websocket.send_json(
+                {"type": "text", "text": "continues.", "voice": "mira"}
+            )
+            websocket.send_json(
+                {"type": "text", "text": "Next phrase.", "voice": "nora"}
+            )
+            websocket.send_json({"type": "end"})
+
+            while True:
+                message = websocket.receive()
+                if message.get("bytes") is not None:
+                    continue
+                event = json.loads(message["text"])
+                assert event["type"] != "error", event
+                if event["type"] == "done":
+                    break
+
+    assert engine.calls == [
+        ("First phrase continues.", "mira"),
+        ("Next phrase.", "nora"),
+    ]
+
+
+def test_stream_text_voice_rejects_unknown_voice(tmp_path):
+    _persist_voice(tmp_path, name="mira")
+    with TestClient(create_app(_server(tmp_path))) as client:
+        with client.websocket_connect("/v1/audio/speech-stream") as websocket:
+            websocket.send_json(
+                {
+                    "type": "config",
+                    "voice": "mira",
+                    "language": "English",
+                    "response_format": "pcm",
+                }
+            )
+            websocket.send_json(
+                {"type": "text", "text": "This must fail.", "voice": "missing"}
+            )
+            event = websocket.receive_json()
+
+    assert event["type"] == "error"
+    assert event["error"] == {
+        "type": "invalid_request_error",
+        "message": "unknown voice: missing",
+    }
+
+
+@pytest.mark.parametrize(
+    ("text", "expected_calls"),
+    [
+        ("Abschluss. Danach kommt mehr.", ["Abschluss.", "Danach kommt mehr."]),
+        ("Abschluss, danach kommt mehr.", ["Abschluss,", "danach kommt mehr."]),
+        ("Schlecht. Danach kommt mehr.", ["Schlecht. Danach kommt mehr."]),
+        ("Schlecht, danach kommt mehr.", ["Schlecht, danach kommt mehr."]),
+    ],
+)
+def test_stream_short_sentence_boundaries_respect_minimum_first_fragment_length(
+    tmp_path, text, expected_calls
+):
+    class RecordingEngine(FakeEngine):
+        def __init__(self):
+            super().__init__()
+            self.synthesis_calls = []
+
+        def synthesize(self, text):
+            self.synthesis_calls.append(text)
+            return super().synthesize(text)
+
+    engine = RecordingEngine()
+    server = _server(tmp_path, engine)
+
+    with TestClient(create_app(server)) as client:
+        _register(client)
+        with client.websocket_connect("/v1/audio/speech-stream") as websocket:
+            websocket.send_json(
+                {
+                    "type": "config",
+                    "voice": "mira",
+                    "language": "English",
+                    "response_format": "pcm",
+                }
+            )
+            websocket.send_json({"type": "text", "text": text})
+            websocket.send_json({"type": "end"})
+
+            events = []
+            audio_chunks = []
+            while True:
+                message = websocket.receive()
+                if message.get("bytes") is not None:
+                    audio_chunks.append(message["bytes"])
+                    continue
+                event = json.loads(message["text"])
+                events.append(event)
+                assert event["type"] != "error", event
+                if event["type"] == "done":
+                    break
+
+    assert events[0]["type"] == "fragment_ready"
+    assert events[0]["timings"]["first_fragment_chars"] == len(expected_calls[0])
+    assert events[0]["timings"]["first_fragment_boundary"] == expected_calls[0][-1]
+    assert any(event["type"] == "first_pcm_ready" for event in events)
+    assert audio_chunks
+    assert engine.synthesis_calls == expected_calls
 
 def test_stream_inserts_configured_silence_after_comma_and_sentence(tmp_path, monkeypatch):
     async def punctuation_fragments(source, **_kwargs):

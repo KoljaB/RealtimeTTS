@@ -11,6 +11,7 @@ class WordAlignment:
     word: str
     start_time: float
     end_time: float
+    score: Optional[float] = None
 
 
 @dataclass(frozen=True)

@@ -18,7 +18,7 @@ from typing import Any, Callable, Optional, Tuple, Union
 
 import numpy as np
 
-from .base_engine import BaseEngine
+from .base_engine import BaseEngine, TimingInfo
 
 
 SAMPLE_RATE = 24_000
@@ -67,6 +67,7 @@ class _PauseableCancelEvent:
     def __init__(self) -> None:
         self._condition = threading.Condition()
         self._cancelled = False
+        self._finished = False
         self._pause_requested = False
         self._pause_generation = 0
         self._acknowledged_generation = 0
@@ -77,11 +78,18 @@ class _PauseableCancelEvent:
 
     def is_set(self) -> bool:
         with self._condition:
-            while self._pause_requested and not self._cancelled:
+            while self._pause_requested and not (self._cancelled or self._finished):
                 self._acknowledged_generation = self._pause_generation
                 self._condition.notify_all()
                 self._condition.wait()
-            return self._cancelled
+            return self._cancelled or self._finished
+
+    def finish_generation(self) -> None:
+        """Stop native work without cancelling already queued speech."""
+        with self._condition:
+            self._finished = True
+            self._pause_requested = False
+            self._condition.notify_all()
 
     def set(self) -> None:
         with self._condition:
@@ -91,7 +99,7 @@ class _PauseableCancelEvent:
 
     def request_pause(self) -> Optional[int]:
         with self._condition:
-            if self._cancelled:
+            if self._cancelled or self._finished:
                 return None
             if not self._pause_requested:
                 self._pause_requested = True
@@ -107,7 +115,7 @@ class _PauseableCancelEvent:
         with self._condition:
             while (
                 self._acknowledged_generation < generation
-                and not self._cancelled
+                and not (self._cancelled or self._finished)
             ):
                 if deadline is None:
                     self._condition.wait()
@@ -332,6 +340,12 @@ class QwenEngine(BaseEngine):
         startup_buffer_ms: float = 160.0,
         onset_silence_profile: str = DEFAULT_ONSET_SILENCE_PROFILE,
         clone_mode: str = "auto",
+        alignment_model: Optional[Union[str, os.PathLike[str]]] = None,
+        alignment_language: Optional[str] = None,
+        alignment_multilingual_model: Optional[Union[str, os.PathLike[str]]] = None,
+        streaming_aligner: Any = None,
+        on_alignment: Optional[Callable[[dict[str, Any]], None]] = None,
+        hallucination_guard: bool = True,
         backend_factory: Optional[Callable[..., Any]] = None,
     ) -> None:
         super().__init__()
@@ -416,6 +430,19 @@ class QwenEngine(BaseEngine):
         self._shutdown = False
         self.last_error: Optional[BaseException] = None
         self.last_synthesis_profile: dict[str, Any] = {}
+        self.streaming_aligner = streaming_aligner
+        self._owns_aligner = (alignment_model is not None or alignment_multilingual_model is not None) and streaming_aligner is None
+        if self._owns_aligner:
+            from ..alignment import StreamingTextAligner
+            self.streaming_aligner = StreamingTextAligner(
+                alignment_model, language=alignment_language,
+                multilingual_model=alignment_multilingual_model,
+            )
+        self.alignment_start_event = None
+        self.alignment_cancel_event = None
+        self.on_alignment = on_alignment
+        self.hallucination_guard = bool(hallucination_guard)
+        self.last_alignment = None
 
         try:
             self._backend, binding_abi, binding_version = self._create_backend(backend_factory)
@@ -476,6 +503,7 @@ class QwenEngine(BaseEngine):
 
     def post_init(self) -> None:
         self.engine_name = "qwen"
+        self.provides_word_timings = self.streaming_aligner is not None
 
     def _backend_options(self) -> dict[str, Any]:
         return {}
@@ -905,6 +933,19 @@ class QwenEngine(BaseEngine):
                         self._active_cancel_event = None
                     self._control_condition.notify_all()
 
+    def reset_audio_duration(self) -> None:
+        super().reset_audio_duration()
+        self._alignment_generation = getattr(self, "_alignment_generation", 0) + 1
+
+    @staticmethod
+    def _until_finished(stream: Any, control: _PauseableCancelEvent) -> Any:
+        try:
+            yield from stream
+        except Exception:
+            # Bindings may report an intentional native abort as an exception.
+            if not control._finished:
+                raise
+
     def get_stream_info(self) -> Tuple[int, int, int]:
         from .._audio_backend import pyaudio
 
@@ -944,10 +985,15 @@ class QwenEngine(BaseEngine):
             pre_roll_samples = int(round(self.trim_pre_roll_ms * SAMPLE_RATE / 1000))
             fade_in_samples = int(round(self.trim_fade_in_ms * SAMPLE_RATE / 1000))
             ending_fade_samples = fade_in_samples if self.trim_silence else 0
+            if self.streaming_aligner is not None and self.hallucination_guard:
+                # Immediate alignment stops retain a short fade to avoid a click.
+                ending_fade_samples = max(ending_fade_samples, int(SAMPLE_RATE * 0.025))
             ending_fade_after_samples = int(
                 round(self.fragment_fade_out_after_ms * SAMPLE_RATE / 1000)
             )
             startup_target_samples = int(round(self.startup_buffer_ms * SAMPLE_RATE / 1000))
+            if self.streaming_aligner is not None and self.hallucination_guard:
+                ending_fade_after_samples = min(ending_fade_after_samples, startup_target_samples)
             trim_window_samples = self._silence_trim_window_samples(SAMPLE_RATE)
             quiet_tail = np.empty(0, dtype=np.float32)
             search_remainder = np.empty(0, dtype=np.float32)
@@ -958,6 +1004,46 @@ class QwenEngine(BaseEngine):
             ending_fade_input_samples = 0
             callback_profile: dict[str, Any] = {}
             stream = None
+            alignment = None
+            alignment_callback = self.on_alignment
+            alignment_ready = self.alignment_start_event or threading.Event()
+            publish_releases_alignment = self.alignment_start_event is None
+            timing_offset = self.audio_duration
+            timing_generation = self._alignment_generation
+            alignment_aborted = False
+            completion_trim_end: Optional[float] = None
+
+            def aligned(event: dict[str, Any]) -> None:
+                nonlocal completion_trim_end
+                if alignment_aborted or self.stop_synthesis_event.is_set():
+                    if event["type"] != "alignment_done":
+                        return
+                for word in event.get("words", ()) if timing_generation == self._alignment_generation else ():
+                    self.timings.put(TimingInfo(
+                        timing_offset + word["start_time"],
+                        timing_offset + word["end_time"], word["word"],
+                    ))
+                if event["type"] == "alignment_complete" and self.hallucination_guard:
+                    completion_trim_end = float(event["trim_end_time"])
+                    if n_samples / SAMPLE_RATE >= completion_trim_end:
+                        cancel_event.finish_generation()
+                elif event["type"] == "alignment_stalled" and self.hallucination_guard:
+                    cancel_event.finish_generation()
+                if alignment_callback is not None:
+                    alignment_callback(event)
+
+            if self.streaming_aligner is not None:
+                try:
+                    alignment = self.streaming_aligner.start(
+                        text.strip(), SAMPLE_RATE, callback=aligned,
+                        stop_on_completion=self.hallucination_guard,
+                        language=self.current_voice.language,
+                        start_after=alignment_ready, cancel_event=self.alignment_cancel_event,
+                    )
+                except Exception as exc:
+                    logging.warning("Qwen alignment unavailable: %s", exc)
+                    aligned({"type": "alignment_done", "error": str(exc), "complete": False})
+            self.last_alignment = alignment
 
             def publish_audio(audio: np.ndarray) -> None:
                 nonlocal first_queue_ns, n_samples
@@ -966,6 +1052,8 @@ class QwenEngine(BaseEngine):
                     return
                 chunk_samples = len(pcm) // 2
                 self.queue.put(pcm)
+                if publish_releases_alignment:
+                    alignment_ready.set()
                 queued_ns = time.perf_counter_ns()
                 if first_queue_ns is None:
                     first_queue_ns = queued_ns
@@ -1088,10 +1176,18 @@ class QwenEngine(BaseEngine):
                     self._stream_kwargs(text.strip(), self.current_voice, cancel_event=cancel_event),
                     stream_started_ns=stream_started_ns,
                 )
-                for chunk, sample_rate in stream:
+                for chunk, sample_rate in self._until_finished(stream, cancel_event):
                     if self.stop_synthesis_event.is_set() or cancel_event.cancelled():
                         cancel_event.set()
                         break
+                    if alignment is not None and alignment.stop_requested.is_set():
+                        if alignment.finish_reason != "verified_text_end":
+                            cancel_event.finish_generation()
+                            break
+                        if (completion_trim_end is not None
+                                and n_samples / SAMPLE_RATE >= completion_trim_end):
+                            cancel_event.finish_generation()
+                            break
                     if int(sample_rate) != SAMPLE_RATE:
                         raise QwenEngineError(
                             f"qwentts.cpp returned {sample_rate} Hz; expected {SAMPLE_RATE} Hz mono"
@@ -1120,6 +1216,10 @@ class QwenEngine(BaseEngine):
                         audio = detected
                         self._trim_silence_start_pending = False
                     buffer_or_publish(audio)
+                    if alignment is not None:
+                        alignment.feed(audio)
+                if alignment is not None:
+                    alignment.finish(cancelled=cancel_event.cancelled() or self.stop_synthesis_event.is_set())
                 if (
                     self.trim_silence
                     and self._trim_silence_start_pending
@@ -1147,7 +1247,7 @@ class QwenEngine(BaseEngine):
                         self.apply_fade_out(
                             ending_audio,
                             SAMPLE_RATE,
-                            int(round(self.trim_fade_in_ms)),
+                            int(round(ending_fade_samples * 1000 / SAMPLE_RATE)),
                         )
                     )
                     ending_audio = np.empty(0, dtype=np.float32)
@@ -1160,6 +1260,11 @@ class QwenEngine(BaseEngine):
                 self.audio_duration += n_samples / SAMPLE_RATE
                 self.last_synthesis_profile = {
                     "cancelled": cancel_event.cancelled() or self.stop_synthesis_event.is_set(),
+                    "finish_reason": (
+                        alignment.finish_reason if alignment is not None and alignment.stop_requested.is_set()
+                        else "cancelled" if cancel_event.cancelled() or self.stop_synthesis_event.is_set()
+                        else "completed"
+                    ),
                     "n_samples": n_samples,
                     "leading_trimmed_samples": leading_trimmed_samples,
                     "leading_trimmed_ms": leading_trimmed_samples * 1000 / SAMPLE_RATE,
@@ -1224,6 +1329,9 @@ class QwenEngine(BaseEngine):
                 logging.exception("QwenEngine synthesis failed: %s", self.last_error)
                 return False
             finally:
+                alignment_aborted = cancel_event.cancelled() or self.stop_synthesis_event.is_set()
+                if alignment is not None:
+                    alignment.finish(cancelled=alignment_aborted)
                 cancel_event.set()
                 if stream is not None:
                     try:
@@ -1348,6 +1456,8 @@ class QwenEngine(BaseEngine):
             self._voice_ref = None
             self._prepared_voice_refs.clear()
             self.current_voice = None
+            if self._owns_aligner and self.streaming_aligner is not None:
+                self.streaming_aligner.close()
             if backend is not None:
                 try:
                     backend.close()
