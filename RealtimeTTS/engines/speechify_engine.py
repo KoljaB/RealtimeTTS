@@ -109,7 +109,7 @@ class SpeechifyEngine(BaseEngine):
             sentence_count (int): The count of sentences synthesized so far, used for tracking progress.
 
         Returns:
-            bool: True if successful, False otherwise.
+            bool: True if audio was queued, False otherwise, so engine fallbacks can take over.
         """
         super().synthesize(text, sentence_count)
 
@@ -136,6 +136,7 @@ class SpeechifyEngine(BaseEngine):
         start_time = time.time()
         first_chunk = True
         leftover = b""
+        queued = False
 
         try:
             with self.session.post(
@@ -167,8 +168,11 @@ class SpeechifyEngine(BaseEngine):
                     leftover = chunk[cut:]
                     if cut:
                         self.queue.put(chunk[:cut])
+                        queued = True
 
-            return True
+            if not queued:
+                logging.error("Speechify TTS returned no audio")
+            return queued
 
         except requests.exceptions.RequestException as e:
             logging.error(f"Speechify TTS request error: {e}")
@@ -182,8 +186,22 @@ class SpeechifyEngine(BaseEngine):
             list: List of SpeechifyVoice objects.
         """
         try:
-            response = self.session.get(f"{self.base_url}/v1/voices", timeout=30)
-            response.raise_for_status()
+            voices = []
+            params = {}
+            while True:
+                response = self.session.get(
+                    f"{self.base_url}/v1/voices", params=params, timeout=30
+                )
+                response.raise_for_status()
+                data = response.json()
+                # Older API versions return a bare list; newer ones a page of {"voices", "next_cursor", "has_more"}.
+                if not isinstance(data, dict):
+                    voices.extend(data)
+                    break
+                voices.extend(data.get("voices", []))
+                if not data.get("has_more") or not data.get("next_cursor"):
+                    break
+                params = {"limit": 200, "cursor": data["next_cursor"]}
             return [
                 SpeechifyVoice(
                     voice_id=v.get("id"),
@@ -191,7 +209,7 @@ class SpeechifyEngine(BaseEngine):
                     locale=v.get("locale", ""),
                     gender=v.get("gender", ""),
                 )
-                for v in response.json()
+                for v in voices
             ]
         except requests.exceptions.RequestException as e:
             logging.error(f"Speechify voices request error: {e}")
