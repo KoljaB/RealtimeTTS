@@ -25,7 +25,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install --yes portaudio19-dev
           python -m pip install --upgrade pip
-          python -m pip install pytest "setuptools>=68" numpy requests fastapi httpx soundfile "websocket-client>=1.8,<2" "av>=14,<20"
+          python -m pip install pytest "setuptools>=68" numpy requests fastapi httpx soundfile "uvicorn>=0.34,<1" "wsproto>=1.2,<2" "websocket-client>=1.8,<2" "av>=14,<20"
           python -m pip install -e .
           python -m pip install pyaudio
       - name: Run focused unit tests
@@ -59,6 +59,14 @@ jobs:
           tests/test_inflect_engine.py
           tests/test_kokoro_engine_contract.py
           tests/test_language_router.py
+          tests/test_language_routing_engine.py
+          tests/test_language_routing_server.py
+          tests/test_language_routing_server_review.py
+          tests/test_language_routing_loopback.py
+          tests/test_remote_tts_engine.py
+          tests/test_speech_boundaries.py
+          tests/test_language_boundary_pauses.py
+          tests/test_inline_boundary_pauses.py
           tests/test_minimax_engine.py
           tests/test_pocket_engine.py
           tests/test_pocket_gpu_engine.py

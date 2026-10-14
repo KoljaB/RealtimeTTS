@@ -52,6 +52,7 @@ nav:
   - Quick Start: quick-start.md
   - Installation: installation.md
   - Engine Selection: engine-selection.md
+  - Language Routing: language-routing.md
   - Engine Setups:
       - System: engines/system.md
       - gTTS: engines/gtts.md

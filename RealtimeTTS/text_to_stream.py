@@ -17,6 +17,7 @@ from .stream_player import StreamPlayer, AudioConfiguration
 from .audio_tempo import TempoProcessor, SpeedChange, validate_speed, DecodedAudioQueue
 from .tempo_timeline import TempoTimeline
 from .inline_markup import InlineMarkupParser
+from .speech_boundaries import SpeechBoundaryPauses, prefix_source_ranges
 from itertools import groupby
 from dataclasses import replace
 from typing import Union, Iterator, List, Optional
@@ -582,6 +583,7 @@ class TextToAudioStream:
         force_first_fragment_after_words=30,
         debug=False,
         fragment_lookahead_words: int = 0,
+        language_transition_silence_duration: float = 0.08,
     ):
         """
         Async handling of text to audio synthesis, see play() method.
@@ -615,6 +617,7 @@ class TextToAudioStream:
                 True,
                 debug,
                 fragment_lookahead_words,
+                language_transition_silence_duration,
             )
             self.play_thread = threading.Thread(target=self.play, args=args)
             self.play_thread.start()
@@ -649,6 +652,7 @@ class TextToAudioStream:
         is_external_call=True,
         debug=False,
         fragment_lookahead_words: int = 0,
+        language_transition_silence_duration: float = 0.08,
     ):
         """
         Handles the synthesis of text to audio.
@@ -885,6 +889,11 @@ class TextToAudioStream:
                 )
 
                 sentence_count = 0
+                boundary_pauses = SpeechBoundaryPauses(
+                    comma_silence_duration, sentence_silence_duration,
+                    language_transition_silence_duration if self.language_tags else 0,
+                    default_silence_duration,
+                )
 
                 def synthesize_worker_loop():
                     nonlocal sentence_count
@@ -926,12 +935,22 @@ class TextToAudioStream:
                                 logging.info(
                                     f"Applying pause tag '{tag}' for {duration:.3f}s"
                                 )
-                                self._enqueue_silence(duration)
+                                emitted = self._enqueue_silence(duration)
+                                boundary_pauses.explicit_pause(emitted)
                             finally:
                                 sentence_queue.task_done()
                             continue
 
-                        sentence = action_value
+                        source_sentence = sentence = action_value
+                        source_ranges = None
+                        if self.language_tags:
+                            sentence, gap = boundary_pauses.before(sentence, self._synthesis_language)
+                            emitted = self._enqueue_silence(gap)
+                            boundary_pauses.explicit_pause(emitted)
+                            source_ranges = prefix_source_ranges(source_sentence, sentence)
+                            if not any(char.isalnum() for char in sentence):
+                                sentence_queue.task_done()
+                                continue
 
                         sentence_count += 1
 
@@ -948,7 +967,9 @@ class TextToAudioStream:
                                     before_sentence_synthesized(sentence)
 
                                 if self._alignment_binding is not None:
-                                    self._alignment_binding.begin(sentence)
+                                    self._alignment_binding.begin(
+                                        sentence, original_text=source_sentence, source_ranges=source_ranges,
+                                    )
                                     success = False
                                     try:
                                         success = self.engine.synthesize(sentence, sentence_count)
@@ -967,19 +988,12 @@ class TextToAudioStream:
                                     if success and alignment_segment:
                                         self._schedule_alignment(alignment_segment)
 
-                                end_sentence_delimeters = ".!?…。¡¿"
-                                mid_sentence_delimeters = ";:,\n()[]{}-“”„”—/|《》"
-
-                                text_stripped = sentence.strip()
-                                if text_stripped and text_stripped[-1] in end_sentence_delimeters:
-                                    silence_duration = sentence_silence_duration
-                                elif text_stripped and text_stripped[-1] in mid_sentence_delimeters:
-                                    silence_duration = comma_silence_duration
-                                else:
-                                    silence_duration = default_silence_duration
-
-                                self._enqueue_silence(silence_duration)
-
+                                if success:
+                                    silence_duration = boundary_pauses.after(
+                                        sentence, self._synthesis_language if self.language_tags else language,
+                                    )
+                                    emitted = self._enqueue_silence(silence_duration)
+                                    boundary_pauses.explicit_pause(emitted)
 
                                 if success:
                                     if on_sentence_synthesized:
@@ -1120,6 +1134,7 @@ class TextToAudioStream:
                     sentence_fragment_delimiters=sentence_fragment_delimiters,
                     force_first_fragment_after_words=force_first_fragment_after_words,
                     fragment_lookahead_words=fragment_lookahead_words,
+                    language_transition_silence_duration=language_transition_silence_duration,
                     is_external_call=False,
                     debug=debug,
                 )
@@ -1654,13 +1669,13 @@ class TextToAudioStream:
 
     def _enqueue_silence(self, silence_duration: float):
         """
-        Adds silence of the requested duration to the engine queue.
+        Add silence and return the duration actually queued.
         """
         if silence_duration <= 0:
-            return
+            return 0.0
         if self._alignment_binding is not None:
             self._alignment_binding.silence(silence_duration)
-            return
+            return silence_duration
 
         stream_format, channels, sample_rate = self._output_stream_info()
         if sample_rate <= 0 or stream_format == pyaudio.paCustomFormat:
@@ -1668,7 +1683,7 @@ class TextToAudioStream:
                 f"Cannot enqueue silence for engine {self.engine.engine_name} "
                 "because the stream format is not PCM."
             )
-            return
+            return 0.0
 
         silent_frames = int(sample_rate * silence_duration)
         sample_count = silent_frames * max(channels, 1)
@@ -1679,6 +1694,7 @@ class TextToAudioStream:
 
         silence_queue = self._decoded_audio_queue.wrapped if self._decoded_audio_queue else self.engine.queue
         silence_queue.put(silent_chunk.tobytes())
+        return silent_frames / sample_rate
 
     def _is_engine_mpeg(self):
         """

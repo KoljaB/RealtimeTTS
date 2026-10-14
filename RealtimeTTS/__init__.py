@@ -28,6 +28,7 @@ __all__ = [
     "CartesiaEngine", "CartesiaVoice",
     "QwenEngine", "QwenCpuEngine", "QwenServerEngine", "QwenServerVoice", "QwenVoice", "QwenEngineError",
     "BreezeEngine", "BreezeVoice", "BreezeEngineError",
+    "LanguageRoutingEngine", "LanguageRoute", "RemoteTTSEngine",
     "OmniVoiceEngine", "OmniVoiceVoice",
     "TypecastEngine", "TypecastVoice",
     "SpeechifyEngine", "SpeechifyVoice",
@@ -518,7 +519,23 @@ def _load_higgs_engine():
 
 
 # Mapping names to their lazy loader functions.
+def _load_language_routing_engine():
+    from .engines.language_routing_engine import LanguageRoute, LanguageRoutingEngine
+    globals()["LanguageRoute"] = LanguageRoute
+    globals()["LanguageRoutingEngine"] = LanguageRoutingEngine
+    return LanguageRoutingEngine
+
+
+def _load_remote_tts_engine():
+    from .engines.remote_tts_engine import RemoteTTSEngine
+    globals()["RemoteTTSEngine"] = RemoteTTSEngine
+    return RemoteTTSEngine
+
+
 _lazy_imports = {
+    "LanguageRoutingEngine": _load_language_routing_engine,
+    "LanguageRoute": _load_language_routing_engine,
+    "RemoteTTSEngine": _load_remote_tts_engine,
     "TextToAudioStream": _load_text_to_audio_stream,
     "BaseEngine": _load_base_engine,
     "TimingInfo": _load_timing_info,

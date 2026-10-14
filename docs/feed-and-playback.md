@@ -54,6 +54,7 @@ Useful parameters include:
 | `on_audio_chunk` | `None` | Receives raw audio chunks as they are ready. |
 | `tokenizer` | `"nltk+rule-based"` | Consensus sentence tokenizer combining NLTK with local boundary rules. NLTK is installed by default; add `RealtimeTTS[stanza]` only when selecting Stanza. |
 | `language` | `"en"` | Sentence-splitting language. |
+| `language_transition_silence_duration` | `0.08` | Minimum gap when inline language tags switch language; existing punctuation pauses cover it. |
 | `muted` | `False` | Disables local speaker playback for this call. |
 | `force_first_fragment_after_words` | `30` | Forces the first fragment after this many words. |
 

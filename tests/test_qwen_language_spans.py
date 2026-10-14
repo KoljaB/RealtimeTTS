@@ -63,7 +63,7 @@ def test_english_spanish_english_and_voice_routes_in_one_stream(tmp_path, base, 
             ws.send_json({"type": "end"})
             drain(ws)
     assert engine.calls == [("Tree is", "english", "mira"), ("el árbol", "spanish", "mira_es"),
-                            (". Repeat it.", "english", "mira")]
+                            ("Repeat it.", "english", "mira")]
     assert len(detector.calls) == (1 if base == "Auto" else 0)
 
 

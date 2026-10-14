@@ -349,6 +349,7 @@ extras_require = {
     # headless and therefore intentionally leaves PyAudio out.
     "qwen": base_requirements + qwen_requirements,
     "qwen-client": standard_requirements + requests_requirements,
+    "routing": base_requirements + ["numpy", "requests>=2.31", "websocket-client>=1.8,<2", "fastapi>=0.115,<1", "uvicorn>=0.34,<1", "wsproto>=1.2,<2"],
     "qwen-server": base_requirements + qwen_common_requirements + qwen_server_requirements,
     "breeze": base_requirements + ["numpy", "requests>=2.31", "websocket-client>=1.8,<2"],
     "breeze-server": base_requirements + ["numpy", "requests>=2.31", "websocket-client>=1.8,<2", "fastapi>=0.115,<1", "uvicorn>=0.34,<1", "wsproto>=1.2,<2"],
@@ -392,6 +393,7 @@ setuptools.setup(
         "console_scripts": [
             "realtimetts-qwen-server=RealtimeTTS.qwen_server:main",
             "realtimetts-breeze-server=RealtimeTTS.breeze_server:main",
+            "realtimetts-language-server=RealtimeTTS.language_routing_server:main",
             "realtimetts-qwen-emotions=RealtimeTTS.qwen_emotions:main",
         ],
     },

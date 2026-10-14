@@ -521,6 +521,7 @@ class SpeechOptions:
     split_sentences: bool = True
     alignment: Any = None
     mixed_language: Optional[str] = None
+    silence: Optional[Mapping[str, float]] = None
 
 
 @dataclass(frozen=True)
@@ -714,6 +715,7 @@ class QwenHttpServer:
         fragment_lookahead_words: int = 0,
         comma_silence_duration: float = 0.15,
         sentence_silence_duration: float = 0.30,
+        language_transition_silence_duration: float = 0.08,
     ) -> None:
         self.engine = engine
         self.studio_peers = list(studio_peers or [])
@@ -762,6 +764,8 @@ class QwenHttpServer:
         self.fragment_lookahead_words = int(fragment_lookahead_words)
         self.comma_silence_duration = float(comma_silence_duration)
         self.sentence_silence_duration = float(sentence_silence_duration)
+        self.language_transition_silence_duration = float(language_transition_silence_duration)
+        self.new_boundary_pauses()  # Validate once, before accepting requests.
         self.api_key = str(api_key) if api_key else None
         configured_origins = DEFAULT_CORS_ORIGINS if cors_origins is None else cors_origins
         self.cors_origins = tuple(str(origin).strip() for origin in configured_origins if str(origin).strip())
@@ -801,14 +805,24 @@ class QwenHttpServer:
 
     def fragment_silence_duration(self, text: str) -> float:
         """Return the configured pause after one synthesized text fragment."""
-        stripped = text.strip()
-        if not stripped:
-            return 0.0
-        if stripped[-1] in _END_SENTENCE_DELIMITERS:
-            return self.sentence_silence_duration
-        if stripped[-1] in _MID_SENTENCE_DELIMITERS:
-            return self.comma_silence_duration
-        return 0.0
+        return self.new_boundary_pauses().trailing(text)
+
+    def new_boundary_pauses(self, overrides=None):
+        from .speech_boundaries import SpeechBoundaryPauses
+        values = {
+            "comma": self.comma_silence_duration,
+            "sentence": self.sentence_silence_duration,
+            "transition": self.language_transition_silence_duration,
+        }
+        if overrides is not None:
+            if not isinstance(overrides, dict) or set(overrides) - values.keys():
+                raise ValueError("silence must contain only comma, sentence, and transition durations")
+            if any(isinstance(v, bool) or not isinstance(v, (float, int)) for v in overrides.values()):
+                raise ValueError("silence durations must be numbers")
+            if any(v > 5 for v in overrides.values()):
+                raise ValueError("per-request silence durations must not exceed 5 seconds")
+            values.update(overrides)
+        return SpeechBoundaryPauses(**values)
 
     def startup(self) -> None:
         """Prepare configured persistent voices before the app becomes ready."""
@@ -929,6 +943,7 @@ class QwenHttpServer:
                 "voice_cloning": getattr(self.engine, "model_type", "base") == "base",
                 "instruction_control": bool(getattr(self.engine, "instruction_control", False)),
                 "per_text_voice": True,
+                "per_request_silence": True,
                 "per_text_language": not getattr(self.engine, "direct_voice_control", False),
                 "mixed_language_fallback": (isinstance(self.language_detector, FastTextLanguageDetector)
                     and not getattr(self.engine, "direct_voice_control", False)),
@@ -1042,6 +1057,22 @@ class QwenHttpServer:
         if wav is not None:
             return name, ref_text, "wav", (wav,)
         return name, ref_text, "latents", (spk, rvq)  # type: ignore[arg-type]
+
+    def list_voices(self):
+        mode = getattr(self.engine, "model_type", "base")
+        if mode == "custom_voice":
+            return [{"name": name, "kind": "built_in"} for name in self.engine.built_in_speakers]
+        if mode == "voice_design":
+            return [{"name": "design", "kind": "voice_design"}]
+        return [{"name": record.name, "kind": "registered"} for record in self.registry.records()]
+
+    def configure_engine(self, request):
+        """Apply one request under the synthesis lock; subclasses may bind routes."""
+        parameters = dict(self._sampling_defaults)
+        parameters.update(request.sampling)
+        if parameters:
+            self.engine.set_voice_parameters(**parameters)
+        self.engine.set_voice(self.synthesis_voice(request.voice, request.language, request.instructions))
 
     def synthesis_voice(self, name: str, language: str, instructions: Optional[str] = None) -> QwenVoice:
         mode = getattr(self.engine, "model_type", "base")
@@ -1197,12 +1228,17 @@ class QwenHttpServer:
                 raise ApiError(400, "invalid_request_error", str(exc)) from exc
             if language != "auto":
                 raise ApiError(400, "invalid_request_error", "mixed_language requires language Auto")
-            if (getattr(self.engine, "direct_voice_control", False)
+            if ((getattr(self.engine, "direct_voice_control", False)
+                    and not getattr(self.engine, "language_engine_routing", False))
                     or not isinstance(self.language_detector, FastTextLanguageDetector)):
                 raise ApiError(400, "unsupported_operation", "mixed_language requires the fastText Qwen router")
+        try:
+            self.new_boundary_pauses(payload.get("silence"))
+        except (TypeError, ValueError) as exc:
+            raise ApiError(400, "invalid_request_error", str(exc)) from exc
         return SpeechOptions(
             voice, response_format, instructions, sampling, language, exchange, split_sentences, alignment,
-            mixed_language=mixed_language,
+            mixed_language=mixed_language, silence=payload.get("silence"),
         )
 
     def parse_speech(self, payload: Mapping[str, Any]) -> SpeechRequest:
@@ -1301,15 +1337,10 @@ class QwenHttpServer:
                 text, source_ranges = request.exchange.apply(request.text, request.language)
                 request = replace(request, text=text, exchange=None,
                                   source_text=request.text, source_ranges=source_ranges)
-            selected_voice = self.synthesis_voice(request.voice, request.language, request.instructions)
             with self._operation_lock:
                 if state.cancelled.is_set() or self._shutting_down.is_set():
                     return
-                parameters = dict(self._sampling_defaults)
-                parameters.update(request.sampling)
-                if parameters:
-                    self.engine.set_voice_parameters(**parameters)
-                self.engine.set_voice(selected_voice)
+                self.configure_engine(request)
                 if state.cancelled.is_set():
                     return
                 original_queue = self.engine.queue
@@ -1317,7 +1348,10 @@ class QwenHttpServer:
                 original_alignment_gate = getattr(self.engine, "alignment_start_event", None)
                 original_alignment_cancel = getattr(self.engine, "alignment_cancel_event", None)
                 previous_alignment_session = getattr(self.engine, "last_alignment", None)
-                alignment_enabled = request.alignment is None and getattr(self.engine, "streaming_aligner", None) is not None
+                alignment_enabled = request.alignment is None and (
+                    getattr(self.engine, "streaming_aligner", None) is not None
+                    or getattr(self.engine, "provides_word_timings", False)
+                )
                 shared_alignment = None
                 ok = False
                 if alignment_enabled:
@@ -1941,10 +1975,10 @@ async def _send_stream_silence(
     cancelled: asyncio.Event,
     resumed: asyncio.Event,
     send_lock: asyncio.Lock,
-) -> None:
+) -> float:
     silent_frames = int(SAMPLE_RATE * duration)
     if silent_frames <= 0:
-        return
+        return 0.0
     silence = b"\0" * (
         silent_frames
         * int(AUDIO_METADATA["channels"])
@@ -1953,14 +1987,15 @@ async def _send_stream_silence(
     )
     while not cancelled.is_set():
         if not await _wait_until_stream_resumed(resumed, cancelled):
-            return
+            return 0.0
         async with send_lock:
             if not resumed.is_set():
                 continue
             if cancelled.is_set():
-                return
+                return 0.0
             await websocket.send_bytes(silence)
-            return
+            return silent_frames / SAMPLE_RATE
+    return 0.0
 
 
 def create_app(server: QwenHttpServer) -> Any:
@@ -2083,17 +2118,7 @@ def create_app(server: QwenHttpServer) -> Any:
 
     @app.get("/v1/audio/voices")
     def voices() -> Any:
-        mode = getattr(server.engine, "model_type", "base")
-        if mode == "custom_voice":
-            return {"voices": [{"name": name, "kind": "built_in"} for name in server.engine.built_in_speakers]}
-        if mode == "voice_design":
-            return {"voices": [{"name": "design", "kind": "voice_design"}]}
-        return {
-            "voices": [
-                {"name": record.name, "kind": "registered"}
-                for record in server.registry.records()
-            ]
-        }
+        return {"voices": server.list_voices()}
 
     @app.post("/v1/audio/voices")
     async def register_voice(request: Request) -> Any:
@@ -2106,7 +2131,10 @@ def create_app(server: QwenHttpServer) -> Any:
 
     @app.delete("/v1/audio/voices/{name:path}")
     async def delete_voice(name: str) -> Any:
-        removed = await asyncio.to_thread(server.remove_voice, name)
+        try:
+            removed = await asyncio.to_thread(server.remove_voice, name)
+        except ApiError as exc:
+            return api_error(exc)
         if not removed:
             return api_error(ApiError(404, "not_found_error", "no registered voice with this name"))
         return {"status": "deleted"}
@@ -2272,7 +2300,8 @@ def create_app(server: QwenHttpServer) -> Any:
                                 "text event requires a string",
                             )
                         if "language" in event:
-                            if getattr(server.engine, "direct_voice_control", False):
+                            if (getattr(server.engine, "direct_voice_control", False)
+                                    and not getattr(server.engine, "language_engine_routing", False)):
                                 raise ApiError(400, "unsupported_operation", "per-text language is not supported by this engine")
                             try:
                                 language = normalize_qwen_language(event["language"], allow_auto=True)
@@ -2509,6 +2538,7 @@ def create_app(server: QwenHttpServer) -> Any:
         alignment_tasks: list[asyncio.Task] = []
         try:
             options = await config_ready
+            boundary_pauses = server.new_boundary_pauses(options.silence)
             fragments = _stream_sentence_fragments(
                 items,
                 cancelled=cancelled,
@@ -2568,7 +2598,19 @@ def create_app(server: QwenHttpServer) -> Any:
                 # Splitter tails may contain only emoji/punctuation. They have no
                 # linguistic content to synthesize; Unicode letters and numbers
                 # from every writing system remain eligible, including digits.
-                if not text or not any(character.isalnum() for character in text):
+                if not text:
+                    continue
+                if not any(character.isalnum() for character in text):
+                    language = options.language
+                    if language == "auto":
+                        language = locked_language or boundary_pauses.language
+                    _, gap = boundary_pauses.before(text, language)
+                    sent = await _send_stream_silence(
+                        websocket, gap,
+                        cancelled=segment_cancelled if active_segment is not None else cancelled,
+                        resumed=stream_resumed, send_lock=send_lock,
+                    )
+                    boundary_pauses.explicit_pause(sent)
                     continue
                 fragment_index += 1
                 fragment_ready_at = time.monotonic()
@@ -2636,9 +2678,24 @@ def create_app(server: QwenHttpServer) -> Any:
                 if active_segment in skipped_segments:
                     continue
                 source_text, source_ranges = request.text, None
+                spoken_text, gap = boundary_pauses.before(source_text, request.language)
+                sent = await _send_stream_silence(
+                    websocket, gap,
+                    cancelled=segment_cancelled if active_segment is not None else cancelled,
+                    resumed=stream_resumed, send_lock=send_lock,
+                )
+                boundary_pauses.explicit_pause(sent)
+                if cancelled.is_set():
+                    break
+                if ((active_segment is not None and segment_cancelled.is_set())
+                        or active_segment in skipped_segments):
+                    continue
+                from .speech_boundaries import prefix_source_ranges
+                text = spoken_text
                 if options.exchange is not None:
-                    text, source_ranges = options.exchange.apply(source_text, request.language)
-                    request = replace(request, text=text)
+                    text, source_ranges = options.exchange.apply(spoken_text, request.language)
+                source_ranges = prefix_source_ranges(source_text, spoken_text, source_ranges)
+                request = replace(request, text=text)
                 if options.alignment is not None:
                     request = replace(request, source_text=source_text, source_ranges=source_ranges)
                 synthesis_started = time.monotonic()
@@ -2646,7 +2703,11 @@ def create_app(server: QwenHttpServer) -> Any:
                     request, request_id=fragment_request_id, stream_context=stream_context
                 )
                 current_state[0] = state
-                alignment_enabled = options.alignment is not None or getattr(server.engine, "streaming_aligner", None) is not None
+                alignment_enabled = (
+                    options.alignment is not None
+                    or getattr(server.engine, "streaming_aligner", None) is not None
+                    or getattr(server.engine, "provides_word_timings", False)
+                )
                 if alignment_enabled:
                     await _send_websocket_json(websocket, {
                         "type": "fragment_start", "session_id": session_id,
@@ -2685,13 +2746,14 @@ def create_app(server: QwenHttpServer) -> Any:
                     # cancelled native worker can still own the engine/queue.
                     if not await asyncio.to_thread(state.done.wait, server.synthesis_timeout_seconds):
                         raise ApiError(503, "server_error", "cancelled segment synthesis did not finish")
-                await _send_stream_silence(
+                sent = await _send_stream_silence(
                     websocket,
-                    server.fragment_silence_duration(text),
+                    boundary_pauses.after(request.text, request.language),
                     cancelled=segment_cancelled if active_segment is not None else cancelled,
                     resumed=stream_resumed,
                     send_lock=send_lock,
                 )
+                boundary_pauses.explicit_pause(sent)
                 current_state[0] = None
             if alignment_tasks and not cancelled.is_set():
                 await asyncio.gather(*alignment_tasks)

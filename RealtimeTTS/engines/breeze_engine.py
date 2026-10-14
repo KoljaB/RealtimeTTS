@@ -11,7 +11,7 @@ import logging
 import re
 import threading
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Any, Callable
 
@@ -265,6 +265,21 @@ class BreezeEngine(BaseEngine):
         )
         self._voice_id = native_id
 
+    def get_language(self):
+        return self._voice.language
+
+    def set_language(self, language):
+        from ..language_router import normalize_qwen_language
+        language = normalize_qwen_language(language, allow_auto=True)
+        if language not in {"english", "chinese", "auto"}:
+            raise ValueError("Breeze supports English and Chinese")
+        self._voice = replace(self._voice, language=language)
+
+    def set_instructions(self, instructions):
+        if instructions is not None and not isinstance(instructions, str):
+            raise TypeError("instructions must be a string or None")
+        self._delivery_instructions = instructions.strip() if instructions else None
+
     def set_voice_parameters(self, **parameters):
         accepted = {"cfg_scale", "seed", "max_new_tokens", "temperature", "top_k",
                     "top_p", "repetition_penalty"}
@@ -506,6 +521,10 @@ class BreezeEngine(BaseEngine):
                 if not self._voice_id and not self._voice.voice_design:
                     raise BreezeEngineError("Set a Breeze reference voice before synthesis")
                 instruction = self._voice.instruct or "Speak naturally. Keep the reference speaker's voice."
+                delivery = getattr(self, "_delivery_instructions", None)
+                if delivery:
+                    instruction = (instruction + " Delivery: " + delivery
+                                   if self._voice.voice_design else delivery)
                 blocks = list(directed_blocks(text, instruction))
 
                 def make_alignment_callback(
