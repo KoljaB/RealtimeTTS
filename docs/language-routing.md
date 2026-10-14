@@ -115,9 +115,10 @@ realtimetts-language-server --config routing.json --host 127.0.0.1 --port 18086
 Set Miep's TTS endpoint to this router, select logical voice `tutor`, and map
 its language voices to configured logical names. Keep `tts.engine = "qwen"`;
 routing is discovered through capabilities. Set
-`natural.voice_control_mode = "direct"` for freeform English delivery cues,
-and keep the existing language tutor setting. Miep no longer sends shared
-sampling overrides when the server advertises language routing.
+`natural.voice_control_mode = "direct"` and `natural.emotions_enabled = true`
+for freeform English delivery cues, and keep the existing language tutor setting.
+Delivery cues require the endpoint's `direct_voice_control` capability. Miep no
+longer sends shared sampling overrides when the server advertises language routing.
 
 Miep can then stream this without extra model calls or buffering the whole reply:
 
@@ -141,10 +142,17 @@ voices on their provider services before configuring logical mappings; the
 routing server's voice catalog is configuration-based and does not proxy voice
 registration or Miep's dynamic voice-library management.
 
-Optional automatic language detection requires installing `fasttext-predict`
-and setting `language_detector_model` to an existing FastText model path.
-Without a detector, untagged `auto` text uses `default_language`. Explicit
-language spans remain the reliable way to route short foreign phrases.
+Explicit language spans do not need automatic detection. For untagged `Auto`
+fragments, install `fasttext-predict` and set `language_detector_model` in the
+routing configuration to an existing FastText model path. Without a detector,
+untagged `Auto` text uses `default_language`.
+
+Miep's walking tutor (`natural.language_tutor = "es"` or `"pt"`) requires
+this detector even when phrases use explicit tags. Keep
+`natural.other_language_response = "auto"` and TTS `language = "Auto"`;
+the endpoint must advertise `mixed_language_fallback` and
+`stream_controls.segmented_narration`. Detection supplies fallback for
+untagged fragments; explicit language spans remain authoritative.
 
 ## Pauses at language boundaries
 
