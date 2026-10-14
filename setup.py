@@ -61,6 +61,7 @@ Available engine options include:
 - **breeze-server**: Breeze HTTP/WebSocket server and Voice Studio
 - **qwen**: Native qwentts.cpp Qwen3 TTS integration
 - **qwen-server**: OpenAI-compatible native Qwen3 TTS HTTP server
+- **qwen-client**: Direct PCM streaming client for a running Qwen CPU or GPU server
 - **qwen-cpu**: Native Qwen3 TTS on CPU, without CUDA dependencies
 - **qwen-cpu-server**: The same Qwen HTTP/WebSocket API on CPU
 - **omnivoice**: Omnivoice TTS integration
@@ -336,6 +337,7 @@ extras_require = {
     "moss": standard_requirements + moss_requirements,
     "moss-tts": standard_requirements + moss_requirements,
     "higgs": standard_requirements + higgs_requirements,
+    "speed": base_requirements + ["av>=14,<20"],
     "alignment-audio": base_requirements + ["av>=14,<20"],
     "studio": base_requirements + ["av>=14,<20", "fastapi>=0.115,<1", "uvicorn>=0.34,<1", "wsproto>=1.2,<2"],
     "alignment-cpu": base_requirements + ["onnxruntime>=1.18,<2", "scipy>=1.10", "num2words>=0.5.14", "av>=14,<20"],
@@ -346,9 +348,10 @@ extras_require = {
     # Qwen uses PyAudio for the in-process playback path. The server extra is
     # headless and therefore intentionally leaves PyAudio out.
     "qwen": base_requirements + qwen_requirements,
+    "qwen-client": standard_requirements + requests_requirements,
     "qwen-server": base_requirements + qwen_common_requirements + qwen_server_requirements,
     "breeze": base_requirements + ["numpy", "requests>=2.31", "websocket-client>=1.8,<2"],
-    "breeze-server": base_requirements + ["numpy", "requests>=2.31", "websocket-client>=1.8,<2", "fastapi>=0.115,<1", "uvicorn>=0.34,<1", "wsproto>=1.2,<2", "fasttext-predict>=0.9.2.4"],
+    "breeze-server": base_requirements + ["numpy", "requests>=2.31", "websocket-client>=1.8,<2", "fastapi>=0.115,<1", "uvicorn>=0.34,<1", "wsproto>=1.2,<2"],
     "qwen-cpu": base_requirements + qwen_cpu_common_requirements + pyaudio_requirements,
     "qwen-cpu-server": base_requirements + qwen_cpu_common_requirements + qwen_server_requirements,
     "jp": standard_requirements +["mecab-python3>=1.0.12", "unidic-lite>=1.0.8", "cutlet", "fugashi>=1.5.2", "jaconv>=0.5.0", "mojimoji>=0.0.13", "pyopenjtalk>=0.4.1"],

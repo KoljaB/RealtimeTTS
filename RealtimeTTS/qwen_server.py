@@ -29,12 +29,26 @@ import uuid
 import wave
 from collections.abc import AsyncIterator, Callable, Iterator, Mapping, Sequence
 from contextlib import asynccontextmanager, contextmanager, suppress
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Any, Optional
 
 import numpy as np
 from stream2sentence import generate_sentences_async
+
+try:
+    from stream2sentence import AvailableTextRun
+except ImportError:
+    @dataclass(frozen=True)
+    class AvailableTextRun:
+        """Server-owned queued snapshot for published string-only splitters."""
+
+        text: str
+        run_id: int
+
+    _NATIVE_AVAILABLE_TEXT_RUNS = False
+else:
+    _NATIVE_AVAILABLE_TEXT_RUNS = True
 
 try:
     from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
@@ -68,7 +82,6 @@ from .language_router import (
 
 
 LOGGER = logging.getLogger(__name__)
-AUDIBLE_AVERAGE_ABS_THRESHOLD = 80.0
 DEFAULT_STALL_TIMEOUT_SECONDS = 30.0
 DEFAULT_SYNTHESIS_TIMEOUT_SECONDS = 120.0
 ALIGNMENT_FINALIZE_TIMEOUT_SECONDS = 2.0
@@ -99,6 +112,9 @@ _CLIENT_ID_RE = re.compile(r"^[A-Za-z0-9._:-]{1,128}$")
 _STREAM_END = object()
 _TEXT_END = object()
 _TEXT_FLUSH = object()
+_NO_PENDING_TEXT = object()
+MAX_AVAILABLE_RUN_ITEMS = 64
+MAX_AVAILABLE_RUN_BYTES = MAX_STREAM_EVENT_BYTES
 
 
 @dataclass(frozen=True)
@@ -110,6 +126,21 @@ class _SegmentBoundary:
 @dataclass(frozen=True)
 class _VoiceBoundary:
     voice: str
+
+
+@dataclass
+class _LanguageBoundary:
+    """A language run owns its lookahead; later queued languages cannot bias it."""
+
+    language: str
+    parts: list[str] = field(default_factory=list)
+    updated: asyncio.Event = field(default_factory=asyncio.Event)
+    ended: bool = False
+    version: int = 0
+
+    def finish(self) -> None:
+        self.ended = True
+        self.updated.set()
 
 
 @dataclass(frozen=True)
@@ -185,12 +216,13 @@ def _error_payload(error_type: str, message: str) -> dict[str, Any]:
     return {"error": {"message": message, "type": error_type}}
 
 
-def _pcm_is_audible(pcm: bytes) -> bool:
+def _pcm_has_signal(pcm: bytes) -> bool:
+    """Reject empty/digital-zero output, never quiet speech by loudness."""
     usable = len(pcm) - (len(pcm) % 2)
     if usable <= 0:
         return False
-    samples = np.frombuffer(pcm[:usable], dtype="<i2").astype(np.int32)
-    return bool(samples.size and np.mean(np.abs(samples)) >= AUDIBLE_AVERAGE_ABS_THRESHOLD)
+    samples = np.frombuffer(pcm[:usable], dtype="<i2")
+    return bool(np.any(samples))
 
 
 def _pcm_to_wav(pcm: bytes) -> bytes:
@@ -488,6 +520,7 @@ class SpeechOptions:
     exchange: Optional[TextExchange] = None
     split_sentences: bool = True
     alignment: Any = None
+    mixed_language: Optional[str] = None
 
 
 @dataclass(frozen=True)
@@ -625,7 +658,7 @@ class _CaptureQueue:
             self.metrics.progress()
             return
         if not self.state.audible:
-            if _pcm_is_audible(pcm):
+            if _pcm_has_signal(pcm):
                 self.state.audible = True
                 self.state.diagnostic_chunks.clear()
                 self.state.header_ready.set()
@@ -896,6 +929,9 @@ class QwenHttpServer:
                 "voice_cloning": getattr(self.engine, "model_type", "base") == "base",
                 "instruction_control": bool(getattr(self.engine, "instruction_control", False)),
                 "per_text_voice": True,
+                "per_text_language": not getattr(self.engine, "direct_voice_control", False),
+                "mixed_language_fallback": (isinstance(self.language_detector, FastTextLanguageDetector)
+                    and not getattr(self.engine, "direct_voice_control", False)),
                 "sentence_splitting": True,
                 "text_exchange": True,
                 "streaming_alignment": getattr(self.engine, "streaming_aligner", None) is not None,
@@ -1151,8 +1187,22 @@ class QwenHttpServer:
             alignment = parse_alignment_request(payload.get("alignment"), self.engine, language)
         except (TypeError, ValueError) as exc:
             raise ApiError(400, "invalid_request_error", str(exc)) from exc
+        mixed_language = payload.get("mixed_language")
+        if mixed_language is not None:
+            try:
+                mixed_language = normalize_qwen_language(mixed_language)
+                if mixed_language not in ("spanish", "portuguese"):
+                    raise ValueError("mixed_language must be Spanish or Portuguese")
+            except (TypeError, ValueError) as exc:
+                raise ApiError(400, "invalid_request_error", str(exc)) from exc
+            if language != "auto":
+                raise ApiError(400, "invalid_request_error", "mixed_language requires language Auto")
+            if (getattr(self.engine, "direct_voice_control", False)
+                    or not isinstance(self.language_detector, FastTextLanguageDetector)):
+                raise ApiError(400, "unsupported_operation", "mixed_language requires the fastText Qwen router")
         return SpeechOptions(
-            voice, response_format, instructions, sampling, language, exchange, split_sentences, alignment
+            voice, response_format, instructions, sampling, language, exchange, split_sentences, alignment,
+            mixed_language=mixed_language,
         )
 
     def parse_speech(self, payload: Mapping[str, Any]) -> SpeechRequest:
@@ -1162,6 +1212,8 @@ class QwenHttpServer:
         options = self.parse_speech_options(payload)
         if options.alignment is not None:
             raise ApiError(400, "invalid_request_error", "Alignment metadata requires WebSocket speech streaming")
+        if options.mixed_language is not None:
+            raise ApiError(400, "invalid_request_error", "mixed_language requires WebSocket speech streaming")
         return SpeechRequest(
             text.strip(),
             options.voice,
@@ -1326,7 +1378,7 @@ class QwenHttpServer:
             if state.cancelled.is_set():
                 return
             if request.response_format == "wav":
-                state.audible = _pcm_is_audible(b"".join(state.chunks))
+                state.audible = _pcm_has_signal(b"".join(state.chunks))
             if not ok:
                 error = getattr(self.engine, "last_error", None)
                 message = str(error or "synthesis failed")
@@ -1500,25 +1552,102 @@ async def _json_object(request: Any) -> Mapping[str, Any]:
 
 async def _stream_token_source(
     items: asyncio.Queue[Any], ended: Optional[asyncio.Event] = None,
-    boundaries: Optional[list[_SegmentBoundary | _VoiceBoundary | _InstructionBoundary]] = None,
-) -> AsyncIterator[str]:
+    boundaries: Optional[list[_SegmentBoundary | _VoiceBoundary | _InstructionBoundary | _LanguageBoundary]] = None,
+    cancelled: Optional[asyncio.Event] = None,
+) -> AsyncIterator[Any]:
+    """Yield bounded, nonblocking snapshots of text already queued.
+
+    Plain text items contiguous in the queue at one instant form one typed
+    AvailableTextRun.  A marker stops that snapshot and remains ordered
+    behind its text; a cap leaves the next text item queued and continues the
+    same run id on the next snapshot.  No sleep or queue-size estimate is used.
+    """
+    pending: Any = _NO_PENDING_TEXT
+    run_id = 0
+    continue_run = False
+
     while True:
-        item = await items.get()
+        # A deferred marker was already observed behind this text snapshot.
+        # Process that marker even after cancellation so a control fence is not
+        # silently discarded; no new text is drained once cancellation wins.
+        if pending is _NO_PENDING_TEXT and cancelled is not None and cancelled.is_set():
+            return
+        if pending is _NO_PENDING_TEXT:
+            item = await items.get()
+        else:
+            item = pending
+            pending = _NO_PENDING_TEXT
+
         if item is _TEXT_END:
             if ended is not None:
                 ended.set()
             return
         if item is _TEXT_FLUSH:
             return
-        if isinstance(item, (_SegmentBoundary, _VoiceBoundary, _InstructionBoundary)):
+        if isinstance(item, (_SegmentBoundary, _VoiceBoundary, _InstructionBoundary, _LanguageBoundary)):
             if boundaries is not None:
                 boundaries.append(item)
             return
-        yield str(item)
+        if not isinstance(item, str):
+            # Preserve the old source contract for an unexpected opaque item.
+            yield str(item)
+            continue
+
+        if not continue_run:
+            run_id += 1
+        parts = [item]
+        total_bytes = len(item.encode("utf-8"))
+        item_count = 1
+        same_run_continuation = False
+
+        while (
+            item_count < MAX_AVAILABLE_RUN_ITEMS
+            and total_bytes < MAX_AVAILABLE_RUN_BYTES
+        ):
+            if cancelled is not None and cancelled.is_set():
+                return
+            try:
+                next_item = items.get_nowait()
+            except asyncio.QueueEmpty:
+                break
+            if not isinstance(next_item, str):
+                pending = next_item
+                break
+            parts.append(next_item)
+            total_bytes += len(next_item.encode("utf-8"))
+            item_count += 1
+
+        # No await occurs after the last get_nowait(), so empty() is a
+        # synchronous snapshot at this drain boundary.  Any pending marker
+        # or text item remains ordered for the next snapshot.
+        cap_reached = (
+            item_count >= MAX_AVAILABLE_RUN_ITEMS
+            or total_bytes >= MAX_AVAILABLE_RUN_BYTES
+        )
+        same_run_continuation = cap_reached and not items.empty()
+
+        yield AvailableTextRun(
+            "".join(parts),
+            run_id,
+        )
+        continue_run = same_run_continuation
+
+
+def _sentence_text(value: Any) -> Any:
+    text = getattr(value, "text", None)
+    return text if isinstance(text, str) else value
+
+
+async def _splitter_token_source(source: AsyncIterator[Any]) -> AsyncIterator[Any]:
+    async for part in source:
+        # Published 1.0.4 expects strings. Keep snapshot metadata inside the
+        # server; newer run-aware splitters may consume their native type.
+        yield part if _NATIVE_AVAILABLE_TEXT_RUNS else _sentence_text(part)
 
 
 async def _stream_sentence_fragments(
-    items: asyncio.Queue[Any], *, split_sentences: bool = True, **options: Any,
+    items: asyncio.Queue[Any], *, split_sentences: bool = True,
+    cancelled: Optional[asyncio.Event] = None, **options: Any,
 ) -> AsyncIterator[Any]:
     """Flush an explicitly finished speech segment without closing the session.
 
@@ -1528,18 +1657,67 @@ async def _stream_sentence_fragments(
     Voice, instruction, flush and segment boundaries keep their existing meaning.
     """
     ended = asyncio.Event()
-    while not ended.is_set():
-        boundaries: list[_SegmentBoundary | _VoiceBoundary | _InstructionBoundary] = []
-        source = _stream_token_source(items, ended, boundaries)
+    while not ended.is_set() and not (cancelled is not None and cancelled.is_set()):
+        boundaries: list[_SegmentBoundary | _VoiceBoundary | _InstructionBoundary | _LanguageBoundary] = []
+        source = _stream_token_source(items, ended, boundaries, cancelled)
         if split_sentences:
-            async for fragment in generate_sentences_async(source, **options):
-                yield fragment
+            async for fragment in generate_sentences_async(_splitter_token_source(source), **options):
+                if cancelled is not None and cancelled.is_set():
+                    return
+                yield _sentence_text(fragment)
         else:
-            text = "".join([part async for part in source])
+            parts = [
+                _sentence_text(part)
+                async for part in source
+            ]
+            text = "".join(parts)
+            if cancelled is not None and cancelled.is_set():
+                return
             if text.strip():
                 yield text
+        if cancelled is not None and cancelled.is_set():
+            return
         for boundary in boundaries:
             yield boundary
+
+
+class _DetectedLanguageText(str):
+    def __new__(cls, text: str, language: str, base_text: str):
+        value = super().__new__(cls, text)
+        value.language, value.base_text = language, base_text
+        return value
+
+
+async def _stream_mixed_fragments(fragments, *, language, target, detector):
+    """Repair only unmarked, already-released fragments; never hold stream input."""
+    from .mixed_language import LanguageSpan, split_mixed_language
+
+    async for fragment in fragments:
+        if isinstance(fragment, _LanguageBoundary):
+            language = fragment.language
+        if not target or language != "auto" or not isinstance(fragment, str):
+            yield fragment
+            continue
+        raw_spans = split_mixed_language(fragment, target, detector)
+        # A released fragment already contains its punctuation. Keep a recovered
+        # phrase's final pause rather than dropping a punctuation-only request.
+        spans = []
+        prefix = ""
+        for span in raw_spans:
+            if not any(character.isalnum() for character in span.text):
+                if spans:
+                    previous = spans[-1]
+                    spans[-1] = LanguageSpan(previous.text + span.text, previous.language)
+                else:
+                    prefix += span.text
+            else:
+                spans.append(LanguageSpan(prefix + span.text, span.language))
+                prefix = ""
+        if prefix:
+            spans.append(LanguageSpan(prefix))
+        base_text = "".join(span.text for span in spans if span.language is None).strip()
+        for span in spans:
+            yield _DetectedLanguageText(span.text, span.language or "auto", base_text)
 
 
 async def _websocket_json(websocket: Any) -> Mapping[str, Any]:
@@ -2031,10 +2209,8 @@ def create_app(server: QwenHttpServer) -> Any:
         last_request_id: list[Optional[str]] = [None]
         first_text_received_at: list[Optional[float]] = [None]
         total_text_bytes = 0
-        received_text_parts: list[str] = []
-        text_updated = asyncio.Event()
-        stream_ended = asyncio.Event()
-        text_version = 0
+        input_language = _LanguageBoundary("auto")
+        active_language = input_language
         locked_language: Optional[str] = None
 
         def cancel_current() -> None:
@@ -2050,15 +2226,14 @@ def create_app(server: QwenHttpServer) -> Any:
             if input_ended.is_set():
                 return
             input_ended.set()
-            stream_ended.set()
-            text_updated.set()
+            input_language.finish()
             if input_segment is not None:
                 await items.put(_SegmentBoundary(input_segment, False))
                 input_segment = None
             await items.put(_TEXT_END)
 
         async def receive_text() -> None:
-            nonlocal session_id, text_version, total_text_bytes, input_segment, last_segment_id
+            nonlocal session_id, total_text_bytes, input_segment, last_segment_id, input_language
             try:
                 first = await _websocket_json(websocket)
                 if first.get("type") != "config":
@@ -2078,6 +2253,7 @@ def create_app(server: QwenHttpServer) -> Any:
                 config_ready.set_result(options)
                 current_voice = options.voice
                 current_instructions = options.instructions
+                input_language.language = options.language
                 while True:
                     event = await _websocket_json(websocket)
                     event_type = event.get("type")
@@ -2095,6 +2271,17 @@ def create_app(server: QwenHttpServer) -> Any:
                                 "invalid_request_error",
                                 "text event requires a string",
                             )
+                        if "language" in event:
+                            if getattr(server.engine, "direct_voice_control", False):
+                                raise ApiError(400, "unsupported_operation", "per-text language is not supported by this engine")
+                            try:
+                                language = normalize_qwen_language(event["language"], allow_auto=True)
+                            except (TypeError, ValueError) as exc:
+                                raise ApiError(400, "invalid_request_error", str(exc)) from exc
+                            if language != input_language.language:
+                                input_language.finish()
+                                input_language = _LanguageBoundary(language)
+                                await items.put(input_language)
                         voice = current_voice
                         if "voice" in event:
                             voice = server._validate_voice(event.get("voice"))
@@ -2122,9 +2309,9 @@ def create_app(server: QwenHttpServer) -> Any:
                         if text:
                             if first_text_received_at[0] is None:
                                 first_text_received_at[0] = time.monotonic()
-                            received_text_parts.append(text)
-                            text_version += 1
-                            text_updated.set()
+                            input_language.parts.append(text)
+                            input_language.version += 1
+                            input_language.updated.set()
                             await items.put(text)
                     elif event_type == "segment_start":
                         segment_id = event.get("segment_id")
@@ -2254,12 +2441,12 @@ def create_app(server: QwenHttpServer) -> Any:
             word_count = base_word_count
 
             while True:
-                probe_text = "".join(received_text_parts).strip() or request.text
+                probe_text = "".join(active_language.parts).strip() or request.text
                 word_count = len(probe_text.split())
                 if (
                     last_word_count < 0
                     or word_count > last_word_count
-                    or stream_ended.is_set()
+                    or active_language.ended
                 ):
                     probe_request = replace(request, text=probe_text)
                     routed_probe, detection = server.route_request(probe_request)
@@ -2280,7 +2467,7 @@ def create_app(server: QwenHttpServer) -> Any:
                     )
 
                 additional_words = max(0, word_count - base_word_count)
-                if stream_ended.is_set():
+                if active_language.ended:
                     locked_language = candidate_language
                     reason = "stream_end"
                     break
@@ -2294,12 +2481,12 @@ def create_app(server: QwenHttpServer) -> Any:
                     reason = "timeout"
                     break
 
-                observed_version = text_version
-                text_updated.clear()
-                if text_version != observed_version:
+                observed_version = active_language.version
+                active_language.updated.clear()
+                if active_language.version != observed_version:
                     continue
                 try:
-                    await asyncio.wait_for(text_updated.wait(), timeout=remaining)
+                    await asyncio.wait_for(active_language.updated.wait(), timeout=remaining)
                 except TimeoutError:
                     pass
 
@@ -2322,8 +2509,9 @@ def create_app(server: QwenHttpServer) -> Any:
         alignment_tasks: list[asyncio.Task] = []
         try:
             options = await config_ready
-            async for fragment in _stream_sentence_fragments(
+            fragments = _stream_sentence_fragments(
                 items,
+                cancelled=cancelled,
                 split_sentences=options.split_sentences,
                 tokenizer="rule-based",
                 language=_QWEN_TO_TOKENIZER_LANGUAGE.get(options.language, "en"),
@@ -2338,11 +2526,19 @@ def create_app(server: QwenHttpServer) -> Any:
                 ),
                 force_first_fragment_after_words=_NO_FORCED_FIRST_FRAGMENT,
                 fragment_lookahead_words=server.fragment_lookahead_words,
+            )
+            async for fragment in _stream_mixed_fragments(
+                fragments, language=options.language, target=options.mixed_language,
+                detector=server.language_detector,
             ):
                 if cancelled.is_set():
                     break
                 if receiver_error[0] is not None:
                     raise receiver_error[0]
+                if isinstance(fragment, _LanguageBoundary):
+                    active_language = fragment
+                    options = replace(options, language=fragment.language)
+                    continue
                 if isinstance(fragment, _InstructionBoundary):
                     options = replace(options, instructions=fragment.instructions)
                     continue
@@ -2406,15 +2602,29 @@ def create_app(server: QwenHttpServer) -> Any:
                     "pcm",
                     options.instructions,
                     options.sampling,
-                    options.language,
+                    getattr(fragment, "language", options.language),
                     alignment=options.alignment,
                 )
-                if fragment_index == 1:
-                    request = await route_first_fragment(request)
-                else:
-                    request = replace(
-                        request, language=locked_language or options.language
-                    )
+                if request.language == "auto":
+                    if isinstance(fragment, _DetectedLanguageText):
+                        # Identify the explanation from text outside the recovered
+                        # teaching phrase. Foreign words must not set the base lock.
+                        detection = server.language_detector.detect(" ".join((fragment.base_text or text).split()))
+                        base = locked_language
+                        if (detection.candidate_language not in (None, options.mixed_language)
+                                and float(detection.confidence or 0) >= .55
+                                and float(detection.confidence_margin or 0) >= .20):
+                            base = detection.candidate_language
+                        if base is None:
+                            base = server.language_detector.fallback_language
+                        locked_language = base
+                        request = replace(request, language=base)
+                    elif locked_language is None:
+                        request = await route_first_fragment(request)
+                    else:
+                        request = replace(request, language=locked_language)
+                # Explicit spans bypass detection. Returning to Auto restores the
+                # response language instead of guessing again from a short tail.
                 # A cancel can arrive while fragment metadata or language
                 # routing awaits. Never start a worker after that cancel won.
                 if not await _wait_until_stream_resumed(
@@ -3139,7 +3349,6 @@ if __name__ == "__main__":  # pragma: no cover
 
 
 __all__ = [
-    "AUDIBLE_AVERAGE_ABS_THRESHOLD",
     "ApiError",
     "QwenHttpServer",
     "RequestMetrics",

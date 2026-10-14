@@ -1,0 +1,723 @@
+{
+  "schema_version": 1,
+  "corpus_id": "german-tts100-20261014",
+  "language": "de",
+  "seed": 42,
+  "seed_scope": "Fixed corpus order; default requested sampling seed42 per synthesis. No bit-exact guarantee across native builds or references.",
+  "counts": {
+    "total": 100,
+    "short_1_to_3_words": 90,
+    "longer": 10
+  },
+  "word_count_definition": "Whitespace-separated tokens after trimming. Hyphenated forms count as one token.",
+  "coverage": [
+    "single words and minimal phrases",
+    "umlauts and ß, ch/sch/st/sp contrasts",
+    "questions, commands, numbers and directions",
+    "names, loanwords and everyday activities",
+    "short and longer utterances"
+  ],
+  "dialect_scope": "Standard German with broadly shared vocabulary; no regional pronunciation guarantee.",
+  "entries": [
+    {
+      "id": "de_short_01",
+      "class": "short",
+      "index": 1,
+      "text": "Hallo",
+      "word_count": 1
+    },
+    {
+      "id": "de_short_02",
+      "class": "short",
+      "index": 2,
+      "text": "Guten Morgen",
+      "word_count": 2
+    },
+    {
+      "id": "de_short_03",
+      "class": "short",
+      "index": 3,
+      "text": "Willkommen",
+      "word_count": 1
+    },
+    {
+      "id": "de_short_04",
+      "class": "short",
+      "index": 4,
+      "text": "Danke",
+      "word_count": 1
+    },
+    {
+      "id": "de_short_05",
+      "class": "short",
+      "index": 5,
+      "text": "Bitte",
+      "word_count": 1
+    },
+    {
+      "id": "de_short_06",
+      "class": "short",
+      "index": 6,
+      "text": "Ja",
+      "word_count": 1
+    },
+    {
+      "id": "de_short_07",
+      "class": "short",
+      "index": 7,
+      "text": "Nein",
+      "word_count": 1
+    },
+    {
+      "id": "de_short_08",
+      "class": "short",
+      "index": 8,
+      "text": "Vielleicht",
+      "word_count": 1
+    },
+    {
+      "id": "de_short_09",
+      "class": "short",
+      "index": 9,
+      "text": "Entschuldigung",
+      "word_count": 1
+    },
+    {
+      "id": "de_short_10",
+      "class": "short",
+      "index": 10,
+      "text": "Tschüss",
+      "word_count": 1
+    },
+    {
+      "id": "de_short_11",
+      "class": "short",
+      "index": 11,
+      "text": "Heute",
+      "word_count": 1
+    },
+    {
+      "id": "de_short_12",
+      "class": "short",
+      "index": 12,
+      "text": "Morgen",
+      "word_count": 1
+    },
+    {
+      "id": "de_short_13",
+      "class": "short",
+      "index": 13,
+      "text": "Gestern",
+      "word_count": 1
+    },
+    {
+      "id": "de_short_14",
+      "class": "short",
+      "index": 14,
+      "text": "Jetzt",
+      "word_count": 1
+    },
+    {
+      "id": "de_short_15",
+      "class": "short",
+      "index": 15,
+      "text": "Später",
+      "word_count": 1
+    },
+    {
+      "id": "de_short_16",
+      "class": "short",
+      "index": 16,
+      "text": "Gleich",
+      "word_count": 1
+    },
+    {
+      "id": "de_short_17",
+      "class": "short",
+      "index": 17,
+      "text": "Feierabend",
+      "word_count": 1
+    },
+    {
+      "id": "de_short_18",
+      "class": "short",
+      "index": 18,
+      "text": "Wochenende",
+      "word_count": 1
+    },
+    {
+      "id": "de_short_19",
+      "class": "short",
+      "index": 19,
+      "text": "Montag",
+      "word_count": 1
+    },
+    {
+      "id": "de_short_20",
+      "class": "short",
+      "index": 20,
+      "text": "Freitag",
+      "word_count": 1
+    },
+    {
+      "id": "de_short_21",
+      "class": "short",
+      "index": 21,
+      "text": "Sonne",
+      "word_count": 1
+    },
+    {
+      "id": "de_short_22",
+      "class": "short",
+      "index": 22,
+      "text": "Regen",
+      "word_count": 1
+    },
+    {
+      "id": "de_short_23",
+      "class": "short",
+      "index": 23,
+      "text": "Schnee",
+      "word_count": 1
+    },
+    {
+      "id": "de_short_24",
+      "class": "short",
+      "index": 24,
+      "text": "Wind",
+      "word_count": 1
+    },
+    {
+      "id": "de_short_25",
+      "class": "short",
+      "index": 25,
+      "text": "Frühling",
+      "word_count": 1
+    },
+    {
+      "id": "de_short_26",
+      "class": "short",
+      "index": 26,
+      "text": "Sommer",
+      "word_count": 1
+    },
+    {
+      "id": "de_short_27",
+      "class": "short",
+      "index": 27,
+      "text": "Herbst",
+      "word_count": 1
+    },
+    {
+      "id": "de_short_28",
+      "class": "short",
+      "index": 28,
+      "text": "Winter",
+      "word_count": 1
+    },
+    {
+      "id": "de_short_29",
+      "class": "short",
+      "index": 29,
+      "text": "Wolken",
+      "word_count": 1
+    },
+    {
+      "id": "de_short_30",
+      "class": "short",
+      "index": 30,
+      "text": "Gewitter",
+      "word_count": 1
+    },
+    {
+      "id": "de_short_31",
+      "class": "short",
+      "index": 31,
+      "text": "Alles klar?",
+      "word_count": 2
+    },
+    {
+      "id": "de_short_32",
+      "class": "short",
+      "index": 32,
+      "text": "Wie bitte?",
+      "word_count": 2
+    },
+    {
+      "id": "de_short_33",
+      "class": "short",
+      "index": 33,
+      "text": "Was jetzt?",
+      "word_count": 2
+    },
+    {
+      "id": "de_short_34",
+      "class": "short",
+      "index": 34,
+      "text": "Wer kommt?",
+      "word_count": 2
+    },
+    {
+      "id": "de_short_35",
+      "class": "short",
+      "index": 35,
+      "text": "Wo bist du?",
+      "word_count": 3
+    },
+    {
+      "id": "de_short_36",
+      "class": "short",
+      "index": 36,
+      "text": "Wann treffen wir?",
+      "word_count": 3
+    },
+    {
+      "id": "de_short_37",
+      "class": "short",
+      "index": 37,
+      "text": "Wie spät?",
+      "word_count": 2
+    },
+    {
+      "id": "de_short_38",
+      "class": "short",
+      "index": 38,
+      "text": "Warum nicht?",
+      "word_count": 2
+    },
+    {
+      "id": "de_short_39",
+      "class": "short",
+      "index": 39,
+      "text": "Welche Richtung?",
+      "word_count": 2
+    },
+    {
+      "id": "de_short_40",
+      "class": "short",
+      "index": 40,
+      "text": "Ist alles fertig?",
+      "word_count": 3
+    },
+    {
+      "id": "de_short_41",
+      "class": "short",
+      "index": 41,
+      "text": "Komm her!",
+      "word_count": 2
+    },
+    {
+      "id": "de_short_42",
+      "class": "short",
+      "index": 42,
+      "text": "Warte kurz!",
+      "word_count": 2
+    },
+    {
+      "id": "de_short_43",
+      "class": "short",
+      "index": 43,
+      "text": "Hör zu!",
+      "word_count": 2
+    },
+    {
+      "id": "de_short_44",
+      "class": "short",
+      "index": 44,
+      "text": "Schau mal!",
+      "word_count": 2
+    },
+    {
+      "id": "de_short_45",
+      "class": "short",
+      "index": 45,
+      "text": "Komm bitte!",
+      "word_count": 2
+    },
+    {
+      "id": "de_short_46",
+      "class": "short",
+      "index": 46,
+      "text": "Bleib hier!",
+      "word_count": 2
+    },
+    {
+      "id": "de_short_47",
+      "class": "short",
+      "index": 47,
+      "text": "Fahr vorsichtig!",
+      "word_count": 2
+    },
+    {
+      "id": "de_short_48",
+      "class": "short",
+      "index": 48,
+      "text": "Tür zu!",
+      "word_count": 2
+    },
+    {
+      "id": "de_short_49",
+      "class": "short",
+      "index": 49,
+      "text": "Licht an!",
+      "word_count": 2
+    },
+    {
+      "id": "de_short_50",
+      "class": "short",
+      "index": 50,
+      "text": "Ruhe bitte!",
+      "word_count": 2
+    },
+    {
+      "id": "de_short_51",
+      "class": "short",
+      "index": 51,
+      "text": "Kaffee bitte",
+      "word_count": 2
+    },
+    {
+      "id": "de_short_52",
+      "class": "short",
+      "index": 52,
+      "text": "Tee mit Zitrone",
+      "word_count": 3
+    },
+    {
+      "id": "de_short_53",
+      "class": "short",
+      "index": 53,
+      "text": "Frisches Brot",
+      "word_count": 2
+    },
+    {
+      "id": "de_short_54",
+      "class": "short",
+      "index": 54,
+      "text": "Rotes Gemüse",
+      "word_count": 2
+    },
+    {
+      "id": "de_short_55",
+      "class": "short",
+      "index": 55,
+      "text": "Ein Apfel",
+      "word_count": 2
+    },
+    {
+      "id": "de_short_56",
+      "class": "short",
+      "index": 56,
+      "text": "Zwei Brötchen",
+      "word_count": 2
+    },
+    {
+      "id": "de_short_57",
+      "class": "short",
+      "index": 57,
+      "text": "Wasser ohne Eis",
+      "word_count": 3
+    },
+    {
+      "id": "de_short_58",
+      "class": "short",
+      "index": 58,
+      "text": "Schlüssel hier",
+      "word_count": 2
+    },
+    {
+      "id": "de_short_59",
+      "class": "short",
+      "index": 59,
+      "text": "Tasche öffnen",
+      "word_count": 2
+    },
+    {
+      "id": "de_short_60",
+      "class": "short",
+      "index": 60,
+      "text": "Fenster schließen",
+      "word_count": 2
+    },
+    {
+      "id": "de_short_61",
+      "class": "short",
+      "index": 61,
+      "text": "München",
+      "word_count": 1
+    },
+    {
+      "id": "de_short_62",
+      "class": "short",
+      "index": 62,
+      "text": "Zürich",
+      "word_count": 1
+    },
+    {
+      "id": "de_short_63",
+      "class": "short",
+      "index": 63,
+      "text": "Köln",
+      "word_count": 1
+    },
+    {
+      "id": "de_short_64",
+      "class": "short",
+      "index": 64,
+      "text": "Jörg kommt",
+      "word_count": 2
+    },
+    {
+      "id": "de_short_65",
+      "class": "short",
+      "index": 65,
+      "text": "Schöne Straße",
+      "word_count": 2
+    },
+    {
+      "id": "de_short_66",
+      "class": "short",
+      "index": 66,
+      "text": "Große Stadt",
+      "word_count": 2
+    },
+    {
+      "id": "de_short_67",
+      "class": "short",
+      "index": 67,
+      "text": "Schule schließen",
+      "word_count": 2
+    },
+    {
+      "id": "de_short_68",
+      "class": "short",
+      "index": 68,
+      "text": "Sprache üben",
+      "word_count": 2
+    },
+    {
+      "id": "de_short_69",
+      "class": "short",
+      "index": 69,
+      "text": "Streng sprechen",
+      "word_count": 2
+    },
+    {
+      "id": "de_short_70",
+      "class": "short",
+      "index": 70,
+      "text": "Schwarze Schokolade",
+      "word_count": 2
+    },
+    {
+      "id": "de_short_71",
+      "class": "short",
+      "index": 71,
+      "text": "Dreiundzwanzig",
+      "word_count": 1
+    },
+    {
+      "id": "de_short_72",
+      "class": "short",
+      "index": 72,
+      "text": "Einhundertacht",
+      "word_count": 1
+    },
+    {
+      "id": "de_short_73",
+      "class": "short",
+      "index": 73,
+      "text": "Links abbiegen",
+      "word_count": 2
+    },
+    {
+      "id": "de_short_74",
+      "class": "short",
+      "index": 74,
+      "text": "Rechts abbiegen",
+      "word_count": 2
+    },
+    {
+      "id": "de_short_75",
+      "class": "short",
+      "index": 75,
+      "text": "Geradeaus weiter",
+      "word_count": 2
+    },
+    {
+      "id": "de_short_76",
+      "class": "short",
+      "index": 76,
+      "text": "Hinter dem Haus",
+      "word_count": 3
+    },
+    {
+      "id": "de_short_77",
+      "class": "short",
+      "index": 77,
+      "text": "Neben der Brücke",
+      "word_count": 3
+    },
+    {
+      "id": "de_short_78",
+      "class": "short",
+      "index": 78,
+      "text": "Zum Bahnhof",
+      "word_count": 2
+    },
+    {
+      "id": "de_short_79",
+      "class": "short",
+      "index": 79,
+      "text": "Am Flughafen",
+      "word_count": 2
+    },
+    {
+      "id": "de_short_80",
+      "class": "short",
+      "index": 80,
+      "text": "Im Park",
+      "word_count": 2
+    },
+    {
+      "id": "de_short_81",
+      "class": "short",
+      "index": 81,
+      "text": "Auf Wiedersehen",
+      "word_count": 2
+    },
+    {
+      "id": "de_short_82",
+      "class": "short",
+      "index": 82,
+      "text": "Bis später",
+      "word_count": 2
+    },
+    {
+      "id": "de_short_83",
+      "class": "short",
+      "index": 83,
+      "text": "Anna wartet",
+      "word_count": 2
+    },
+    {
+      "id": "de_short_84",
+      "class": "short",
+      "index": 84,
+      "text": "Felix liest",
+      "word_count": 2
+    },
+    {
+      "id": "de_short_85",
+      "class": "short",
+      "index": 85,
+      "text": "Lea tanzt",
+      "word_count": 2
+    },
+    {
+      "id": "de_short_86",
+      "class": "short",
+      "index": 86,
+      "text": "Jonas kocht",
+      "word_count": 2
+    },
+    {
+      "id": "de_short_87",
+      "class": "short",
+      "index": 87,
+      "text": "Sophie lacht",
+      "word_count": 2
+    },
+    {
+      "id": "de_short_88",
+      "class": "short",
+      "index": 88,
+      "text": "Bluetooth aktivieren",
+      "word_count": 2
+    },
+    {
+      "id": "de_short_89",
+      "class": "short",
+      "index": 89,
+      "text": "Podcast starten",
+      "word_count": 2
+    },
+    {
+      "id": "de_short_90",
+      "class": "short",
+      "index": 90,
+      "text": "Computer neu starten",
+      "word_count": 3
+    },
+    {
+      "id": "de_long_01",
+      "class": "longer",
+      "index": 91,
+      "text": "Am frühen Dienstag fährt Lena mit dem Fahrrad zur Arbeit und nimmt unterwegs eine warme Brezel beim Bäcker.",
+      "word_count": 18
+    },
+    {
+      "id": "de_long_02",
+      "class": "longer",
+      "index": 92,
+      "text": "Wenn der Zug um halb acht ankommt, wartet Markus am Bahnsteig und ruft seine Schwester kurz an.",
+      "word_count": 17
+    },
+    {
+      "id": "de_long_03",
+      "class": "longer",
+      "index": 93,
+      "text": "Bitte öffne das Fenster vorsichtig, denn draußen weht ein kalter Wind und die nassen Blätter liegen überall.",
+      "word_count": 17
+    },
+    {
+      "id": "de_long_04",
+      "class": "longer",
+      "index": 94,
+      "text": "Im kleinen Café bestellt Nora einen Espresso, ein Käsebrötchen und später noch ein Glas Wasser ohne Eis.",
+      "word_count": 17
+    },
+    {
+      "id": "de_long_05",
+      "class": "longer",
+      "index": 95,
+      "text": "Der neue Computer startet langsam, deshalb prüft David das Kabel, lädt den Akku und speichert seine Arbeit.",
+      "word_count": 17
+    },
+    {
+      "id": "de_long_06",
+      "class": "longer",
+      "index": 96,
+      "text": "Nach dem Gewitter scheint wieder die Sonne, doch auf der Straße bleiben tiefe Pfützen und glänzende Steine.",
+      "word_count": 17
+    },
+    {
+      "id": "de_long_07",
+      "class": "longer",
+      "index": 97,
+      "text": "Im Deutschkurs liest Sophie einen kurzen Text über München und erklärt danach, warum manche Wörter anders klingen.",
+      "word_count": 17
+    },
+    {
+      "id": "de_long_08",
+      "class": "longer",
+      "index": 98,
+      "text": "Für das Wochenende packen wir warme Jacken, zwei Bücher und eine kleine Kamera für den Ausflug ein.",
+      "word_count": 17
+    },
+    {
+      "id": "de_long_09",
+      "class": "longer",
+      "index": 99,
+      "text": "Kannst du bitte die blaue Schachtel neben der Lampe holen und anschließend auf den Tisch stellen?",
+      "word_count": 16
+    },
+    {
+      "id": "de_long_10",
+      "class": "longer",
+      "index": 100,
+      "text": "Am Sonntag besucht Jonas seine Großmutter, bringt frisches Obst mit und hört ihr geduldig beim Erzählen zu.",
+      "word_count": 17
+    }
+  ]
+}

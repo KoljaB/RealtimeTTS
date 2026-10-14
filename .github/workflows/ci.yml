@@ -34,6 +34,9 @@ jobs:
           tests/test_audio_backend.py
           tests/test_base_engine_silence_trim.py
           tests/test_breeze_engine_server.py
+          tests/test_breeze_worker.py
+          tests/test_breeze_native_package.py
+          tests/test_quiet_pcm.py
           tests/test_breeze_continuity.py
           tests/test_breeze_failure_diagnostics.py
           tests/test_breeze_fragment_metadata.py
@@ -44,6 +47,7 @@ jobs:
           tests/test_alignment_completion_guard.py
           tests/test_alignment_timeline.py
           tests/test_alignment_controller.py
+          tests/test_alignment_evidence.py
           tests/test_alignment_decoder.py
           tests/test_universal_alignment_integration.py
           tests/test_universal_server.py
@@ -59,6 +63,8 @@ jobs:
           tests/test_pocket_engine.py
           tests/test_pocket_gpu_engine.py
           tests/test_qwen_engine.py
+          tests/test_qwen_server_engine.py
+          tests/test_qwen_language_spans.py
           tests/test_qwen_cpu_engine.py
           tests/test_qwen_cpu_distribution.py
           tests/test_qwen_windows_resampling_requirement.py
@@ -71,17 +77,26 @@ jobs:
           tests/test_qwen_symbol_fragments.py
           tests/test_em_dash_fragments.py
           tests/test_qwen_server.py
+          tests/test_sentence_splitter_compat.py
           tests/test_qwen_server_language_codes.py
           tests/test_qwen_studio.py
           tests/test_release_guard.py
           tests/test_release_guard_cpu_macos.py
           tests/test_release_guard_cli.py
+          tests/test_release_guard_module_service.py
           tests/test_public_cpu_release_profile.py
           tests/test_release_metadata.py
           tests/test_safepipe_logging.py
           tests/test_sentence_splitter_preload.py
           tests/test_sentence_tokenizer_defaults.py
           tests/test_stream_player_stop.py
+          tests/test_audio_tempo.py
+          tests/test_tempo_timeline.py
+          tests/test_inline_speed.py
+          tests/test_inline_markup.py
+          tests/test_inline_language.py
+          tests/test_inline_language_lifecycle.py
+          tests/test_mixed_language_tutor.py
           tests/test_text_to_stream_alignment.py
 
       - name: Run Studio JavaScript regression tests

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import re
 import unicodedata
-import warnings
 from os import PathLike
 from typing import Any, Sequence
 
@@ -10,6 +9,7 @@ import numpy as np
 
 from .audio import wav_file_to_mono_float32
 from .base import CharacterAlignment
+from .ctc import ctc_forced_align
 from .vad import resample_audio
 
 
@@ -29,7 +29,6 @@ class TorchaudioMMSFACharacterAligner:
         self._bundle = None
         self._model = None
         self._tokenizer = None
-        self._aligner = None
 
     def align_characters(
         self,
@@ -45,7 +44,7 @@ class TorchaudioMMSFACharacterAligner:
         if not words:
             return []
 
-        torch, bundle, model, tokenizer, aligner = self._load()
+        torch, bundle, model, tokenizer = self._load()
         model_audio = resample_audio(
             np.asarray(audio, dtype=np.float32),
             sample_rate,
@@ -63,29 +62,11 @@ class TorchaudioMMSFACharacterAligner:
         with torch.inference_mode():
             emission, _ = model(waveform)
 
-        with warnings.catch_warnings():
-            warnings.filterwarnings(
-                "ignore",
-                message=".*forced_align has been deprecated.*",
-                category=UserWarning,
-            )
-            spans_by_word = aligner(emission[0].float().cpu(), tokenizer(words))
         frame_duration = (len(audio) / float(sample_rate)) / float(emission.shape[1])
-        alignments: list[CharacterAlignment] = []
-        index = 0
-        for word, spans in zip(words, spans_by_word):
-            for character, span in zip(word, spans):
-                alignments.append(
-                    CharacterAlignment(
-                        character=character,
-                        start_time=float(span.start) * frame_duration,
-                        end_time=float(span.end) * frame_duration,
-                        index=index,
-                        score=float(span.score),
-                    )
-                )
-                index += 1
-        return alignments
+        return _align_mms_emissions(
+            emission[0].float().cpu().numpy(), normalized_text,
+            tokenizer(words), frame_duration,
+        )
 
     def align_wav_characters(
         self,
@@ -102,14 +83,12 @@ class TorchaudioMMSFACharacterAligner:
             and self._bundle is not None
             and self._model is not None
             and self._tokenizer is not None
-            and self._aligner is not None
         ):
             return (
                 self._torch,
                 self._bundle,
                 self._model,
                 self._tokenizer,
-                self._aligner,
             )
 
         try:
@@ -121,8 +100,12 @@ class TorchaudioMMSFACharacterAligner:
                 "Install them with `pip install realtimetts[alignment]`."
             ) from exc
 
-        bundle = torchaudio.pipelines.MMS_FA
-        model = bundle.get_model()
+        bundle = getattr(torchaudio.pipelines, "MMS_FA", None)
+        if bundle is None:
+            raise RuntimeError("This TorchAudio build does not provide the MMS_FA acoustic model")
+        # Keep the MMS checkpoint/tokenizer; the removed forced_align API is
+        # replaced by our vectorized CTC path, without a backend substitution.
+        model = bundle.get_model(with_star=False)
         if self.device is not None:
             model = model.to(self.device)
         if self.dtype is not None:
@@ -133,14 +116,27 @@ class TorchaudioMMSFACharacterAligner:
         self._bundle = bundle
         self._model = model
         self._tokenizer = bundle.get_tokenizer()
-        self._aligner = bundle.get_aligner()
         return (
             self._torch,
             self._bundle,
             self._model,
             self._tokenizer,
-            self._aligner,
         )
+
+
+def _align_mms_emissions(emission, text, tokenized_words, frame_duration):
+    targets = [token for word in tokenized_words for token in word]
+    positions = [(index, c) for index, c in enumerate(text) if not c.isspace()]
+    if len(targets) != len(positions):
+        raise ValueError("MMS tokenizer did not produce one token per normalized character")
+    spans = ctc_forced_align(emission, targets, blank_id=0)
+    return [
+        CharacterAlignment(
+            character, span.start_frame * frame_duration,
+            span.end_frame * frame_duration, index, float(np.exp(span.score)),
+        )
+        for (index, character), span in zip(positions, spans)
+    ]
 
 
 def normalize_mms_fa_text(text: str) -> str:

@@ -115,7 +115,7 @@ These extras are present in `setup.py`:
 | `alignment-multilingual` | Optional ONNX Parakeet word timestamps for Qwen; models downloaded separately. |
 | `qwen` | Native in-process qwentts.cpp backend with PyAudio playback (`realtimetts-qwen-native==0.2.0` on supported Windows and Linux targets). |
 | `qwen-server` | OpenAI-compatible HTTP server for the native Qwen backend (same platform-specific native wheel pins, without PyAudio). |
-| `qwen-cpu` | CPU-only native Qwen with local PyAudio playback; uses `realtimetts-qwen-native-cpu==0.3.0`. |
+| `qwen-cpu` | CPU-only native Qwen with local PyAudio playback; uses `realtimetts-qwen-native-cpu==0.4.2`. |
 | `qwen-cpu-server` | CPU HTTP/WebSocket server without PyAudio; Windows/Linux x86-64, Intel macOS 13+, and Apple Silicon macOS 11+. |
 | `inflect`, `inflect-pytorch`, `inflect-onnx` | Inflect-Micro-v2 with PyAudio playback; choose both backends, PyTorch only, or ONNX only. |
 | `jp`, `zh`, `ko` | Extra language support packages for Kokoro. |

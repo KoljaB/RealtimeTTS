@@ -1,4 +1,4 @@
-import json
+import asyncio
 import json
 import queue
 import threading
@@ -15,6 +15,101 @@ from RealtimeTTS.server import create_app
 
 
 RATE = 16_000
+
+
+@pytest.mark.parametrize("event_type", ["done", "error", "cancelled", "alignment_done"])
+def test_outbound_terminal_event_survives_full_audio_queue(event_type):
+    from RealtimeTTS.server import _OutboundBuffer
+
+    cancelled = threading.Event()
+    outbound = _OutboundBuffer(cancelled, limit=1)
+    assert outbound.audio(b"pcm")
+    if event_type == "cancelled":
+        cancelled.set()
+
+    terminal = {"type": event_type, "request_id": "request"}
+    assert outbound.event(terminal)
+    assert outbound.get(timeout=0) == ("audio", b"pcm")
+    assert outbound.get(timeout=0) == ("event", terminal)
+    assert outbound.empty()
+
+
+def test_outbound_terminal_overflow_stays_bounded_and_ordered():
+    from RealtimeTTS.server import _OutboundBuffer
+
+    outbound = _OutboundBuffer(threading.Event(), limit=1)
+    assert outbound.audio(b"pcm")
+    event_types = ["alignment_done", "error", "cancelled", "done"]
+    for revision in range(10):
+        for event_type in event_types:
+            assert outbound.event({"type": event_type, "revision": revision})
+
+    assert outbound.get(timeout=0) == ("audio", b"pcm")
+    for event_type in event_types:
+        assert outbound.get(timeout=0) == (
+            "event", {"type": event_type, "revision": 9}
+        )
+    with pytest.raises(queue.Empty):
+        outbound.get(timeout=0)
+
+
+def test_outbound_terminal_reserve_does_not_expand_audio_capacity():
+    from RealtimeTTS.server import _OutboundBuffer
+
+    cancelled = threading.Event()
+    outbound = _OutboundBuffer(cancelled, limit=1)
+    assert outbound.audio(b"first")
+    assert outbound.event({"type": "alignment_done"})
+    entered = threading.Event()
+    finished = threading.Event()
+    accepted = []
+
+    def produce():
+        entered.set()
+        accepted.append(outbound.audio(b"second"))
+        finished.set()
+
+    producer = threading.Thread(target=produce, daemon=True)
+    producer.start()
+    try:
+        assert entered.wait(1)
+        assert not finished.wait(0.05)
+        assert outbound.get(timeout=0) == ("audio", b"first")
+        assert not finished.wait(0.05)
+        assert outbound.get(timeout=0) == ("event", {"type": "alignment_done"})
+        assert finished.wait(1)
+        assert accepted == [True]
+        assert outbound.get(timeout=0) == ("audio", b"second")
+    finally:
+        cancelled.set()
+        producer.join(timeout=1)
+    assert not producer.is_alive()
+
+
+def test_outbound_full_audio_queue_remains_cancellable():
+    from RealtimeTTS.server import _OutboundBuffer
+
+    cancelled = threading.Event()
+    outbound = _OutboundBuffer(cancelled, limit=1)
+    assert outbound.audio(b"first")
+    finished = threading.Event()
+    accepted = []
+
+    def produce():
+        accepted.append(outbound.audio(b"second"))
+        finished.set()
+
+    producer = threading.Thread(target=produce, daemon=True)
+    producer.start()
+    try:
+        assert not finished.wait(0.05)
+        cancelled.set()
+        assert finished.wait(1)
+        assert accepted == [False]
+    finally:
+        cancelled.set()
+        producer.join(timeout=1)
+    assert not producer.is_alive()
 
 
 class FakeEngine:
@@ -61,6 +156,78 @@ class FakeEngine:
     def stop(self):
         self.stopped.set()
         self.release.set()
+
+
+def test_cancelled_http_request_restores_engine_and_allows_next_request():
+    import httpx
+
+    async def exercise():
+        engine = FakeEngine(block=True)
+        original_queue, original_timings = engine.queue, engine.timings
+        app = create_app(engine)
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=app), base_url="http://test"
+        ) as client:
+            request = asyncio.create_task(
+                client.post("/v1/audio/speech", json={"input": "cancel me"})
+            )
+            try:
+                assert await asyncio.to_thread(engine.started.wait, 1)
+                request.cancel()
+                with pytest.raises(asyncio.CancelledError):
+                    await request
+                assert engine.stopped.is_set()
+                assert engine.queue is original_queue
+                assert engine.timings is original_timings
+                assert app.state.realtimetts_server.health()["active_requests"] == 0
+
+                engine.block = False
+                engine.stopped.clear()
+                response = await client.post(
+                    "/v1/audio/speech", json={"input": "next request"}
+                )
+                assert response.status_code == 200
+                assert response.content
+            finally:
+                engine.release.set()
+                if not request.done():
+                    request.cancel()
+                try:
+                    await request
+                except asyncio.CancelledError:
+                    pass
+
+    asyncio.run(exercise())
+
+
+def test_cancelling_completed_session_does_not_stop_new_request():
+    engine = FakeEngine()
+    original_queue, original_timings = engine.queue, engine.timings
+    host = create_app(engine).state.realtimetts_server
+    completed = host.new_session({})
+    completed.start()
+    completed.add_text("first")
+    completed.end()
+    assert completed.done.wait(1)
+
+    engine.block = True
+    engine.started.clear()
+    active = host.new_session({})
+    active.start()
+    active.add_text("second")
+    active.end()
+    try:
+        assert engine.started.wait(1)
+        completed.cancel()
+        assert not engine.stopped.is_set()
+        assert not active.done.is_set()
+    finally:
+        active.cancel()
+        assert active.done.wait(1)
+        active._worker.join(timeout=1)
+    assert not active._worker.is_alive()
+    assert engine.queue is original_queue
+    assert engine.timings is original_timings
 
 
 class FixedAligner:
@@ -151,6 +318,24 @@ def test_websocket_stream_includes_alignment_snapshots_and_s16_audio():
     decoded = np.frombuffer(audio, dtype="<i2")
     assert len(decoded) > 0
     assert np.max(np.abs(decoded)) > 100
+
+
+def test_partial_alignment_remains_partial_in_terminal_websocket_event():
+    class PrefixOnly:
+        def align_words(self, text, audio, sample_rate):
+            return [WordAlignment("hello", 0, .005, .9)]
+
+    with TestClient(create_app(FakeEngine(), aligner=PrefixOnly())) as client:
+        with client.websocket_connect("/v1/audio/speech-stream") as ws:
+            ws.send_json({"type": "config", "alignment": {"source": "model", "mode": "export"}})
+            ws.send_json({"type": "text", "text": "hello world"})
+            ws.send_json({"type": "end"})
+            events, audio = _receive_until_done(ws)
+    done = next(event for event in events if event["type"] == "alignment_done")
+    assert audio and done["final"]
+    assert done["status"] == "partial" and done["complete"] is False
+    assert done["coverage"] == .5
+    assert done["fragments"][0]["status"] == "partial"
 
 
 def test_alignment_requires_explicit_aligner_or_native_engine():

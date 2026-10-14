@@ -28,8 +28,17 @@ https://github.com/KoljaB/RealtimeTTS/assets/7604638/87dcd9a5-3a4e-4f57-be45-837
 
 BreezeEngine adds reference voice cloning, direct delivery instructions and inline
 vocal events through a local Breeze-TTS-2.cpp worker. The compatible HTTP/WebSocket
-server supports native pause and cancellation. See the [Breeze guide](docs/engines/breeze.md)
+server supports native pause and cancellation. The initial configuration is Q8_0
+on Vulkan, with CFG=4. An optional native wheel and `--model` startup keep the
+worker separate from the base install. See the [Breeze guide](docs/engines/breeze.md)
 for the required worker patch, Windows Vulkan setup and server/engine examples.
+
+**Breeze TTS 2 licensing:** The model and its self-hosted outputs are for
+**research and non-commercial use only**. Commercial use requires a separate
+licence from BreezeBlue. Read the
+[BreezeBlue model licence](https://huggingface.co/BreezeBlue/Breeze-TTS-2/blob/main/LICENSE)
+and direct commercial licensing enquiries to
+[contact@breeze.blue](mailto:contact@breeze.blue).
 
 ## Recommended Engine: Qwen (GPU and CPU)
 
@@ -329,6 +338,12 @@ RealtimeTTS source code is MIT licensed. Engine providers, model weights, voice
 data, datasets, generated audio, and third-party services can have separate
 terms. Read [LICENSING_ADDENDUM.md](LICENSING_ADDENDUM.md) and the relevant
 provider or model licenses before commercial use.
+
+In particular, **Breeze TTS 2 and its self-hosted outputs are for research and
+non-commercial use only** under the
+[BreezeBlue model licence](https://huggingface.co/BreezeBlue/Breeze-TTS-2/blob/main/LICENSE).
+Commercial use requires a separate licence from BreezeBlue; contact
+[contact@breeze.blue](mailto:contact@breeze.blue).
 
 For the native Qwen/Inflect paths, `qwentts.cpp` and `realtimetts-qwen-native` are
 MIT-licensed; Qwen 0.6B Base/tokenizer and Inflect Micro-v2/ONNX are

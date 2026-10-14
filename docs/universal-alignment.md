@@ -68,6 +68,12 @@ provisional results while PCM arrives. `prepare()` on `stream.alignment`
 constructs the selected fallback model ahead of synthesis; model-specific
 warmup remains the backend's responsibility.
 
+CPU adapters retain a supported transcript prefix and re-analyze an overlapping
+window (about 3.2 seconds of context, capped at 12 seconds per inference).
+Committed PCM is discarded from the analysis buffer. If no trustworthy anchor
+can advance within that window, alignment becomes unavailable and speech
+continues. Full-utterance custom aligners keep their existing protocol.
+
 The analysis queue and per-fragment audio storage are bounded. Defaults are
 eight pending fragments and 120 seconds per fragment. When either limit is
 exceeded, that fragment is marked unavailable and speech continues. Configure
@@ -98,9 +104,13 @@ unknown rewrite.
 
 `source` distinguishes native provider timings from model-derived timings.
 Model results may be `provisional` until the fragment is complete. A snapshot
-has `final`, `revision`, `duration` and `errors`; a final snapshot can be
-`ready`, `unavailable` or `cancelled`. Check status before treating an export
-as complete. SRT/VTT group the available word spans into readable cues; JSON
+has `final`, `revision`, `duration`, `coverage` and `errors`. Coverage is
+the fraction of normalized spoken symbols covered at the requested timestamp
+level; punctuation and whitespace are excluded. A final snapshot can be
+`ready`, `partial`, `unavailable` or `cancelled`. `final` means processing
+has ended. `ready` requires full coverage; a nonempty prefix is `partial`,
+and its available timestamps remain exportable. Coverage measures transcript
+mapping, not acoustic correctness or permission to stop speech. SRT/VTT group the available word spans into readable cues; JSON
 preserves all metadata, including characters and errors.
 
 `on_alignment` receives coalesced snapshots on a background notification

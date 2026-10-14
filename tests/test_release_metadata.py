@@ -118,6 +118,34 @@ def _run_isolated_import(source: str) -> None:
     assert result.returncode == 0, result.stderr or result.stdout
 
 
+def test_qwen_server_client_exports_without_native_binding():
+    _run_isolated_import(
+        """
+import sys
+from RealtimeTTS import QwenServerEngine, QwenServerVoice
+from RealtimeTTS.engines import QwenServerEngine as EngineExport, QwenServerVoice as VoiceExport
+assert QwenServerEngine is EngineExport
+assert QwenServerVoice is VoiceExport
+assert 'qwentts_cpp' not in sys.modules
+assert 'qwentts_cpp_cpu' not in sys.modules
+assert 'RealtimeTTS.engines.higgs_engine' not in sys.modules
+"""
+    )
+
+
+def test_qwen_client_extra_does_not_require_local_native_models(monkeypatch):
+    import runpy
+    import setuptools
+    from packaging.requirements import Requirement
+
+    captured = {}
+    monkeypatch.setattr(setuptools, "setup", lambda **kwargs: captured.update(kwargs))
+    runpy.run_path(str(ROOT / "setup.py"), run_name="qwen_client_metadata")
+    names = {Requirement(value).name for value in captured["extras_require"]["qwen-client"]}
+    assert {"requests", "pyaudio", "stream2sentence"} <= names
+    assert not any("qwen-native" in name for name in names)
+
+
 def test_root_voice_export_works_when_voice_is_imported_first():
     _run_isolated_import(
         """

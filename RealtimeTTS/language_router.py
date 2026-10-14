@@ -381,6 +381,18 @@ class FastTextLanguageDetector:
         self.last_detection = result
         return result
 
+    def language_probabilities(self, text: str) -> dict[str, float]:
+        """Return supported-language scores for bounded code-switch segmentation."""
+        model = self._load_model()
+        with self._predict_lock:
+            labels, probabilities = model.predict(" ".join(text.split()), k=-1)
+        scores: dict[str, float] = {}
+        for label, probability in zip(labels, probabilities):
+            language = FASTTEXT_TO_QWEN_LANGUAGE.get(self._fasttext_code(label))
+            if language:
+                scores[language] = scores.get(language, 0.0) + float(probability)
+        return scores
+
     def warmup(self, text: str = DEFAULT_WARMUP_TEXT) -> LanguageDetection:
         """Load the model and run one prediction before serving requests.
 

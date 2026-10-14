@@ -87,7 +87,7 @@
     "replacements": [
       [
         "\",\\\"ws_port\\\":\" + std::to_string(ws_port > 0 ? ws_port : 0) + \"}\",",
-        "\",\\\"native_checkpoints\\\":true,\\\"ws_port\\\":\" + std::to_string(ws_port > 0 ? ws_port : 0) + \"}\","
+        "\",\\\"native_checkpoints\\\":true,\\\"backend\\\":\\\"\" + std::string(model.backend.name()) +\n                        \"\\\",\\\"ws_port\\\":\" + std::to_string(ws_port > 0 ? ws_port : 0) + \"}\","
       ]
     ]
   },

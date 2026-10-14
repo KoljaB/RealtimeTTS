@@ -1,13 +1,15 @@
 """CPU Parakeet TDT matching with native subword timestamps.
 
-No forced decoding or text prompting: only an independently recognized prefix
-can advance. Word times inherit the model's 80 ms token resolution; these are
+No forced decoding or text prompting: timestamps require exact recognized
+words. Later matching words remain useful after a mismatch. Word times inherit
+the model's 80 ms token resolution; these are
 not separately measured character timestamps.
 """
 from __future__ import annotations
 
 from pathlib import Path
 import math
+from difflib import SequenceMatcher
 import re
 import unicodedata
 import numpy as np
@@ -22,22 +24,49 @@ def normalize_text(text):
 
 def match_tokens(text, tokens, timestamps, logprobs, *, frame_seconds=0.08,
                  offset_seconds=0.0, anchor_seconds=0.0):
-    """Match greedy recognized tokens; internal character spans retain token times."""
-    spoken = []
+    """Match complete recognized words while retaining native subword times."""
+    heard_words, current = [], []
+
+    def finish_word():
+        if current:
+            # Discard a whole word crossing the committed anchor. Keeping its
+            # suffix would turn a partial acoustic word into a false full match.
+            if current[0][1] >= anchor_seconds - 1e-6:
+                heard_words.append(tuple(current))
+            current.clear()
+
     for token, timestamp, logprob in zip(tokens, timestamps, logprobs):
         start = offset_seconds + float(timestamp)
-        if start < anchor_seconds - 1e-6:
-            continue
         score = math.exp(float(logprob))
-        spoken.extend((c, start, start + frame_seconds, score)
-                      for c in normalize_text(token) if not c.isspace())
-    expected = [(i, c) for i, c in enumerate(text) if not c.isspace()]
-    characters = []
-    for (index, character), (heard, start, end, score) in zip(expected, spoken):
-        if character != heard or score < 0.1:
-            break
-        characters.append(CharacterAlignment(character, start, end, index, score))
-    complete = bool(expected) and len(characters) == len(expected) == len(spoken)
+        # Normalize punctuation without stripping leading/trailing whitespace:
+        # that whitespace distinguishes "cat" from "caterpillar" and "a b".
+        token = unicodedata.normalize("NFKC", token).lower().replace("\u2019", "'")
+        for character in token:
+            if character.isalnum() or character == "'":
+                current.append((character, start, start + frame_seconds, score))
+            else:
+                finish_word()
+    finish_word()
+
+    expected = list(re.finditer(r"\S+", text))
+    heard_text = ["".join(c for c, *_ in word) for word in heard_words]
+    matcher = SequenceMatcher(
+        None, [word.group() for word in expected], heard_text, autojunk=False)
+    characters, words = [], []
+    for block in matcher.get_matching_blocks():
+        for position in range(block.size):
+            target = expected[block.a + position]
+            measured = heard_words[block.b + position]
+            if any(not math.isfinite(c[3]) or c[3] < 0.1 for c in measured):
+                continue
+            characters.extend(
+                CharacterAlignment(c, start, end, target.start() + i, score)
+                for i, (c, start, end, score) in enumerate(measured)
+            )
+            words.append(WordAlignment(
+                target.group(), measured[0][1], measured[-1][2],
+                min(c[3] for c in measured)))
+
     by_index = {c.index: c for c in characters}
     for index, character in enumerate(text):
         before, after = by_index.get(index - 1), by_index.get(index + 1)
@@ -46,12 +75,7 @@ def match_tokens(text, tokens, timestamps, logprobs, *, frame_seconds=0.08,
                 character, before.end_time, max(before.end_time, after.start_time),
                 index, min(before.score, after.score))
     characters = sorted(by_index.values(), key=lambda c: c.index)
-    words = []
-    for word in re.finditer(r"\S+", text):
-        covered = [by_index.get(i) for i in range(word.start(), word.end())]
-        if all(c is not None for c in covered):
-            words.append(WordAlignment(word.group(), covered[0].start_time,
-                                       covered[-1].end_time, min(c.score for c in covered)))
+    complete = bool(expected) and len(words) == len(expected)
     return characters, words, complete
 
 

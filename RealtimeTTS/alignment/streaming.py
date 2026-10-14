@@ -14,6 +14,8 @@ import time
 import numpy as np
 
 from .base import CharacterAlignment, WordAlignment
+from .evidence import CompletionPolicy, ctc_end_boundary, ctc_mean_log_margin
+from .windows import window_anchor
 
 
 MIN_COMPLETION_TAIL_SECONDS = 0.25
@@ -126,7 +128,7 @@ class StreamingTextAligner:
     def __init__(self, model_dir=None, *, backend=None, threads=2, language=None,
                  multilingual_model=None, multilingual_backend=None,
                  interval_seconds=0.16, window_seconds=12.0, tail_seconds=0.2,
-                 stall_seconds=None):
+                 stall_seconds=None, completion_policy=None):
         if multilingual_model is not None:
             from .onnx_parakeet import OnnxParakeetBackend
             multilingual_backend = OnnxParakeetBackend(multilingual_model, threads=threads)
@@ -141,6 +143,7 @@ class StreamingTextAligner:
         if interval_seconds <= 0 or window_seconds <= interval_seconds or tail_seconds <= 0:
             raise ValueError("Invalid streaming alignment intervals")
         self.backend = backend
+        self.completion_policy = completion_policy or CompletionPolicy()
         self.interval_seconds = float(interval_seconds)
         self.window_seconds = float(window_seconds)
         # Keep at least a quarter second after verified text for final consonants.
@@ -234,6 +237,14 @@ class StreamingAlignmentSession:
         self.characters = []
         self.words = []
         self.complete = False
+        self.completion_verified = False
+        self._candidate_end = None
+        self._candidate_updates = 0
+        self.completion_mean_log_margin = None
+        self.completion_final_log_margin = None
+        self.completion_boundary_observed = False
+        self.completion_tail_supported = True
+        self.completion_tail_observed = True
         self.error = None
         self.inference_ms = 0.0
         self.inference_calls = 0
@@ -268,11 +279,11 @@ class StreamingAlignmentSession:
         watermark = self.analyzed_seconds - self.backend.right_context_seconds
         stable_chars = [
             c for c in self.characters
-            if final or self.complete or c.end_time < watermark
+            if final or self.completion_verified or c.end_time < watermark
         ]
         stable_words = [
             w for w in self.words
-            if final or self.complete or w.end_time < watermark
+            if final or self.completion_verified or w.end_time < watermark
         ]
         new_chars = stable_chars[self._published_characters:]
         new_words = stable_words[self._published_words:]
@@ -287,6 +298,45 @@ class StreamingAlignmentSession:
                 "analyzed_seconds": self.analyzed_seconds, "complete": self.complete,
             })
         return stable_chars
+
+    def _verify_completion(self, final):
+        policy = self.owner.completion_policy
+        supported = (self.complete and self.completion_tail_supported
+                     and (final or self.completion_tail_observed) and policy.supports(
+                         self.characters, self.completion_mean_log_margin, self.completion_final_log_margin))
+        if supported:
+            endpoint = self.characters[-1].end_time
+            if self._candidate_end is not None and abs(endpoint - self._candidate_end) <= policy.endpoint_tolerance_seconds:
+                self._candidate_updates += 1
+            else:
+                self._candidate_updates = 1
+            self._candidate_end = endpoint
+            self.completion_verified = (
+                final or self.completion_boundary_observed
+                or self._candidate_updates >= policy.stable_updates
+                or self.analyzed_seconds - endpoint >= self.owner.tail_seconds
+            )
+        else:
+            self._candidate_end, self._candidate_updates = None, 0
+            self.completion_verified = False
+
+    def _publish_completion(self):
+        if not self.completion_verified:
+            return False
+        end_time = self.characters[-1].end_time
+        self.finish_reason = "verified_text_end"
+        if self.stop_on_completion:
+            self.stop_requested.set()
+        self._emit({
+            "type": "alignment_complete", "end_time": end_time,
+            "trim_end_time": end_time + self.owner.tail_seconds,
+            "stop_requested": self.stop_on_completion,
+            "analyzed_seconds": self.analyzed_seconds,
+            "finish_reason": self.finish_reason,
+            "completion_verified": True,
+            "mean_log_margin": self.completion_mean_log_margin,
+        })
+        return True
 
     def _run(self):
         processed = 0
@@ -314,27 +364,28 @@ class StreamingAlignmentSession:
                         # No new PCM is needed to release already measured timing
                         # held for right context at the end of this fragment.
                         if final:
+                            self._verify_completion(final=True)
                             self._publish_measured(final=True)
+                            if not self._publish_completion():
+                                self.finish_reason = "text_aligned_unverified" if self.complete else "partial_alignment"
                         return
                     audio = self._audio[:len(self._audio) - (available - end)].copy()
                     buffer_start = end - audio.size
                 # Re-evaluate overlapping audio: a non-streaming CTC model can
                 # revise its language/characters once more context is available.
-                offset, start, anchor = 0, 0, 0.0
-                context_start = end / self.sample_rate - 3.2
-                for match, word in zip(self.tracker.words, self.words):
-                    if word.start_time > context_start:
-                        break
-                    offset = match.start()
-                    anchor = word.start_time
-                    start = max(0, int((word.start_time - 0.08) * self.sample_rate))
+                offset, start, anchor = window_anchor(
+                    text, self.characters, self.sample_rate, step, end / self.sample_rate,
+                    minimum_probability=self.owner.completion_policy.minimum_token_probability,
+                )
                 if start < buffer_start:
                     raise RuntimeError("Alignment worker fell behind its audio window")
                 stride = max(1, round(step * self.sample_rate))
                 start -= start % stride
                 audio = audio[max(0, start - buffer_start):]
                 started = time.perf_counter()
-                verified_end_time = None
+                mean_log_margin = final_log_margin = None
+                boundary_observed = False
+                self.completion_tail_supported = self.completion_tail_observed = True
                 if hasattr(self.backend, "align"):
                     characters, words, complete = self.backend.align(
                         audio, self.sample_rate, text[offset:],
@@ -351,7 +402,30 @@ class StreamingAlignmentSession:
                         positions[keep], self.backend.blank_id, step)
                     complete = bool(characters) and len(characters) == len(text) - offset
                     if complete:
-                        verified_end_time = characters[-1].end_time
+                        mean_log_margin = ctc_mean_log_margin(
+                            emissions[keep], targets[offset:], characters, positions[keep])
+                        boundary_observed = ctc_end_boundary(
+                            emissions, positions, characters[-1].end_time,
+                            self.backend.blank_id, getattr(self.backend, "separator_id", None),
+                            minimum_probability=self.owner.completion_policy.minimum_boundary_probability,
+                            context_seconds=self.backend.right_context_seconds)
+                        # A delimiter or stable forced path cannot overrule an
+                        # audible suffix (cat/caterpillar, hand/handbook).
+                        endpoint = characters[-1].end_time
+                        tail = emissions[(positions >= endpoint - 1e-6)
+                                         & (positions <= endpoint + self.owner.tail_seconds + 1e-6)]
+                        tokens = tail.argmax(axis=1)
+                        continuation = ((tokens != self.backend.blank_id)
+                                        & (tokens != getattr(self.backend, "separator_id", None))
+                                        & (tail.max(axis=1) >= np.log(
+                                            self.owner.completion_policy.minimum_token_probability)))
+                        self.completion_tail_supported = not continuation.any()
+                        self.completion_tail_observed = (
+                            positions[-1] + step >= endpoint + self.owner.tail_seconds)
+                        final_start = text[offset:].rfind(" ") + 1
+                        final_log_margin = ctc_mean_log_margin(
+                            emissions[keep], targets[offset:],
+                            [c for c in characters if c.index >= final_start], positions[keep])
                 self.inference_ms += (time.perf_counter() - started) * 1000
                 self.inference_calls += 1
                 with self._condition:
@@ -368,22 +442,15 @@ class StreamingAlignmentSession:
                     if all(c is not None for c in covered):
                         self.words.append(WordAlignment(match.group(), covered[0].start_time,
                                                         covered[-1].end_time, min(c.score for c in covered)))
+                complete = complete and len(by_index) == len(text)
                 self.complete = complete
                 self.analyzed_seconds = end / self.sample_rate
+                self.completion_mean_log_margin = mean_log_margin
+                self.completion_final_log_margin = final_log_margin
+                self.completion_boundary_observed = boundary_observed
+                self._verify_completion(final)
                 stable_chars = self._publish_measured(final)
-                if complete and self.characters:
-                    end_time = (verified_end_time if verified_end_time is not None
-                                else self.characters[-1].end_time)
-                    self.finish_reason = "verified_text_end"
-                    if self.stop_on_completion:
-                        self.stop_requested.set()
-                    self._emit({
-                        "type": "alignment_complete", "end_time": end_time,
-                        "trim_end_time": end_time + self.owner.tail_seconds,
-                        "stop_requested": self.stop_on_completion,
-                        "analyzed_seconds": self.analyzed_seconds,
-                        "finish_reason": self.finish_reason,
-                    })
+                if self._publish_completion():
                     return
                 if stable_chars and stable_chars[-1].index > progress_index:
                     progress_index = stable_chars[-1].index
@@ -402,6 +469,7 @@ class StreamingAlignmentSession:
                     return
                 processed = end
                 if final:
+                    self.finish_reason = "text_aligned_unverified" if complete else "partial_alignment"
                     return
         except Exception as exc:
             self.error = str(exc)
@@ -411,6 +479,8 @@ class StreamingAlignmentSession:
             self._emit({
                 "type": "alignment_done", "complete": self.complete,
                 "cancelled": self._cancelled, "finish_reason": self.finish_reason,
+                "completion_verified": self.completion_verified,
+                "mean_log_margin": self.completion_mean_log_margin,
                 "inference_ms": self.inference_ms, "inference_calls": self.inference_calls,
                 "audio_seconds": self._end / self.sample_rate, "error": self.error,
             })

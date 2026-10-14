@@ -7,17 +7,17 @@ from typing import Optional, Tuple
 
 import numpy as np
 
-from .._audio_backend import pyaudio
+from .. import _audio_formats as formats
 
 
 _PCM_FORMATS = {
-    pyaudio.paFloat32: (np.float32, 4, 1.0),
-    pyaudio.paInt16: (np.int16, 2, 32768.0),
-    pyaudio.paInt32: (np.int32, 4, 2147483648.0),
-    pyaudio.paInt8: (np.int8, 1, 128.0),
-    pyaudio.paUInt8: (np.uint8, 1, 128.0),
+    formats.FLOAT32: (np.float32, 4, 1.0),
+    formats.INT16: (np.int16, 2, 32768.0),
+    formats.INT32: (np.int32, 4, 2147483648.0),
+    formats.INT8: (np.int8, 1, 128.0),
+    formats.UINT8: (np.uint8, 1, 128.0),
 }
-_CUSTOM_FORMAT = pyaudio.paCustomFormat
+_CUSTOM_FORMAT = formats.CUSTOM
 
 
 def is_alignable_stream_format(

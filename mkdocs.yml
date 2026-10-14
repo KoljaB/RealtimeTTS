@@ -88,6 +88,7 @@ nav:
   - Universal Alignment: universal-alignment.md
   - Forced Alignment: ctc-forced-alignment.md
   - Streaming Alignment: streaming-alignment.md
+  - Alignment Validation: alignment-validation.md
   - Pronunciation Exchanges: text-exchange.md
   - Feed And Playback: feed-and-playback.md
   - LLM Streaming: llm-streaming.md

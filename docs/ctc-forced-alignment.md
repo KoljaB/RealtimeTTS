@@ -47,9 +47,11 @@ for item in characters:
     print(item.index, item.character, item.start_time, item.end_time, item.score)
 ```
 
-The default file aligner uses torchaudio's `MMS_FA` forced-alignment bundle,
-normalizes text to the bundle's character inventory, and returns character
-timings relative to the start of the WAV file.
+The default file aligner uses torchaudio's `MMS_FA` acoustic model and
+tokenizer, then runs RealtimeTTS's vectorized CTC alignment. It does not call
+the deprecated/removed `torchaudio.functional.forced_align` or
+`bundle.get_aligner` APIs. The MMS model is unchanged. Character indices include
+normalized whitespace positions, and timings are relative to the WAV start.
 
 To force the omniASR CTC backend with VAD-gated non-blank tokens:
 

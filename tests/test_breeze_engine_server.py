@@ -190,6 +190,27 @@ def test_cancel_before_synthesize_does_not_start_native_work(monkeypatch):
     assert not sock.messages
 
 
+
+def test_server_can_start_without_a_reference_and_synthesize_voice_design(monkeypatch, tmp_path):
+    import uvicorn
+    import RealtimeTTS.breeze_server as module
+
+    engine = FakeBreeze()
+    monkeypatch.setattr(module, "BreezeEngine", lambda **kwargs: engine)
+    def serve(app, **kwargs):
+        with TestClient(app) as client:
+            assert client.get("/ready").status_code == 200
+            response = client.post("/v1/audio/speech", json={
+                "input": "A fresh start.", "voice": module.DESIGN_VOICE,
+                "instructions": "A calm adult narrator.", "response_format": "pcm",
+            })
+            assert response.status_code == 200, response.text
+            assert response.content == b"\xe8\x03" * 1200
+    monkeypatch.setattr(uvicorn, "run", serve)
+    module.main(["--voice-dir", str(tmp_path / "voices")])
+    assert engine.seen == [("A fresh start.", "A calm adult narrator.")]
+
+
 class FakeBreeze:
     direct_voice_control = instruction_control = True
     engine_name = "breeze"

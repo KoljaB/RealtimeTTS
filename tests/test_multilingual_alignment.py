@@ -33,11 +33,42 @@ def test_native_subwords_match_words_without_forcing_text(text, tokens):
 @pytest.mark.parametrize("tokens,logprobs", [
     ([" a"], [-.01]),                    # Missing final word.
     ([" a", " c"], [-.01, -.01]),        # Wrong word.
-    ([" a", " b", " b"], [-.01] * 3),    # Repeated unwanted word.
     ([" a", " b"], [-.01, -8]),          # Uncertain completion.
 ])
-def test_missing_wrong_extra_or_uncertain_speech_cannot_complete(tokens, logprobs):
+def test_missing_wrong_or_uncertain_speech_cannot_complete(tokens, logprobs):
     assert not match_tokens("a b", tokens, np.arange(len(tokens)) * .16, logprobs)[2]
+
+
+@pytest.mark.parametrize("text,tokens", [
+    ("cat", [" caterpillar"]),
+    ("cat", [" bobcat"]),
+    ("he", [" the"]),
+    ("cat", [" cat", "er", "pillar"]),
+    ("a b", [" ab"]),
+    ("ab", [" a", " b"]),
+    ("cat dog", [" caterpillar", " dog"]),
+])
+def test_word_substrings_and_lost_boundaries_cannot_complete(text, tokens):
+    characters, words, complete = match_tokens(
+        text, tokens, np.arange(len(tokens)) * .16, [-.01] * len(tokens))
+    assert not complete
+    assert [w.word for w in words] == (["dog"] if text == "cat dog" else [])
+    assert all(c.index >= 4 for c in characters) if text == "cat dog" else not characters
+
+
+def test_subword_word_boundaries_survive_punctuation_and_surplus():
+    _, words, complete = match_tokens(
+        "understood cat", [" under", "stood", ",", " cat", " extra"],
+        [0, .08, .16, .24, .40], [-.01] * 5)
+    assert complete and [w.word for w in words] == ["understood", "cat"]
+    assert words[0].start_time == 0 and words[0].end_time == pytest.approx(.16)
+    assert words[1].end_time == pytest.approx(.32)
+
+
+def test_anchor_never_turns_a_recognized_word_suffix_into_a_full_word():
+    characters, words, complete = match_tokens(
+        "cat", [" bob", "cat"], [0, .16], [-.01] * 2, anchor_seconds=.16)
+    assert not complete and not characters and not words
 
 
 class MultilingualFixture:

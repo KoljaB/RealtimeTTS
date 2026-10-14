@@ -103,8 +103,11 @@ def build_argument_parser():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=18084)
-    parser.add_argument("--worker-url", default="http://127.0.0.1:8137")
-    parser.add_argument("--worker-ws-url", default="ws://127.0.0.1:8138")
+    worker = parser.add_mutually_exclusive_group()
+    worker.add_argument("--model", type=Path,
+                        help="Start the optional packaged worker with a local Q8_0 GGUF")
+    worker.add_argument("--worker-url", help="Connect to an existing native worker")
+    parser.add_argument("--worker-ws-url")
     parser.add_argument("--voice", default="sl_ref1")
     parser.add_argument("--voice-reference", type=Path)
     parser.add_argument("--voice-reference-text")
@@ -127,6 +130,7 @@ def build_argument_parser():
 
 def main(argv=None):
     import os
+    from contextlib import nullcontext
     import uvicorn
     from .qwen_server import _is_loopback_host
     args = build_argument_parser().parse_args(argv)
@@ -135,33 +139,43 @@ def main(argv=None):
         raise SystemExit("Non-loopback Breeze binding requires --api-key-env with a nonempty key")
     if bool(args.voice_reference) != bool(args.voice_reference_text):
         raise SystemExit("Pass both --voice-reference and --voice-reference-text")
-    print("Connecting to the local Breeze GPU worker...", flush=True)
-    engine = BreezeEngine(base_url=args.worker_url, ws_url=args.worker_ws_url,
-                          cfg_scale=args.cfg_scale, seed=args.seed,
-                          max_new_tokens=args.max_new_tokens,
-                          reference_prefix_cache=args.reference_prefix_cache,
-                          alignment_model=args.alignment_model,
-                          alignment_language=args.alignment_language,
-                          alignment_threads=args.alignment_threads)
-    server = BreezeHttpServer(
-        engine, voice_dir=args.voice_dir, api_key=key,
-        language_detector=(FastTextLanguageDetector(args.language_id_model)
-                           if args.language_id_model is not None else None),
-        diagnostics_worker_state=args.diagnostics_worker_state,
-        diagnostics_model=args.diagnostics_model,
-        startup_warmup_voice=None if args.no_warmup else args.voice,
-        startup_warmup_routes=False,
-    )
-    if args.voice_reference:
-        print(f"Registering reference voice {args.voice}...", flush=True)
-        server.register_voice({
-            "name": args.voice, "ref_text": args.voice_reference_text,
-            "wav_b64": base64.b64encode(args.voice_reference.read_bytes()).decode("ascii"),
-        })
-    if server.registry.get(args.voice) is None:
-        raise SystemExit("Register the starting voice with --voice-reference and --voice-reference-text")
-    print(f"Starting Breeze at http://{args.host}:{args.port}; warming before readiness...", flush=True)
-    uvicorn.run(create_app(server), host=args.host, port=args.port, log_level="info")
+    if args.model and args.worker_ws_url:
+        raise SystemExit("--model cannot be combined with --worker-ws-url")
+    if args.model:
+        from .breeze_worker import local_worker
+        worker = local_worker(args.model, args.voice_dir / "native")
+    else:
+        worker = nullcontext((args.worker_url or "http://127.0.0.1:8137",
+                              args.worker_ws_url or "ws://127.0.0.1:8138"))
+    with worker as (worker_url, worker_ws_url):
+        print("Connecting to the local Breeze GPU worker...", flush=True)
+        engine = BreezeEngine(base_url=worker_url, ws_url=worker_ws_url,
+                              cfg_scale=args.cfg_scale, seed=args.seed,
+                              max_new_tokens=args.max_new_tokens,
+                              reference_prefix_cache=args.reference_prefix_cache,
+                              alignment_model=args.alignment_model,
+                              alignment_language=args.alignment_language,
+                              alignment_threads=args.alignment_threads)
+        server = BreezeHttpServer(
+            engine, voice_dir=args.voice_dir, api_key=key,
+            language_detector=(FastTextLanguageDetector(args.language_id_model)
+                               if args.language_id_model is not None else None),
+            diagnostics_worker_state=args.diagnostics_worker_state,
+            diagnostics_model=args.diagnostics_model,
+            startup_warmup_voice=None if args.no_warmup else args.voice,
+            startup_warmup_routes=False,
+        )
+        if args.voice_reference:
+            print(f"Registering reference voice {args.voice}...", flush=True)
+            server.register_voice({
+                "name": args.voice, "ref_text": args.voice_reference_text,
+                "wav_b64": base64.b64encode(args.voice_reference.read_bytes()).decode("ascii"),
+            })
+        if server.registry.get(args.voice) is None:
+            server.startup_warmup_voice = None
+            print("Register a reference voice or use Voice Design in Studio.", flush=True)
+        print(f"Starting Breeze at http://{args.host}:{args.port}; warming before readiness...", flush=True)
+        uvicorn.run(create_app(server), host=args.host, port=args.port, log_level="info")
 
 
 if __name__ == "__main__":

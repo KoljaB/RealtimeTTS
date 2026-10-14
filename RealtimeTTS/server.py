@@ -26,7 +26,7 @@ from typing import Any, Optional
 
 import numpy as np
 
-from ._audio_backend import pyaudio
+from . import _audio_formats as formats
 from .alignment.audio import audio_bytes_to_mono_float32
 from .alignment.controller import AlignmentController
 from .alignment.timeline import AlignmentConfig
@@ -126,36 +126,65 @@ def _pcm_to_wav(pcm: bytes) -> bytes:
 
 
 class _OutboundBuffer:
-    """One bounded FIFO for all WebSocket events and PCM chunks."""
+    """Bounded FIFO with one overflow slot per terminal event type."""
+
+    _TERMINAL_EVENTS = frozenset({"done", "error", "cancelled", "alignment_done"})
 
     def __init__(self, cancelled: threading.Event, limit: int = MAX_EVENT_QUEUE + MAX_AUDIO_QUEUE_CHUNKS):
         self._cancelled = cancelled
-        self._queue: queue.Queue[tuple[str, Any]] = queue.Queue(maxsize=limit)
-
-    def _put(self, kind: str, payload: Any) -> bool:
-        while not self._cancelled.is_set():
-            try:
-                self._queue.put((kind, payload), timeout=0.05)
-                return True
-            except queue.Full:
-                continue
-        return False
+        self._limit = max(1, int(limit))
+        self._items: deque[tuple[str, Any]] = deque()
+        self._condition = threading.Condition()
 
     def event(self, payload: dict[str, Any]) -> bool:
-        try:
-            self._queue.put(("event", dict(payload)), timeout=0.2)
+        event = dict(payload)
+        with self._condition:
+            if event.get("type") in self._TERMINAL_EVENTS:
+                # Terminal events must not block the event loop or be lost on
+                # cancellation. Coalesce duplicates only under queue pressure
+                # so the reserve stays bounded without dropping queued PCM.
+                if len(self._items) >= self._limit:
+                    for index, (kind, pending) in enumerate(self._items):
+                        if kind == "event" and pending.get("type") == event["type"]:
+                            self._items[index] = ("event", event)
+                            return True
+            else:
+                deadline = time.monotonic() + 0.2
+                while len(self._items) >= self._limit:
+                    remaining = deadline - time.monotonic()
+                    if remaining <= 0:
+                        return False
+                    self._condition.wait(remaining)
+            self._items.append(("event", event))
+            self._condition.notify_all()
             return True
-        except queue.Full:
-            return False
 
     def audio(self, payload: bytes) -> bool:
-        return self._put("audio", bytes(payload))
+        payload = bytes(payload)
+        with self._condition:
+            while len(self._items) >= self._limit and not self._cancelled.is_set():
+                self._condition.wait(0.05)
+            if self._cancelled.is_set():
+                return False
+            self._items.append(("audio", payload))
+            self._condition.notify_all()
+            return True
 
     def get(self, timeout: float = 0.1) -> tuple[str, Any]:
-        return self._queue.get(timeout=timeout)
+        deadline = time.monotonic() + timeout
+        with self._condition:
+            while not self._items:
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    raise queue.Empty
+                self._condition.wait(remaining)
+            item = self._items.popleft()
+            self._condition.notify_all()
+            return item
 
     def empty(self) -> bool:
-        return self._queue.empty()
+        with self._condition:
+            return not self._items
 
 
 class _BoundedAudioSink:
@@ -401,7 +430,7 @@ class _GenericSession:
         self.original_timings = None
         self.decode_queue: Optional[_DecodeQueue] = None
         self.output_format: tuple[int, int, int] = (
-            pyaudio.paInt16, 1, OUTPUT_SAMPLE_RATE
+            formats.INT16, 1, OUTPUT_SAMPLE_RATE
         )
         self.error: Optional[ServerError] = None
         self._worker = threading.Thread(
@@ -411,7 +440,7 @@ class _GenericSession:
         )
         self._engine_locked = False
         self._ended = False
-        self._pause_lock = threading.Lock()
+        self._lifecycle_lock = threading.Lock()
 
     def emit(self, event: dict[str, Any]) -> None:
         event.setdefault("session_id", self.session_id)
@@ -450,15 +479,19 @@ class _GenericSession:
                 continue
 
     def cancel(self) -> None:
-        if self.cancelled.is_set():
-            return
-        self.cancelled.set()
-        stop = getattr(self.engine, "stop", None)
-        if callable(stop):
-            try:
-                stop()
-            except Exception:
-                LOGGER.warning("Generic engine stop failed", exc_info=True)
+        with self._lifecycle_lock:
+            if self.cancelled.is_set():
+                return
+            self.cancelled.set()
+            # A rejected or completed session must not stop another request.
+            if not self._engine_locked:
+                return
+            stop = getattr(self.engine, "stop", None)
+            if callable(stop):
+                try:
+                    stop()
+                except Exception:
+                    LOGGER.warning("Generic engine stop failed", exc_info=True)
 
     def pause(self) -> bool:
         method = getattr(self.engine, "pause", None)
@@ -533,9 +566,10 @@ class _GenericSession:
             self.emit({"type": "alignment", **fragment})
 
     def _prepare_engine(self) -> None:
-        if not self.host._engine_lock.acquire(blocking=False):
-            raise ServerError(429, "rate_limit_error", "engine is busy")
-        self._engine_locked = True
+        with self._lifecycle_lock:
+            if not self.host._engine_lock.acquire(blocking=False):
+                raise ServerError(429, "rate_limit_error", "engine is busy")
+            self._engine_locked = True
         engine = self.engine
         self.original_queue = engine.queue
         self.original_timings = getattr(engine, "timings", _BoundedTimingSink())
@@ -553,10 +587,10 @@ class _GenericSession:
         else:
             engine.queue = self.audio
             engine.timings = self.timings
-            if input_format[0] == pyaudio.paCustomFormat:
+            if input_format[0] == formats.CUSTOM:
                 self.decode_queue = _DecodeQueue(self.audio, input_format)
                 engine.queue = self.decode_queue
-                self.output_format = (pyaudio.paFloat32, 1, OUTPUT_SAMPLE_RATE)
+                self.output_format = (formats.FLOAT32, 1, OUTPUT_SAMPLE_RATE)
             else:
                 self.output_format = input_format
 
@@ -644,7 +678,8 @@ class _GenericSession:
         fragments = self._alignment_for_snapshot(snapshot)
         self.emit({
             "type": "alignment_done",
-            "complete": bool(snapshot.final and not snapshot.errors),
+            "complete": bool(snapshot.final and snapshot.status == "ready" and not snapshot.errors),
+            "coverage": snapshot.coverage,
             "status": snapshot.status,
             "final": bool(snapshot.final),
             "revision": snapshot.revision,
@@ -692,9 +727,10 @@ class _GenericSession:
             with suppress(Exception):
                 self.controller.close()
         self.audio_done.set()
-        if self._engine_locked:
-            self.host._engine_lock.release()
-            self._engine_locked = False
+        with self._lifecycle_lock:
+            if self._engine_locked:
+                self._engine_locked = False
+                self.host._engine_lock.release()
 
     def _run(self) -> None:
         try:
@@ -1119,6 +1155,10 @@ def create_app(
             monitor = asyncio.create_task(_monitor_http_disconnect(request, session))
             try:
                 pcm = await asyncio.to_thread(session.collect_audio)
+            except asyncio.CancelledError:
+                session.cancel()
+                await asyncio.to_thread(session.done.wait, 1.0)
+                raise
             finally:
                 monitor.cancel()
                 with suppress(asyncio.CancelledError):

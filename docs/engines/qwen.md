@@ -50,6 +50,63 @@ finally:
 Defaults are Qwen3-TTS 12 Hz 0.6B Base, Q8_0, one persistent native context,
 and 24 kHz mono signed 16-bit output.
 
+## Connect to a running Qwen server
+
+`QwenServerEngine` streams speech directly from either the CPU or GPU Qwen
+server. The client receives 24 kHz mono PCM and needs no local model or native
+Qwen binding. Install the local checkout with `pip install ".[qwen-client,speed]"`
+for playback with inline speed tags.
+
+```python
+import os
+from RealtimeTTS import QwenServerEngine, TextToAudioStream
+
+engine = QwenServerEngine(
+    "http://your-linux-host:18085",
+    voice="alex",  # A voice already registered on that server.
+    api_key=os.getenv("REALTIMETTS_API_KEY"),
+)
+try:
+    TextToAudioStream(engine, speed_tags=True).feed(iter(
+        "Normal speech. [speed=0.7]Slower. [speed=1.4]Faster. [speed=reset]Normal."
+    )).play()
+finally:
+    engine.shutdown()
+```
+
+`engine.get_voices()` lists server voices; `engine.set_voice("name")` selects one.
+Bearer authentication uses the request header. HTTP timeouts are finite.
+Speed tags are handled locally and reach playback, audio callbacks and WAV output.
+
+For a mixed-language tutor, enable native compact language controls:
+
+~~~python
+TextToAudioStream(
+    engine, language_tags=True,
+    language_voices={"es": "registered-spanish-voice"},
+).feed(iter(
+    "Listen: <es slow>Vamos al parque.</es> "
+    "Now normally: <es>Vamos al parque.</es>"
+)).play()
+~~~
+
+The engine's starting language/voice is the baseline. The optional mapping
+selects a registered language-specific voice; existing server language routes
+also work without a client mapping. Language-only changes do not synthesize a
+warmup. See [inline language controls](../en/usage.md#inline-language-controls)
+for numeric speed forms, nesting, restoration and supported codes. This feature
+belongs to TextToAudioStream; raw HTTP/WebSocket text callers must use their
+protocol's controls rather than expecting markup parsing on the server.
+
+This HTTP client synthesizes each text fragment through `/v1/audio/speech`.
+Stopping closes the active response so the server can cancel synthesis.
+Server-side pause acknowledgements, alignment events and incremental-text
+WebSocket controls belong to the separate WebSocket API.
+
+The compact `python -m tests.speed_test` example accepts `QWEN_TTS_SERVER`,
+`QWEN_TTS_VOICE` and `REALTIMETTS_API_KEY` through the environment. It keeps the
+standard `nltk+rule-based` tokenizer and prints progress immediately.
+
 ## Emotional showcase (the video command)
 
 The advertised `tests/faster_qwen_emotions.py` entry point is restored in
@@ -758,6 +815,51 @@ engine = QwenEngine(
 ```
 
 The hashes of explicit GGUF files become part of generated voice-cache keys.
+
+## Languages within one streamed response
+
+Qwen's WebSocket text events accept an optional `language` field. Check
+`features.per_text_language` in `/v1/capabilities` before using it. Codes such as
+`en` and `es`, or full Qwen language names, are accepted. The field is sticky
+until another text event changes it.
+
+```json
+{"type":"config","voice":"mira_v5_spark","language":"Auto","response_format":"pcm"}
+{"type":"text","text":"The word for tree is "}
+{"type":"text","text":"el árbol","language":"es"}
+{"type":"text","text":". Can you repeat that?","language":"Auto"}
+{"type":"end"}
+```
+
+A language change flushes the preceding text immediately, even without sentence
+punctuation. Same-language events continue the existing fragment. Each explicit
+span uses that language and the configured matching voice route; no language
+detector or additional model decision is needed for it. Returning to Auto restores
+the response's original detected language. If the response begins with an explicit
+span, the first later Auto span establishes that default. Lookahead is limited to
+the current language run, so queued translations cannot bias the initial choice.
+
+Existing clients retain the original one-language-per-response Auto behavior.
+Short translated phrases should use explicit language metadata rather than depend
+on automatic identification. Unsupported languages fail validation. Breeze does
+not advertise this Qwen capability.
+
+### Optional tutor fallback for omitted controls
+
+A WebSocket config may add `"mixed_language": "es"` or `"pt"` when
+`language` is `Auto` and `features.mixed_language_fallback` is true. This
+requires the existing fastText Qwen router; HTTP synthesis and direct-voice
+engines reject the option. It is disabled by default.
+
+The server examines only fragments already released by stream2sentence, using
+the target language and surrounding English/German context to recover likely
+foreign spans. Explicit per-text language controls remain authoritative. There
+is no added input wait, lookahead, or LLM request. Classification work is bounded
+to fragments of 2,048 characters / 128 words and windows of at most six words.
+
+This is a safety net, not guaranteed language identification: short shared words
+and some Portuguese phrases remain ambiguous. Keep explicit controls on every
+teaching example, especially individual articles and repetitions.
 
 ## Warmup, threading, cancellation, and shutdown
 

@@ -10,14 +10,10 @@ from tests.test_breeze_engine_server import Socket, make_engine
 
 @pytest.mark.parametrize("text,classification,has_wav", [
     ("empty", "no_pcm", False), ("silent", "all_zero", True),
-    ("quiet", "below_audibility_threshold", True),
 ])
-def test_unusable_audio_writes_reproduction_and_retains_quiet_pcm(tmp_path, text, classification, has_wav):
+def test_unusable_audio_writes_reproduction_and_retains_silent_pcm(tmp_path, text, classification, has_wav):
     class Engine(FakeEngine):
         def synthesize(self, text):
-            if text == "quiet":
-                self.queue.put(b"\x0a\x00" * 200)
-                return True
             return super().synthesize(text)
         def synthesis_diagnostics(self):
             return {"blocks": [{"text": text, "instruction": "Whispering",
@@ -38,10 +34,7 @@ def test_unusable_audio_writes_reproduction_and_retains_quiet_pcm(tmp_path, text
     assert record["request"]["input"] == text
     assert record["request_id"] == state.request_id
     assert record["engine"]["blocks"][0]["parameters"]["seed"] == 44
-    assert record["audio"]["audibility_mean_abs_threshold"] == 80
-    if text == "quiet":
-        assert record["audio"]["mean_abs"] == 10
-        assert record["audio"]["saved_bytes"] == 400
+    assert record["audio"]["signal_detection"] == "any_nonzero_pcm_sample"
 
 
 def test_native_diagnostics_keep_prefix_seed_directions_and_commands(monkeypatch):

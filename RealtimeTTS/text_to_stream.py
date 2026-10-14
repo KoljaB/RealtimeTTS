@@ -14,7 +14,12 @@ Converts text into real-time audio using one or more TTS engines. Key features i
 
 from .threadsafe_generators import CharIterator, AccumulatingThreadSafeGenerator
 from .stream_player import StreamPlayer, AudioConfiguration
-from typing import Union, Iterator, List
+from .audio_tempo import TempoProcessor, SpeedChange, validate_speed, DecodedAudioQueue
+from .tempo_timeline import TempoTimeline
+from .inline_markup import InlineMarkupParser
+from itertools import groupby
+from dataclasses import replace
+from typing import Union, Iterator, List, Optional
 from .alignment.audio import is_alignable_stream_format
 from .alignment.capture import CapturedAudioSegment, CapturingAudioQueue
 from .engines import BaseEngine, TimingInfo
@@ -66,6 +71,10 @@ class TextToAudioStream:
         alignment=None,
         on_alignment=None,
         on_character_spoken=None,
+        speed: float = 1.0,
+        speed_tags: bool = False,
+        language_tags: bool = False,
+        language_voices=None,
     ):
         """
         Initializes the TextToAudioStream.
@@ -190,6 +199,24 @@ class TextToAudioStream:
 
             on_character_spoken (callable, optional):
                 Receives measured character spans at their playback positions.
+
+            speed (float, optional):
+                Initial pitch-preserving output tempo, from 0.25 to 4.0.
+                Non-default speeds require realtimetts[speed].
+
+            speed_tags (bool, optional):
+                Enable incremental speed controls and scopes in bracket or
+                XML-style notation, e.g. <speed factor="0.85">...</speed>.
+                Configured voice tag delimiters also work. Defaults to False.
+
+            language_tags (bool, optional):
+                Enable scoped language controls such as <es>...</es>,
+                <es slow>...</es> and <es fast>...</es>. Requires an engine
+                implementing set_language. Also enables inline speed controls.
+
+            language_voices (mapping, optional):
+                Optional ISO language-code to engine voice mapping. Language
+                scopes restore the previous voice, language and speed.
         """
         self.log_characters = log_characters
         self.on_text_stream_start = on_text_stream_start
@@ -206,6 +233,24 @@ class TextToAudioStream:
         self.tokenizer = tokenizer
         self.language = language
         self.global_muted = muted
+        self._speed = validate_speed(speed)
+        self.language_tags = bool(language_tags)
+        self.language_voices = dict(language_voices or {})
+        self.speed_tags = bool(speed_tags or language_tags)
+        self._play_default_language = language
+        self._synthesis_language = language
+        self._language_baselines = {}
+        self._inline_voice_baseline = None
+        self._language_error = None
+        self._synthesis_speed = self._speed
+        self._play_default_speed = self._speed
+        self._inline_markup_parser = None
+        self.tempo_timeline = TempoTimeline(self._speed)
+        self._player_output_offset = 0.0
+        self._decoded_audio_queue = None
+        self._speed_error = None
+        self._on_alignment_callback = on_alignment
+        self._on_character_spoken_callback = on_character_spoken
         self.frames_per_buffer = frames_per_buffer
         self.playout_chunk_size = playout_chunk_size
         self.align_words = bool(align_words)
@@ -223,8 +268,9 @@ class TextToAudioStream:
             alignment, aligner=word_aligner, language=language
         )
         self.alignment = (
-            AlignmentController(alignment_config, on_update=on_alignment,
-                                on_word=on_word, on_character=on_character_spoken)
+            AlignmentController(alignment_config, on_update=self._on_alignment_update,
+                                on_word=self._on_aligned_word,
+                                on_character=self._on_aligned_character)
             if alignment_config is not None else None
         )
         self._alignment_binding = None
@@ -278,22 +324,29 @@ class TextToAudioStream:
 
         # Extract stream information (format, channels, rate) from the engine
         format, channels, rate = self.engine.get_stream_info()
+        self._decoded_audio_queue = None
         if self.alignment is not None:
             self._alignment_binding = self.alignment.bind(self.engine)
             format, channels, rate = self._alignment_binding.output_format
             self._alignment_player_offset = self.alignment.snapshot().duration
+        elif format == pyaudio.paCustomFormat and (self.speed_tags or self._speed != 1.0 or isinstance(self.engine.queue, DecodedAudioQueue)):
+            # Decode once before both tempo processing and output callbacks.
+            decoder_queue = self.engine.queue if isinstance(self.engine.queue, DecodedAudioQueue) else DecodedAudioQueue(self.engine.queue, rate if rate > 0 else 24000)
+            self.engine.queue = decoder_queue
+            self._decoded_audio_queue = decoder_queue
+            format, channels, rate = decoder_queue.output_format
 
         self._alignment_capture_queue = None
         if self.alignment is None and self._should_capture_alignment_audio(format, channels, rate):
-            if isinstance(self.engine.queue, CapturingAudioQueue):
-                self._alignment_capture_queue = self.engine.queue
+            capture_input = self._decoded_audio_queue.wrapped if self._decoded_audio_queue else self.engine.queue
+            if isinstance(capture_input, CapturingAudioQueue):
+                self._alignment_capture_queue = capture_input
             else:
-                self._alignment_capture_queue = CapturingAudioQueue(
-                    self.engine.queue,
-                    format,
-                    channels,
-                    rate,
-                )
+                self._alignment_capture_queue = CapturingAudioQueue(capture_input, format, channels, rate)
+            if self._decoded_audio_queue is not None:
+                # Capture canonical PCM, rather than the incoming MP3 packets.
+                self._decoded_audio_queue.wrapped = self._alignment_capture_queue
+            else:
                 self.engine.queue = self._alignment_capture_queue
 
         # An engine can opt in when stream2sentence's one-time import would
@@ -316,12 +369,22 @@ class TextToAudioStream:
             playout_chunk_size=self.playout_chunk_size,
         )
 
+        playback_queue = self.engine.queue
+        if self._alignment_binding is not None:
+            playback_queue = self._alignment_binding.original_queue
+        elif self._decoded_audio_queue is not None:
+            playback_queue = self._decoded_audio_queue.wrapped
+        if isinstance(playback_queue, CapturingAudioQueue):
+            playback_queue = playback_queue._queue
+        self._player_output_offset = self.tempo_timeline.output_duration
         self.player = StreamPlayer(
-            self.engine.queue,
+            playback_queue,
             self.engine.timings,
             config,
             on_playback_start=self._on_audio_stream_start,
             on_word_spoken=None if self.alignment is not None else self._on_word_spoken,
+            speed=self._synthesis_speed,
+            tempo_timeline=self.tempo_timeline,
         )
         if self.alignment is not None:
             self.player.on_audio_progress = self._on_alignment_progress
@@ -332,6 +395,15 @@ class TextToAudioStream:
             self.player.set_volume(self._volume)
 
         logging.info(f"loaded engine {self.engine.engine_name}")
+
+    @property
+    def speed(self) -> float:
+        """Default speed for the next play operation; inline tags override it."""
+        return self._speed
+
+    @speed.setter
+    def speed(self, value: float):
+        self._speed = validate_speed(value)
 
     @property
     def volume(self) -> float:
@@ -623,6 +695,33 @@ class TextToAudioStream:
                 logging.warning("play() called while already playing audio, skipping")
                 return
             self._alignment_generation += 1
+            try:
+                if (self.engine.get_stream_info()[0] == pyaudio.paCustomFormat
+                        and self._decoded_audio_queue is None and self.alignment is None
+                        and (self.speed_tags or self._speed != 1.0)):
+                    self.load_engine(self.engine)
+            except Exception:
+                self.play_lock.release()
+                raise
+            self._language_baselines = {}
+            self._inline_voice_baseline = (self.active_voice_tag, self.active_voice)
+            self._language_error = None
+            if self.language_tags:
+                try:
+                    self._remember_inline_language_engine()
+                    self._play_default_language = self.engine.get_language()
+                    self._synthesis_language = self._play_default_language
+                except Exception:
+                    self.play_lock.release()
+                    raise
+            self._synthesis_speed = self._speed
+            self._play_default_speed = self._speed
+            self._inline_markup_parser = None
+            self._speed_error = None
+            self.tempo_timeline.reset(self._speed)
+            self._player_output_offset = 0.0
+            self.player.speed = self._speed
+            self.player.seconds_played = 0.0
             self.engine.reset_audio_duration()
             if self.alignment is not None:
                 self.alignment.reset()
@@ -676,19 +775,40 @@ class TextToAudioStream:
                     self.player.start()
                     self.player.on_audio_chunk = self._on_audio_chunk
 
-                # Directly synthesize audio using the character iterator
+                # Control boundaries end only this synthesis segment, not playback.
                 self.char_iter.log_characters = self.log_characters
+                while True:
+                    source = self.char_iter
+                    for is_text, actions in groupby(
+                        self._iter_inline_actions(source), lambda item: item[0] == "text"
+                    ):
+                        if abort_event.is_set():
+                            break
+                        if not is_text:
+                            for action_type, action_value in actions:
+                                self._apply_inline_action(action_type, action_value)
+                            continue
+                        characters = (value for _, value in actions)
+                        if self._decoded_audio_queue is not None:
+                            self._decoded_audio_queue.begin()
+                        if self._alignment_binding is not None:
+                            self._alignment_binding.begin("", dynamic=True)
+                            success = False
+                            try:
+                                success = self.engine.synthesize(self._aligned_input(characters)) is not False
+                            finally:
+                                self._alignment_binding.finish(success=success)
+                        else:
+                            try:
+                                self.engine.synthesize(characters)
+                            finally:
+                                if self._decoded_audio_queue is not None:
+                                    self._finish_decoded_audio()
 
-                if self._alignment_binding is not None:
-                    self._alignment_binding.begin("", dynamic=True)
-                    success = False
-                    try:
-                        success = self.engine.synthesize(self._aligned_input(self.char_iter)) is not False
-                    finally:
-                        self._alignment_binding.finish(success=success)
-                else:
-                    self.engine.synthesize(self.char_iter)
-
+                    if (not self.language_tags or abort_event.is_set()
+                            or self.char_iter is source or not self.char_iter.items
+                            or self.char_iter.immediate_stop.is_set()):
+                        break
             finally:
 
                 try:
@@ -717,14 +837,18 @@ class TextToAudioStream:
                 # Accumulate the generated text and reset the character iterators
                 self.generated_text += self.char_iter.iterated_text
 
-                self._create_iterators()
+                if not self.language_tags or self.char_iter.immediate_stop.is_set():
+                    self._create_iterators()
 
                 if is_external_call:
+                    self._restore_inline_language()
                     self._finish_alignment_run()
                     self._alignment_generation += 1
                     self.is_playing_flag = False
                     self.play_lock.release()
         else:
+            worker_thread = None
+            sentence_queue = queue.Queue()
             try:
                 # Start the audio player to handle playback
                 if self.player:
@@ -733,8 +857,7 @@ class TextToAudioStream:
 
                 # Generate sentences from the characters
                 s2s = _get_stream2sentence()
-                generate_sentences = s2s.generate_sentences(
-                    self.thread_safe_char_iter,
+                splitter_options = dict(
                     context_size=context_size,
                     context_size_look_overhead=context_size_look_overhead,
                     minimum_sentence_length=minimum_sentence_length,
@@ -754,15 +877,16 @@ class TextToAudioStream:
                     debug=debug,
                 )
 
-                # Create the synthesis chunk generator with the given sentences
-                chunk_generator = self._synthesis_chunk_generator(
-                    generate_sentences, buffer_threshold_seconds, log_synthesized_text
+                # Each control boundary flushes preceding text through the splitter.
+                # Ordinary text remains lazy, including character-at-a-time input.
+                chunk_generator = self._iter_synthesis_actions(
+                    self.thread_safe_char_iter, s2s, splitter_options,
+                    buffer_threshold_seconds, log_synthesized_text,
                 )
 
-                sentence_queue = queue.Queue()
                 sentence_count = 0
 
-                def synthesize_worker():
+                def synthesize_worker_loop():
                     nonlocal sentence_count
                     while not abort_event.is_set():
                         sentence_item = sentence_queue.get()
@@ -770,6 +894,18 @@ class TextToAudioStream:
                             break
 
                         action_type, action_value = sentence_item
+                        if action_type in ("speed", "language"):
+                            try:
+                                self._apply_inline_action(action_type, action_value)
+                            except Exception as exc:
+                                if action_type == "language":
+                                    self._language_error = exc
+                                else:
+                                    self._speed_error = exc
+                                abort_event.set()
+                            finally:
+                                sentence_queue.task_done()
+                            continue
                         if action_type == "voice":
                             tag, voice = action_value
                             try:
@@ -778,6 +914,9 @@ class TextToAudioStream:
                                 logging.warning(
                                     f'failed to switch voice for tag "{tag}": {e}'
                                 )
+                                if self.language_tags:
+                                    self._language_error = e
+                                    abort_event.set()
                             finally:
                                 sentence_queue.task_done()
                             continue
@@ -817,9 +956,13 @@ class TextToAudioStream:
                                         self._alignment_binding.finish(success=bool(success))
                                 else:
                                     capture_started = self._start_alignment_capture(sentence)
+                                    if self._decoded_audio_queue is not None:
+                                        self._decoded_audio_queue.begin()
                                     try:
                                         success = self.engine.synthesize(sentence, sentence_count)
                                     finally:
+                                        if self._decoded_audio_queue is not None:
+                                            self._finish_decoded_audio()
                                         alignment_segment = self._finish_alignment_capture(capture_started)
                                     if success and alignment_segment:
                                         self._schedule_alignment(alignment_segment)
@@ -876,30 +1019,39 @@ class TextToAudioStream:
                                     self.player.stop()
                                     self.load_engine(self.engines[self.engine_index])
                                     self._reapply_active_voice()
+                                    if self.language_tags:
+                                        self._apply_inline_action("language", self._synthesis_language)
                                     self.player.start()
                                     self.player.on_audio_chunk = self._on_audio_chunk
 
                         sentence_queue.task_done()
+
+                def synthesize_worker():
+                    if not self.language_tags:
+                        return synthesize_worker_loop()
+                    try:
+                        synthesize_worker_loop()
+                    except Exception as exc:
+                        self._language_error = exc
+                        self.error_flag = True
+                        abort_event.set()
 
                 worker_thread = threading.Thread(target=synthesize_worker)
                 worker_thread.daemon = True
                 worker_thread.start()
 
                 # Iterate through the synthesized chunks and feed them to the engine for audio synthesis
-                for sentence in chunk_generator:
+                for action_type, action_value in chunk_generator:
                     if abort_event.is_set():
                         break
-                    actions = self._extract_inline_actions(sentence)
-                    if not actions:
-                        continue
-
-                    for action_type, action_value in actions:
-                        if action_type == "text":
-                            action_value = action_value.strip()
-                            if action_value:
-                                sentence_queue.put((action_type, action_value))
-                        else:
-                            sentence_queue.put((action_type, action_value))
+                    if self.player.playback_error is not None:
+                        abort_event.set()
+                        break
+                    if action_type == "text":
+                        action_value = action_value.strip()
+                        if not action_value:
+                            continue
+                    sentence_queue.put((action_type, action_value))
 
                 # Signal to the worker to stop
                 sentence_queue.put(None)
@@ -907,6 +1059,9 @@ class TextToAudioStream:
 
             except Exception as e:
                 self.error_flag = True
+                if self.language_tags:
+                    self._language_error = e
+                    abort_event.set()
                 logging.warning(
                     f"error in play() with engine {self.engine.engine_name}: {e}"
                 )
@@ -915,6 +1070,11 @@ class TextToAudioStream:
                 print(f"Error: {e}")
 
             finally:
+                if worker_thread is not None and worker_thread.is_alive():
+                    abort_event.set()
+                    sentence_queue.put(None)
+                    self.engine.stop()
+                    worker_thread.join()
                 try:
                     if self.player:
                         self.player.stop()
@@ -932,7 +1092,7 @@ class TextToAudioStream:
                         self.wf = None
 
             if (not self.error_flag
-                and len(self.char_iter.items) > 1
+                and len(self.char_iter.items) > (0 if self.language_tags else 1)
                 and self.char_iter.iterated_text == ""
                 and not self.char_iter.immediate_stop.is_set()
                 and not abort_event.is_set()
@@ -968,10 +1128,16 @@ class TextToAudioStream:
                 if self.on_audio_stream_stop:
                     self.on_audio_stream_stop()
 
+                self._restore_inline_language()
                 self._finish_alignment_run()
                 self._alignment_generation += 1
                 self.is_playing_flag = False
                 self.play_lock.release()
+
+        failure = self._language_error or self._speed_error or self.player.playback_error
+        if failure is not None:
+            self.error_flag = True
+            raise failure
 
     def pause(self):
         """
@@ -998,6 +1164,8 @@ class TextToAudioStream:
         if self.alignment is not None:
             self.alignment.cancel()
 
+        if self._decoded_audio_queue is not None:
+            self._decoded_audio_queue.cancel()
         if self.engine:
             self.engine.stop()
 
@@ -1015,6 +1183,7 @@ class TextToAudioStream:
                 self.play_thread.join()
             self.play_thread = None
 
+        self._inline_markup_parser = None
         self._create_iterators()
 
     def text(self):
@@ -1056,7 +1225,47 @@ class TextToAudioStream:
         Handles the spoken word event.
         """
         if self.on_word_spoken:
+            if self.tempo_timeline.changed:
+                retimed = TimingInfo(
+                    self.tempo_timeline.source_to_output(word.start_time),
+                    self.tempo_timeline.source_to_output(word.end_time), word.word,
+                )
+                retimed.source_start_time, retimed.source_end_time = word.start_time, word.end_time
+                retimed.source = "retimed"
+                retimed.derived = True
+                retimed.quality = "retimed_derived"
+                word = retimed
             self.on_word_spoken(word)
+
+    def _retime_span(self, span):
+        if not self.tempo_timeline.changed:
+            return span
+        closed_end = max((segment.source_end for segment in self.tempo_timeline.segments if segment.closed), default=0.0)
+        state = span.state if span.end_time <= closed_end else "provisional"
+        return replace(span, state=state,
+                       start_time=self.tempo_timeline.source_to_output(span.start_time),
+                       end_time=self.tempo_timeline.source_to_output(span.end_time),
+                       source="retimed_" + span.source)
+
+    def _on_aligned_word(self, span):
+        if self.on_word_spoken is not None:
+            self.on_word_spoken(self._retime_span(span))
+
+    def _on_aligned_character(self, span):
+        if self._on_character_spoken_callback is not None:
+            self._on_character_spoken_callback(self._retime_span(span))
+
+    def _on_alignment_update(self, snapshot):
+        if self._on_alignment_callback is None:
+            return
+        if self.tempo_timeline.changed:
+            clock_complete = (self.tempo_timeline.current_speed is None
+                              and self.tempo_timeline.source_duration >= snapshot.duration - 1e-8)
+            snapshot = replace(snapshot, final=snapshot.final and (clock_complete or snapshot.status == "cancelled"),
+                               words=tuple(self._retime_span(span) for span in snapshot.words),
+                               characters=tuple(self._retime_span(span) for span in snapshot.characters),
+                               duration=self.tempo_timeline.source_to_output(snapshot.duration))
+        self._on_alignment_callback(snapshot)
 
     def _on_audio_chunk(self, chunk):
         """
@@ -1134,117 +1343,149 @@ class TextToAudioStream:
         Args:
             char (str): The character currently being processed.
         """
-        if self.alignment is not None:
-            self.alignment.append_source(char)
+        # The control lexer appends only spoken text to the alignment source.
         # If an on_character callback is defined, invoke it for the current character
         if self.on_character:
             self.on_character(char)
 
         self.generated_text += char
 
+    def _new_inline_markup_parser(self):
+        # Engines with public voice state can restore a top-level voice scope.
+        # Otherwise a registered point tag (e.g. [normal]) establishes a baseline.
+        voice = getattr(self.engine, "current_voice", None)
+        if voice is None:
+            voice = getattr(self.engine, "voice", None)
+        initial_voice = ((None, voice) if voice is not None else
+                         (self.active_voice_tag, self.active_voice)
+                         if self.active_voice is not None else None)
+        return InlineMarkupParser(
+            self._play_default_speed,
+            speed_tags=self.speed_tags,
+            language_tags=self.language_tags,
+            default_language=self._play_default_language,
+            language_voices=self.language_voices,
+            voice_tags=self.voice_switch_tags,
+            pause_tags=self.pause_tags,
+            initial_voice=initial_voice,
+            delimiters=(self.voice_tag_start, self.voice_tag_end),
+        )
+
     def _extract_inline_actions(self, text: str):
-        """
-        Splits text into synthesis chunks and inline control actions.
-
-        Registered tags are removed from the synthesized text and replaced by
-        engine actions such as voice switches or pauses. Unknown tags remain
-        untouched in the text.
-        """
-        if not text:
-            return []
-
-        if not self.voice_switch_tags and not self.pause_tags:
-            return [("text", text)]
-
-        start_delimiter = self.voice_tag_start
-        end_delimiter = self.voice_tag_end
-        if not start_delimiter or not end_delimiter:
-            return [("text", text)]
-
+        """Use the streaming grammar for full-text extraction as well."""
         actions = []
-        cursor = 0
-
-        def append_text_action(value: str):
-            if not value:
-                return
-            if actions and actions[-1][0] == "text":
-                actions[-1] = ("text", actions[-1][1] + value)
+        for is_text, group in groupby(
+            self._new_inline_markup_parser().iter_actions((text,)),
+            lambda item: item[0] == "text",
+        ):
+            if is_text:
+                value = "".join(value for _, value in group)
+                if value:
+                    actions.append(("text", value))
             else:
-                actions.append(("text", value))
-
-        while cursor < len(text):
-            tag_start = text.find(start_delimiter, cursor)
-            if tag_start == -1:
-                trailing_text = text[cursor:]
-                append_text_action(trailing_text)
-                break
-
-            tag_content_start = tag_start + len(start_delimiter)
-            tag_end = text.find(end_delimiter, tag_content_start)
-            if tag_end == -1:
-                remaining_text = text[cursor:]
-                append_text_action(remaining_text)
-                break
-
-            tag_content = text[tag_content_start:tag_end]
-            normalized_tag = tag_content.strip()
-            action = self._resolve_inline_action(normalized_tag)
-            tag_end_index = tag_end + len(end_delimiter)
-
-            if action is None:
-                unchanged_text = text[cursor:tag_end_index]
-                append_text_action(unchanged_text)
-                cursor = tag_end_index
-                continue
-
-            preceding_text = text[cursor:tag_start]
-            append_text_action(preceding_text)
-
-            actions.append(action)
-            cursor = tag_end_index
-
+                actions.extend(group)
         return actions
 
-    def _resolve_inline_action(self, normalized_tag: str):
-        """
-        Resolves a tag to an inline action if one is registered.
-        """
-        voice = self.voice_switch_tags.get(normalized_tag)
-        if voice is not None:
-            return ("voice", (normalized_tag, voice))
+    def _iter_inline_actions(self, source):
+        """Normalize bounded inline markup without buffering its spoken body."""
+        if self.is_playing_flag:
+            # Late feed() input may continue through an internal play() call.
+            # Keep its scope stack until the next external play operation.
+            if self._inline_markup_parser is None:
+                self._inline_markup_parser = self._new_inline_markup_parser()
+            parser = self._inline_markup_parser
+        else:
+            parser = self._new_inline_markup_parser()
+        for kind, value in parser.iter_actions(
+            source, stopped=lambda: self.char_iter.immediate_stop.is_set()
+        ):
+            if kind == "text" and self.alignment is not None:
+                self.alignment.append_source(value)
+            yield kind, value
 
-        pause_duration = self.pause_tags.get(normalized_tag)
-        if pause_duration is not None:
-            return ("pause", (normalized_tag, pause_duration))
+    def _iter_synthesis_actions(self, source, splitter, options, threshold, log_chunks):
+        language = options["language"]
+        if self.language_tags and self._inline_markup_parser is not None:
+            code = InlineMarkupParser.language_code(self._inline_markup_parser.current_language)
+            language = language if code == "auto" else code
+        for is_text, actions in groupby(
+            self._iter_inline_actions(source), lambda item: item[0] == "text"
+        ):
+            if is_text:
+                text = (value for _, value in actions)
+                sentences = splitter.generate_sentences(text, **{**options, "language": language})
+                for chunk in self._synthesis_chunk_generator(sentences, threshold, log_chunks):
+                    yield ("text", chunk)
+            else:
+                for kind, value in actions:
+                    if kind == "language":
+                        code = InlineMarkupParser.language_code(value)
+                        language = options["language"] if code == "auto" else code
+                    yield kind, value
 
-        pause_override = self._parse_pause_override(normalized_tag)
-        if pause_override is None:
-            return None
+    def _current_engine_voice(self, engine):
+        voice = getattr(engine, "current_voice", None)
+        return voice if voice is not None else getattr(engine, "voice", None)
 
-        pause_tag, pause_duration = pause_override
-        if pause_tag not in self.pause_tags:
-            return None
+    def _remember_inline_language_engine(self):
+        if self.engine not in self._language_baselines:
+            self._language_baselines[self.engine] = (
+                self.engine.get_language(), self._current_engine_voice(self.engine))
 
-        return ("pause", (pause_tag, pause_duration))
+    def _restore_inline_language(self):
+        if not self.language_tags:
+            return
+        for engine, (language, voice) in self._language_baselines.items():
+            try:
+                if voice is not None and self._current_engine_voice(engine) is not voice:
+                    engine.set_inline_voice(voice)
+                if engine.get_language() != language:
+                    engine.set_language(language)
+            except Exception as exc:
+                self._language_error = self._language_error or exc
+                logging.warning("Could not restore inline language baseline: %s", exc)
+        self._language_baselines.clear()
+        self._synthesis_speed = self._play_default_speed
+        if self.player is not None:
+            self.player.speed = self._play_default_speed
+        self._synthesis_language = self._play_default_language
+        if self._inline_voice_baseline is not None:
+            self.active_voice_tag, self.active_voice = self._inline_voice_baseline
 
-    def _parse_pause_override(self, normalized_tag: str):
-        """
-        Parses inline pause overrides like 'pause=0.5', 'pause: 0.5' or 'pause 0.5'.
-        """
-        match = re.fullmatch(
-            r"(?P<tag>.+?)(?:\s*[:=]\s*|\s+)(?P<duration>\d+(?:\.\d+)?)",
-            normalized_tag,
-        )
-        if not match:
-            return None
+    def _apply_inline_action(self, action_type, value):
+        if action_type == "speed":
+            self._synthesis_speed = value
+            # Validate support before placing the event; the engine's alignment
+            # and decoder taps must never see non-audio queue items.
+            fmt, channels, rate = self._output_stream_info()
+            try:
+                probe = TempoProcessor(fmt, channels, rate, value)
+                probe.cancel()
+            except Exception as exc:
+                self._speed_error = exc
+                raise
+            if not self.char_iter.immediate_stop.is_set():
+                self.player.buffer_manager.audio_buffer.put(SpeedChange(value))
+        elif action_type == "language":
+            self._remember_inline_language_engine()
+            self.engine.set_language(value)
+            self._synthesis_language = value
+        elif action_type == "voice":
+            self._set_active_voice(*value)
+        elif action_type == "pause":
+            self._enqueue_silence(value[1])
 
-        pause_tag = match.group("tag").strip()
-        pause_duration = float(match.group("duration"))
-        return pause_tag, pause_duration
+    def _finish_decoded_audio(self):
+        if self.char_iter.immediate_stop.is_set() or any(event.is_set() for event in self.abort_events):
+            self._decoded_audio_queue.cancel()
+        else:
+            self._decoded_audio_queue.finish()
 
     def _output_stream_info(self):
         if self._alignment_binding is not None:
             return self._alignment_binding.output_format
+        if self._decoded_audio_queue is not None:
+            return self._decoded_audio_queue.output_format
         return self.engine.get_stream_info()
 
     def _aligned_input(self, source):
@@ -1253,10 +1494,14 @@ class TextToAudioStream:
             yield character
 
     def _before_alignment_audio(self, position):
-        self.alignment.before_playback(self._alignment_player_offset + position)
+        source_position = self.tempo_timeline.output_to_source(self.player._tempo_output_offset + position)
+        self.alignment.before_playback(source_position)
 
     def _on_alignment_progress(self, position):
-        self.alignment.advance(self._alignment_player_offset + position)
+        source_position = self.tempo_timeline.output_to_source(self.player._tempo_output_offset + position)
+        # Do not announce a future fragment whose first sample has not played.
+        source_position = max(0.0, source_position - 1.0 / self._output_stream_info()[2])
+        self.alignment.advance(source_position)
 
     def _finish_alignment_run(self):
         if self.alignment is not None:
@@ -1264,6 +1509,7 @@ class TextToAudioStream:
             if self.alignment.config.mode == "export":
                 self.alignment.wait()
             self.alignment.playback_finished()
+            self._on_alignment_update(self.alignment.snapshot())
 
     def close(self):
         """Stop this stream and release its optional alignment worker."""
@@ -1372,12 +1618,16 @@ class TextToAudioStream:
         """
         return self._extract_inline_actions(text)
 
-    def _set_active_voice(self, tag: str, voice):
+    def _set_active_voice(self, tag: Optional[str], voice):
         """
         Switches the engine voice and stores the current active mapping.
         """
         logging.info(f"Switching voice to tag '{tag}'")
-        self.engine.set_voice(voice)
+        if self.language_tags:
+            self._remember_inline_language_engine()
+            self.engine.set_inline_voice(voice)
+        else:
+            self.engine.set_voice(voice)
         self.active_voice_tag = tag
         self.active_voice = voice
 
@@ -1389,12 +1639,18 @@ class TextToAudioStream:
             return
 
         try:
-            self.engine.set_voice(self.active_voice)
+            if self.language_tags:
+                self._remember_inline_language_engine()
+                self.engine.set_inline_voice(self.active_voice)
+            else:
+                self.engine.set_voice(self.active_voice)
         except Exception as exc:
             logging.warning(
                 f"Could not reapply active voice tag '{self.active_voice_tag}' "
                 f"after engine switch: {exc}"
             )
+            if self.language_tags:
+                raise
 
     def _enqueue_silence(self, silence_duration: float):
         """
@@ -1406,7 +1662,7 @@ class TextToAudioStream:
             self._alignment_binding.silence(silence_duration)
             return
 
-        stream_format, channels, sample_rate = self.engine.get_stream_info()
+        stream_format, channels, sample_rate = self._output_stream_info()
         if sample_rate <= 0 or stream_format == pyaudio.paCustomFormat:
             logging.warning(
                 f"Cannot enqueue silence for engine {self.engine.engine_name} "
@@ -1421,7 +1677,8 @@ class TextToAudioStream:
         else:
             silent_chunk = np.zeros(sample_count, dtype=np.float32)
 
-        self.engine.queue.put(silent_chunk.tobytes())
+        silence_queue = self._decoded_audio_queue.wrapped if self._decoded_audio_queue else self.engine.queue
+        silence_queue.put(silent_chunk.tobytes())
 
     def _is_engine_mpeg(self):
         """

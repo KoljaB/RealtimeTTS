@@ -66,7 +66,6 @@ def write_failure(directory, request, state, *, worker_state=None, model_path=No
             native["binary"] = file_identity(native.get("executable"))
         except (OSError, ValueError) as exc:
             native = {"unavailable": str(exc)}
-    from .qwen_server import AUDIBLE_AVERAGE_ABS_THRESHOLD
     record = {
         "schema_version": 1, "record_id": record_id,
         "created_utc": datetime.now(timezone.utc).isoformat(),
@@ -79,10 +78,10 @@ def write_failure(directory, request, state, *, worker_state=None, model_path=No
         "audio": {"received_bytes": state.received_bytes, "audible": state.audible,
                   "saved_bytes": len(pcm), "saved_wav": pcm_file,
                   "sample_rate": 24000, "peak": peak, "mean_abs": mean_abs, "rms": rms,
-                  "audibility_mean_abs_threshold": AUDIBLE_AVERAGE_ABS_THRESHOLD,
+                  "signal_detection": "any_nonzero_pcm_sample",
                   "classification": "no_pcm" if not state.received_bytes else
                       "all_zero" if peak == 0 and pcm else
-                      "below_audibility_threshold" if not state.audible else "partial_audio"},
+                      "partial_audio"},
         "engine": engine, "reference": reference, "native_worker": native,
         # Model identity is deliberately cheap; bit-exact replay additionally requires
         # the unchanged GGUF and device/backend. Binary and Python sources are hashed.

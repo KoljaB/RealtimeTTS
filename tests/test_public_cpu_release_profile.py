@@ -6,12 +6,22 @@ import pytest
 from tools import release_guard
 
 
-def test_public_cpu_uses_real_service_and_exact_candidate_dependency():
+def test_public_cpu_uses_real_service_and_exact_candidate_dependency(monkeypatch):
     profile = release_guard._component_profile("RealtimeTTSPublicCPU", publishing=True)
     assert profile["service_required"] is True
     assert profile["service_name"] == "wwz-qwen3-tts-cpu.service"
     assert profile["remote_branch"] == "master"
-    assert profile["required_dependencies"] == {"realtimetts-qwen-native-cpu": "0.4.1"}
+    assert profile["required_dependencies"] == {"realtimetts-qwen-native-cpu": "0.4.2"}
+
+    import runpy
+    import setuptools
+
+    metadata = {}
+    monkeypatch.setattr(setuptools, "setup", lambda **kwargs: metadata.update(kwargs))
+    runpy.run_path(str(Path(__file__).parents[1] / "setup.py"))
+    for extra in ("qwen-cpu", "qwen-cpu-server"):
+        for name, version in profile["required_dependencies"].items():
+            assert f"{name}=={version}" in metadata["extras_require"][extra]
     assert profile["signer_fingerprint"] == release_guard.COMPONENT_PROFILES["RealtimeTTS"]["signer_fingerprint"]
     with pytest.raises(release_guard.GuardError, match="requires realtimetts-qwen-native-cpu"):
         release_guard._validate_package_artifacts(

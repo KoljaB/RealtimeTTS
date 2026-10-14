@@ -254,6 +254,7 @@ class AlignmentSnapshot:
     revision: int = 0
     duration: float = 0.0
     errors: tuple[str, ...] = ()
+    coverage: Optional[float] = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.text, str):
@@ -276,6 +277,11 @@ class AlignmentSnapshot:
         object.__setattr__(self, "revision", revision)
         object.__setattr__(self, "duration", duration)
         object.__setattr__(self, "errors", errors)
+        if self.coverage is not None:
+            coverage = _finite_float(self.coverage, "coverage")
+            if coverage > 1:
+                raise ValueError("coverage must be between 0 and 1")
+            object.__setattr__(self, "coverage", coverage)
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -287,6 +293,7 @@ class AlignmentSnapshot:
             "revision": self.revision,
             "duration": self.duration,
             "errors": list(self.errors),
+            "coverage": self.coverage,
         }
 
     def export(self, path: Union[str, Path], format: Optional[str] = None) -> Path:
@@ -401,6 +408,7 @@ class AlignmentTimeline:
         self._duration = 0.0
         self._position = 0.0
         self._errors: list[str] = []
+        self._coverage: Optional[float] = None
 
     def _ordered_spans_locked(self) -> tuple[AlignedSpan, ...]:
         entries: list[tuple[int, AlignedSpan]] = []
@@ -430,6 +438,7 @@ class AlignmentTimeline:
             revision=self._revision,
             duration=self._duration,
             errors=tuple(self._errors),
+            coverage=self._coverage,
         )
 
     def _emit(self, snapshot: AlignmentSnapshot) -> None:
@@ -481,6 +490,7 @@ class AlignmentTimeline:
             self._duration = 0.0
             self._position = 0.0
             self._errors.clear()
+            self._coverage = None
             self._revision += 1
             snapshot = self._snapshot_locked()
             self._condition.notify_all()
@@ -511,6 +521,7 @@ class AlignmentTimeline:
         *,
         fragment_id: str,
         status: str = "aligning",
+        coverage: Optional[float] = None,
     ) -> AlignmentSnapshot:
         fragment_id = self._fragment_id(fragment_id)
         status = _label(status, "status")
@@ -519,10 +530,16 @@ class AlignmentTimeline:
         else:
             values = tuple(spans)
         replacement = tuple(self._coerce_span(value, fragment_id) for value in values)
+        if coverage is not None:
+            coverage = _finite_float(coverage, "coverage")
+            if coverage > 1:
+                raise ValueError("coverage must be between 0 and 1")
         with self._condition:
             if self._final:
                 return self._snapshot_locked()
             self._fragments[fragment_id] = replacement
+            if coverage is not None:
+                self._coverage = coverage
             self._status = status
             self._revision += 1
             snapshot = self._snapshot_locked()
@@ -557,13 +574,19 @@ class AlignmentTimeline:
         self._emit(snapshot)
         return snapshot
 
-    def finish(self, status: str = "ready") -> AlignmentSnapshot:
+    def finish(self, status: str = "ready", *, coverage: Optional[float] = None) -> AlignmentSnapshot:
         status = _label(status, "status")
+        if coverage is not None:
+            coverage = _finite_float(coverage, "coverage")
+            if coverage > 1:
+                raise ValueError("coverage must be between 0 and 1")
         with self._condition:
             if self._final:
                 return self._snapshot_locked()
             self._status = status
             self._final = True
+            if coverage is not None:
+                self._coverage = coverage
             self._revision += 1
             snapshot = self._snapshot_locked()
             self._condition.notify_all()

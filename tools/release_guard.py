@@ -84,7 +84,7 @@ COMPONENT_PROFILES: dict[str, dict[str, object]] = {
         "service_required": True,
         "service_name": "wwz-qwen3-tts-cpu.service",
         "publishable": True,
-        "required_dependencies": {"realtimetts-qwen-native-cpu": "0.4.1"},
+        "required_dependencies": {"realtimetts-qwen-native-cpu": "0.4.2"},
     },
     # Private Linux overlap installation, qualified independently of public wheels.
     "RealtimeTTSCPUOverlap": {
@@ -920,6 +920,34 @@ print(json.dumps({
 """
 
 
+SERVICE_MODULE_PROBE = r"""
+import importlib.machinery
+import json
+import pathlib
+import sys
+
+module_name = sys.argv[1]
+parts = module_name.split(".")
+search_path = None
+spec = None
+for index, part in enumerate(parts):
+    spec = importlib.machinery.PathFinder.find_spec(part, search_path)
+    if spec is None:
+        raise SystemExit(f"module not found: {module_name}")
+    if index + 1 < len(parts):
+        locations = spec.submodule_search_locations
+        if locations is None:
+            raise SystemExit(f"module parent is not a package: {module_name}")
+        search_path = list(locations)
+if spec is None or not isinstance(spec.origin, str):
+    raise SystemExit(f"module has no filesystem origin: {module_name}")
+if spec.origin in {"built-in", "frozen"}:
+    raise SystemExit(f"module has no filesystem origin: {module_name}")
+origin = pathlib.Path(spec.origin).resolve()
+print(json.dumps({"module": module_name, "origin": str(origin)}, sort_keys=True))
+"""
+
+
 def _runtime_probe(
     runtime_python: Path, modules: list[str], distributions: list[str]
 ) -> dict[str, object]:
@@ -1093,6 +1121,85 @@ def _service_name(profile: dict[str, object], requested: str) -> str | None:
     return requested or None
 
 
+def _attested_runtime_package_root(
+    module: object, runtime_state: dict[str, object]
+) -> str | None:
+    if not isinstance(module, str) or not re.fullmatch(
+        r"[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*", module
+    ):
+        return None
+    imports = runtime_state.get("imports")
+    if not isinstance(imports, dict):
+        return None
+    matches = [
+        (package, root)
+        for package, root in imports.items()
+        if isinstance(package, str)
+        and isinstance(root, str)
+        and (module == package or module.startswith(package + "."))
+    ]
+    if not matches:
+        return None
+    return max(matches, key=lambda item: len(item[0]))[1]
+
+
+def _resolve_service_module(
+    service: str,
+    runtime_python: str,
+    process_cwd: str,
+    process_environment: dict[str, str],
+    module: str,
+    runtime_state: dict[str, object],
+) -> tuple[str, str]:
+    package_root = _attested_runtime_package_root(module, runtime_state)
+    if package_root is None:
+        raise GuardError(
+            f"live service {service} Python module is outside the attested runtime"
+        )
+    try:
+        result = subprocess.run(
+            [runtime_python, "-c", SERVICE_MODULE_PROBE, module],
+            cwd=process_cwd,
+            env=process_environment,
+            text=True,
+            capture_output=True,
+            check=False,
+            timeout=5,
+        )
+    except (OSError, subprocess.SubprocessError) as exc:
+        raise GuardError(
+            f"cannot resolve live service {service} module {module!r}"
+        ) from exc
+    if result.returncode != 0:
+        detail = result.stderr.strip() or result.stdout.strip()
+        raise GuardError(
+            f"cannot resolve live service {service} module {module!r}: {detail}"
+        )
+    try:
+        evidence = json.loads(result.stdout)
+    except json.JSONDecodeError as exc:
+        raise GuardError(
+            f"live service {service} module resolution returned invalid JSON"
+        ) from exc
+    origin = (
+        evidence.get("origin")
+        if isinstance(evidence, dict) and evidence.get("module") == module
+        else None
+    )
+    if not isinstance(origin, str):
+        raise GuardError(
+            f"live service {service} module resolution returned invalid evidence"
+        )
+    origin_path = Path(origin).resolve()
+    if not origin_path.is_file() or not _lexically_within(
+        str(origin_path), package_root
+    ):
+        raise GuardError(
+            f"live service {service} module origin is outside the attested runtime package"
+        )
+    return str(origin_path), _sha256_file(origin_path)
+
+
 def _systemd_typed_execstart_argv(service: str, launcher: str) -> list[str]:
     """Read exact argv; systemctl's display form strips embedded JSON quotes."""
     def query(arguments):
@@ -1172,6 +1279,13 @@ def _systemd_user_service_state(
         for part in raw_environment.split(b"\0")
         if part
     ]
+    process_environment: dict[str, str] = {}
+    for item in raw_environment.split(b"\0"):
+        key, separator, value = item.partition(b"=")
+        if separator and key:
+            process_environment[key.decode(errors="surrogateescape")] = value.decode(
+                errors="surrogateescape"
+            )
     runtime_python = runtime_state.get("python")
     runtime_prefix = runtime_state.get("prefix")
     if not argv or not _same_executable_path(argv[0], runtime_python):
@@ -1184,6 +1298,7 @@ def _systemd_user_service_state(
     exec_start = values.get("ExecStart", "")
     match = re.search(r"(?:^|[ {;])path=([^ ;}]+)", exec_start)
     launcher = match.group(1) if match else ""
+    launcher_module: str | None = None
     if launcher and _same_executable_path(launcher, runtime_python):
         configured = re.search(r"argv\[\]=(.*?) ;", exec_start)
         configured_argv = shlex.split(configured.group(1)) if configured else []
@@ -1191,7 +1306,34 @@ def _systemd_user_service_state(
             configured_argv = _systemd_typed_execstart_argv(service, launcher)
         if len(configured_argv) < 2 or configured_argv != argv:
             raise GuardError(f"live service {service} Python arguments differ from its unit")
-        launcher = configured_argv[1]
+        if configured_argv[1] == "-m":
+            if len(configured_argv) < 3:
+                raise GuardError(
+                    f"live service {service} Python module invocation is incomplete"
+                )
+            launcher_module = configured_argv[2]
+            if not re.fullmatch(
+                r"[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*",
+                launcher_module,
+            ):
+                raise GuardError(
+                    f"live service {service} Python module argument is invalid"
+                )
+            imports = runtime_state.get("imports")
+            if not isinstance(imports, dict) or not any(
+                isinstance(package, str)
+                and (
+                    launcher_module == package
+                    or launcher_module.startswith(package + ".")
+                )
+                for package in imports
+            ):
+                raise GuardError(
+                    f"live service {service} Python module is outside the attested runtime"
+                )
+            launcher = str(runtime_python)
+        else:
+            launcher = configured_argv[1]
     if (
         not isinstance(runtime_prefix, str)
         or not launcher
@@ -1199,8 +1341,15 @@ def _systemd_user_service_state(
         or not Path(launcher).is_file()
     ):
         raise GuardError(f"live service {service} launcher is outside the runtime")
-    if len(argv) < 2 or not _same_executable_path(argv[1], launcher):
-        raise GuardError(f"live service {service} process does not use its systemd launcher")
+    if launcher_module is None:
+        if len(argv) < 2 or not _same_executable_path(argv[1], launcher):
+            raise GuardError(
+                f"live service {service} process does not use its systemd launcher"
+            )
+    elif len(argv) < 3 or argv[1] != "-m" or argv[2] != launcher_module:
+        raise GuardError(
+            f"live service {service} process module arguments differ from its systemd launcher"
+        )
 
     configured_cwd = values.get("WorkingDirectory", "")
     if configured_cwd and not _same_path(configured_cwd, process_cwd):
@@ -1211,7 +1360,7 @@ def _systemd_user_service_state(
     runtime_python_path = Path(str(runtime_python))
     if not runtime_python_path.is_file():
         raise GuardError(f"live service {service} runtime Python does not exist")
-    return {
+    state: dict[str, object] = {
         "manager": "systemd-user",
         "name": service,
         "active_state": "active",
@@ -1227,6 +1376,23 @@ def _systemd_user_service_state(
         "fragment_sha256": _sha256_file(fragment),
         "pythonpath_shadowing": False,
     }
+    if launcher_module is not None:
+        module_origin, module_origin_sha256 = _resolve_service_module(
+            service,
+            str(runtime_python),
+            process_cwd,
+            process_environment,
+            launcher_module,
+            runtime_state,
+        )
+        state.update(
+            {
+                "module": launcher_module,
+                "module_origin": module_origin,
+                "module_origin_sha256": module_origin_sha256,
+            }
+        )
+    return state
 
 
 def _validated_attested_service_state(
@@ -1285,6 +1451,21 @@ def _validated_attested_service_state(
     ):
         if not re.fullmatch(r"[0-9a-f]{64}", str(value.get(key))):
             raise GuardError("deployment manifest service hash evidence is invalid")
+    module_keys = ("module", "module_origin", "module_origin_sha256")
+    if any(key in value for key in module_keys):
+        if not all(isinstance(value.get(key), str) for key in module_keys):
+            raise GuardError("deployment manifest service module evidence is invalid")
+        module = value["module"]
+        package_root = _attested_runtime_package_root(module, runtime_state)
+        if (
+            package_root is None
+            or value.get("launcher") != runtime_state.get("python")
+            or not _lexically_within(value["module_origin"], package_root)
+            or not re.fullmatch(
+                r"[0-9a-f]{64}", value["module_origin_sha256"]
+            )
+        ):
+            raise GuardError("deployment manifest service module evidence is invalid")
     return value
 
 

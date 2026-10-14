@@ -1,0 +1,46 @@
+{
+  "cases": [
+    {
+      "id": "alex-en",
+      "voice": "alex",
+      "language": "english",
+      "text": "Please close the window and bring the blue folder."
+    },
+    {
+      "id": "maya-en",
+      "voice": "maya",
+      "language": "english",
+      "text": "I left five small notebooks on the wooden table."
+    },
+    {
+      "id": "cleo-numbers",
+      "voice": "cleo",
+      "language": "english",
+      "text": "The meeting begins at 16:00, and 5 people are waiting."
+    },
+    {
+      "id": "alex-de",
+      "voice": "alex_de",
+      "language": "german",
+      "text": "Bitte schließe das Fenster und bring mir die blaue Mappe."
+    },
+    {
+      "id": "maya-de",
+      "voice": "maya_de",
+      "language": "german",
+      "text": "Heute ist ein schöner Tag für einen Spaziergang im Park."
+    },
+    {
+      "id": "alex-it",
+      "voice": "alex_it",
+      "language": "italian",
+      "text": "Per favore chiudi la finestra e porta il libro sul tavolo."
+    },
+    {
+      "id": "alex-pt",
+      "voice": "alex_pt_br",
+      "language": "portuguese",
+      "text": "Por favor feche a janela e coloque o livro sobre a mesa."
+    }
+  ]
+}

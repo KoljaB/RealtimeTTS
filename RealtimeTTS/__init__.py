@@ -26,7 +26,7 @@ __all__ = [
     "ModelsLabEngine", "ModelsLabVoice",
     "MiniMaxEngine", "MiniMaxVoice",
     "CartesiaEngine", "CartesiaVoice",
-    "QwenEngine", "QwenCpuEngine", "QwenVoice", "QwenEngineError",
+    "QwenEngine", "QwenCpuEngine", "QwenServerEngine", "QwenServerVoice", "QwenVoice", "QwenEngineError",
     "BreezeEngine", "BreezeVoice", "BreezeEngineError",
     "OmniVoiceEngine", "OmniVoiceVoice",
     "TypecastEngine", "TypecastVoice",
@@ -369,6 +369,18 @@ def _load_qwen_cpu_engine():
     return QwenCpuEngine
 
 
+def _load_qwen_server_engine():
+    try:
+        from .engines.qwen_server_engine import QwenServerEngine, QwenServerVoice
+    except ImportError as exc:
+        raise ImportError(
+            'Failed to load QwenServerEngine. Install with: pip install "realtimetts[qwen-client]"'
+        ) from exc
+    globals()["QwenServerEngine"] = QwenServerEngine
+    globals()["QwenServerVoice"] = QwenServerVoice
+    return QwenServerEngine
+
+
 def _load_qwen_error():
     _load_qwen_engine()
     return globals()["QwenEngineError"]
@@ -555,6 +567,8 @@ _lazy_imports = {
     "BreezeEngineError": _load_breeze_error,
     "QwenEngine": _load_qwen_engine,
     "QwenCpuEngine": _load_qwen_cpu_engine,
+    "QwenServerEngine": _load_qwen_server_engine,
+    "QwenServerVoice": _load_qwen_server_engine,
     "QwenVoice": _load_qwen_voice,
     "QwenEngineError": _load_qwen_error,
     "OmniVoiceEngine": _load_omni_voice_engine,

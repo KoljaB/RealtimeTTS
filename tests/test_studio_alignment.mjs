@@ -97,6 +97,156 @@ function send(s, run, value) {
   s.context.tempEvent = value;
   return s.run('handleAlignmentEvent(tempRun,tempEvent)');
 }
+
+test('verified delayed guard trims only its fragment with alignment display disabled', () => {
+  const s = studio(), stopped = [];
+  const r = {samples: 0, ctx: {currentTime: .2}, playbackSegments: []};
+  setRun(s, r);
+  s.context.guardRun = r;
+  const dispatch = event => {
+    s.context.guardEvent = event;
+    return s.run('handlePlaybackGuardEvent(guardRun,guardEvent)');
+  };
+  const identity = {session_id: 's', request_id: 'first', fragment_index: 0};
+  assert.equal(dispatch({...identity,type:'fragment_start',sample_rate_hz:24000}),true);
+  const first = {sampleStart:0,sampleCount:48000,sampleRate:24000,when:1,
+    source:{stop:when=>stopped.push(['first',when])}};
+  r.playbackSegments.push(first);
+  s.run('playbackGuardState(guardRun).wireBytes=96000');
+  assert.equal(dispatch({...identity,type:'fragment_end'}),true);
+  const secondId = {...identity,request_id:'second',fragment_index:1};
+  assert.equal(dispatch({...secondId,type:'fragment_start',sample_rate_hz:24000}),true);
+  r.playbackSegments.push({sampleStart:48000,sampleCount:24000,sampleRate:24000,when:3,
+    source:{stop:when=>stopped.push(['second',when])}});
+  const complete = {...identity,type:'alignment_complete',stop_requested:true,
+    completion_verified:true,end_time:.5,trim_end_time:.75};
+  for (const patch of [{stop_requested:false},{completion_verified:false},
+                       {request_id:'second'},{session_id:'stale'},
+                       {trim_end_time:.6},{trim_end_time:NaN}]) {
+    assert.equal(dispatch({...complete,...patch}),false);
+  }
+  assert.deepEqual(stopped,[]);
+  assert.equal(dispatch(complete),true);
+  assert.deepEqual(stopped,[['first',1.75]]);
+  // Repeated metadata cannot reopen audio or affect a successor.
+  assert.equal(dispatch({...complete,trim_end_time:1.5}),true);
+  assert.deepEqual(stopped,[['first',1.75]]);
+  const future = {sampleStart:30000,sampleCount:4800,sampleRate:24000,when:2.25,
+    source:{stop:when=>stopped.push(['future',when])}};
+  s.context.futureGuardSegment = future;
+  s.run('applyPlaybackGuard(guardRun,futureGuardSegment)');
+  assert.deepEqual(stopped.at(-1),['future',2.25]);
+  setRun(s,{ctx:r.ctx});
+  assert.equal(dispatch(complete),false);
+});
+
+test('guard tracks wire offsets before AudioContext is ready and fences following fragments', () => {
+  const s = studio();
+  const r = {samples:0,ctx:{currentTime:0},audioReady:false,preReady:[]};
+  setRun(s,r);
+  s.context.guardRun=r;
+  const dispatch = event => {
+    s.context.guardEvent=event;
+    return s.run('handlePlaybackGuardEvent(guardRun,guardEvent)');
+  };
+  const first={session_id:'s',request_id:'first',fragment_index:0};
+  dispatch({...first,type:'fragment_start',sample_rate_hz:24000});
+  s.run('receivePCM(guardRun,new ArrayBuffer(4800),0)');
+  assert.equal(r.samples,0);
+  assert.equal(r.preReady.length,1);
+  dispatch({...first,type:'fragment_end'});
+  dispatch({session_id:'s',request_id:'second',fragment_index:1,
+    type:'fragment_start',sample_rate_hz:24000});
+  assert.equal(r.playbackGuard.fragments.get(0).endSample,2400);
+  assert.equal(r.playbackGuard.fragments.get(1).startSample,2400);
+});
+
+test('a guard received after the cutoff cannot pretend to retract played samples', () => {
+  const s = studio(), stops=[];
+  const r={ctx:{currentTime:2},playbackSegments:[]};
+  setRun(s,r);
+  s.context.guardRun=r;
+  s.run("handlePlaybackGuardEvent(guardRun,{type:'fragment_start',session_id:'s',request_id:'r',fragment_index:0,sample_rate_hz:24000})");
+  r.playbackSegments.push({sampleStart:0,sampleCount:72000,sampleRate:24000,when:0,
+    source:{stop:when=>stops.push(when)}});
+  s.run("handlePlaybackGuardEvent(guardRun,{type:'alignment_complete',session_id:'s',request_id:'r',fragment_index:0,stop_requested:true,completion_verified:true,end_time:.75,trim_end_time:1})");
+  assert.deepEqual(stops,[2]);
+});
+
+
+test('PCM scheduling applies a verified cutoff with a short fade and no startup reserve', () => {
+  const s = studio(), starts=[],stops=[],ramps=[];
+  const ctx={currentTime:0,destination:{},
+    createBuffer:()=>({copyToChannel(){}}),
+    createGain:()=>({connect(){},disconnect(){},gain:{
+      cancelScheduledValues(){},setValueAtTime(){},
+      linearRampToValueAtTime(value,when){ramps.push([value,when]);}}}),
+    createBufferSource:()=>({connect(){},disconnect(){},
+      start:when=>starts.push(when),stop:when=>stops.push(when)})};
+  const r={ctx,samples:0,next:0,odd:null,pending:0,sources:new Set(),audioReady:true,
+    preReady:[],started:0,audible:false,underruns:0,gapMs:0,alignment:{enabled:false}};
+  setRun(s,r);
+  s.context.guardRun=r;
+  s.run("handlePlaybackGuardEvent(guardRun,{type:'fragment_start',session_id:'s',request_id:'r',fragment_index:0,sample_rate_hz:24000})");
+  s.run('receivePCM(guardRun,new ArrayBuffer(7680),0);receivePCM(guardRun,new ArrayBuffer(7680),0)');
+  assert.deepEqual(starts,[0,.16]);
+  ctx.currentTime=.1;
+  s.run("handlePlaybackGuardEvent(guardRun,{type:'alignment_complete',session_id:'s',request_id:'r',fragment_index:0,stop_requested:true,completion_verified:true,end_time:.05,trim_end_time:.3})");
+  assert.equal(stops.length,1);
+  assert.ok(Math.abs(stops[0]-.3)<1e-9);
+  assert.equal(ramps.length,1);
+  assert.equal(ramps[0][0],0);
+  assert.ok(Math.abs(ramps[0][1]-.3)<1e-9);
+  assert.equal(r.samples,7680);
+  assert.equal(r.playbackGuard.wireBytes,15360);
+});
+
+
+for (const timing of ['before-next','queued-next','already-playing-next']) {
+  test('verified trim reclaims queued time: '+timing, () => {
+    const s=studio(),sources=[];
+    const ctx={currentTime:0,destination:{},
+      createBuffer:(_,frames)=>({frames,copyToChannel(){}}),
+      createGain:()=>({connect(){},disconnect(){},gain:{
+        cancelScheduledValues(){},setValueAtTime(){},linearRampToValueAtTime(){}}}),
+      createBufferSource:()=>{const node={connect(){},disconnect(){},
+        start(when){this.started=when;},stop(when){this.stopped=when??ctx.currentTime;}};
+        sources.push(node);return node;}};
+    const r={ctx,samples:0,next:0,odd:null,pending:0,sources:new Set(),audioReady:true,
+      preReady:[],started:0,audible:false,underruns:0,gapMs:0,alignment:{enabled:false}};
+    setRun(s,r);s.context.guardRun=r;
+    const dispatch=event=>{s.context.guardEvent=event;return s.run('handlePlaybackGuardEvent(guardRun,guardEvent)');};
+    const first={session_id:'s',request_id:'first',fragment_index:0};
+    const second={session_id:'s',request_id:'second',fragment_index:1};
+    dispatch({...first,type:'fragment_start',sample_rate_hz:24000});
+    s.run('receivePCM(guardRun,new ArrayBuffer(24000),0);receivePCM(guardRun,new ArrayBuffer(72000),0)');
+    dispatch({...first,type:'fragment_end'});
+    const cutoff={...first,type:'alignment_complete',stop_requested:true,
+      completion_verified:true,end_time:.5,trim_end_time:.75};
+    ctx.currentTime=.1;
+    if(timing==='before-next')dispatch(cutoff);
+    dispatch({...second,type:'fragment_start',sample_rate_hz:24000});
+    s.run('receivePCM(guardRun,new ArrayBuffer(48000),0)');
+    dispatch({...second,type:'fragment_end'});
+    const previousSource=r.playbackSegments.at(-1).source,buffer=previousSource.buffer;
+    if(timing==='already-playing-next')ctx.currentTime=2.2;
+    if(timing!=='before-next')dispatch(cutoff);
+    const next=r.playbackSegments.at(-1),expected=timing==='already-playing-next'?2:.75;
+    assert.equal(next.when,expected);
+    assert.equal(next.source.buffer,buffer);
+    assert.equal(next.sampleCount,24000);
+    assert.equal(r.next,expected+1);
+    assert.equal(r.pending,3);assert.equal(r.sources.size,3);
+    if(timing==='queued-next'){
+      assert.notEqual(next.source,previousSource);assert.equal(previousSource.onended,null);
+      assert.equal(previousSource.stopped,.1);
+    }
+    dispatch(cutoff);assert.equal(r.next,expected+1);
+    ctx.currentTime=expected+.1;
+    assert.equal(s.run('alignmentClockSample({playbackSegments:guardRun.playbackSegments},guardRun.ctx)'),50400);
+  });
+}
+
 function json(s, expression) {
   return JSON.parse(JSON.stringify(s.run(expression)));
 }
@@ -253,6 +403,50 @@ test('pause stays local when the engine has no native pause support', async () =
   assert.deepEqual(messages, [{type: 'pause'}, {type: 'resume'}]);
 });
 
+test('subtitle timestamp rounding carries across seconds, minutes, and hours', () => {
+  const s = studio();
+  const cases = [
+    [0, '00:00:00.000'],
+    [-1, '00:00:00.000'],
+    [NaN, '00:00:00.000'],
+    ['1.234', '00:00:01.234'],
+    [0.0005, '00:00:00.001'],
+    [0.9994, '00:00:00.999'],
+    [0.9996, '00:00:01.000'],
+    [59.9996, '00:01:00.000'],
+    [3599.9996, '01:00:00.000'],
+    [86399.9996, '24:00:00.000'],
+  ];
+  for (const separator of [',', '.']) {
+    for (const [seconds, expected] of cases) {
+      s.context.timestampInput = seconds;
+      s.context.timestampSeparator = separator;
+      assert.equal(
+        s.run('formatAlignmentTimestamp(timestampInput,timestampSeparator)'),
+        expected.replace('.', separator),
+        String(seconds),
+      );
+    }
+  }
+});
+
+test('SRT and VTT exports carry rounded cue timestamps into the next second', () => {
+  const s = studio();
+  const state = s.run('createAlignmentState({source:"auto",level:"word",mode:"export"})');
+  const run = {alignment: state, samples: 0, done: false, ctx: null};
+  setRun(s, run);
+  send(s, run, {type: 'fragment_start', request_id: 'r', fragment_index: 0,
+    text: 'Hello', sample_rate_hz: 24000});
+  send(s, run, {type: 'alignment', request_id: 'r', fragment_index: 0,
+    revision: 1, words: [{word: 'Hello', text_start: 0, text_end: 5,
+      start_time: .9996, end_time: 1.9996}]});
+  s.context.exportState = state;
+  assert.match(s.run("alignmentExportText('srt',exportState)"),
+    /00:00:01,000 --> 00:00:02,000/);
+  assert.match(s.run("alignmentExportText('vtt',exportState)"),
+    /00:00:01\.000 --> 00:00:02\.000/);
+});
+
 test('playback clock and exports retain inter-fragment silence', () => {
   const s = studio();
   const opts = {source: 'auto', level: 'word', mode: 'live'};
@@ -288,4 +482,32 @@ test('playback clock and exports retain inter-fragment silence', () => {
   assert.match(s.run("alignmentExportText('srt',exportState)"),
     /00:00:02,200 --> 00:00:02,700/);
   assert.match(s.run("alignmentExportText('vtt',exportState)"), /^WEBVTT/);
+});
+
+
+test('partial final alignment never displays Ready', () => {
+  const s = studio();
+  assert.equal(json(s, 'alignmentStatusFor({status:"partial",final:true})')[0], 'partial');
+});
+
+
+test('partial and unavailable completion remain final with an honest status', () => {
+  for (const [payload, status] of [
+    [{finish_reason: 'partial'}, 'partial'],
+    [{status: 'partial'}, 'partial'],
+    [{finish_reason: 'partial_alignment'}, 'partial'],
+    [{complete: true, completion_verified: false, finish_reason: 'text_aligned_unverified'}, 'partial'],
+    [{finish_reason: 'unavailable'}, 'unavailable'],
+    [{error: 'model failed'}, 'unavailable'],
+    [{cancelled: true}, 'cancelled'],
+  ]) {
+    const s = studio();
+    const state = s.run('createAlignmentState({source:"model",level:"word",mode:"live"})');
+    const run = {alignment: state, samples: 0, done: false, ctx: null};
+    setRun(s, run);
+    send(s, run, {type: 'fragment_start', request_id: 'r1', fragment_index: 0, text: 'hello world', sample_rate_hz: 100});
+    send(s, run, {type: 'alignment_done', request_id: 'r1', fragment_index: 0, complete: false, ...payload});
+    assert.equal(state.status, status);
+    assert.equal(state.final, true);
+  }
 });

@@ -49,7 +49,7 @@ class ServerAlignment:
             if snapshot.final:
                 state.alignment_events.put({
                     "type": "alignment_done", "complete": snapshot.status == "ready",
-                    "finish_reason": snapshot.status,
+                    "finish_reason": snapshot.status, "coverage": snapshot.coverage,
                 })
                 state.alignment_done.set()
 
@@ -61,7 +61,14 @@ class ServerAlignment:
             original = self.original_callback
 
             def controls(event):
-                if event.get("type") not in {"alignment", "alignment_done", "alignment_complete"} and not state.alignment_closed.is_set():
+                kind = event.get("type")
+                verified_stop = (kind == "alignment_complete"
+                                 and event.get("completion_verified") is True
+                                 and event.get("stop_requested") is True)
+                if (not state.alignment_closed.is_set() and not state.cancelled.is_set()
+                        and (verified_stop or kind not in {"alignment", "alignment_done", "alignment_complete"})):
+                    # Display snapshots replace timing updates, but must not swallow
+                    # the engine-authorized cutoff used by queued playback.
                     state.alignment_events.put(event)
                 if original is not None:
                     original(event)

@@ -2,6 +2,7 @@ import threading
 import time
 
 import numpy as np
+import pytest
 import pyaudio
 
 from RealtimeTTS import BaseEngine, TextToAudioStream
@@ -91,6 +92,109 @@ def _single_sentence(text):
 
 def _two_sentences(text):
     return [f"{part.strip()}." for part in text.split(".") if part.strip()]
+
+
+@pytest.mark.parametrize("language_tags", [False, True])
+@pytest.mark.parametrize("worker_active", [False, True])
+def test_input_iterator_failure_releases_sentence_worker(
+    monkeypatch, language_tags, worker_active
+):
+    monkeypatch.setattr(stream_player.pyaudio, "PyAudio", _FakePyAudio)
+
+    class SentenceSplitter:
+        @staticmethod
+        def generate_sentences(source, **kwargs):
+            sentence = ""
+            for char in source:
+                sentence += char
+                if char == ".":
+                    yield sentence
+                    sentence = ""
+            if sentence:
+                yield sentence
+
+    monkeypatch.setattr(text_to_stream, "_get_stream2sentence", lambda: SentenceSplitter)
+
+    class StoppableEngine(_PCMEngine):
+        def post_init(self):
+            super().post_init()
+            self.started = threading.Event()
+            self.language = "en"
+            self.stop_calls = 0
+
+        def get_language(self):
+            return self.language
+
+        def set_language(self, language):
+            self.language = language
+
+        def synthesize(self, text, sentence_count=0):
+            self.started.set()
+            if not self.stop_synthesis_event.wait(5):
+                raise AssertionError("input failure did not stop synthesis")
+            return False
+
+        def stop(self):
+            self.stop_calls += 1
+            super().stop()
+
+    engine = StoppableEngine()
+    stream = TextToAudioStream(engine, language_tags=language_tags, tokenizer="rule-based")
+    workers = []
+    sentence_queues = []
+    failures = []
+    real_thread = threading.Thread
+    real_queue = text_to_stream.queue.Queue
+
+    def record_thread(*args, **kwargs):
+        thread = real_thread(*args, **kwargs)
+        if getattr(kwargs.get("target"), "__name__", "") == "synthesize_worker":
+            workers.append(thread)
+        return thread
+
+    class RecordingQueue(real_queue):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            sentence_queues.append(self)
+
+    monkeypatch.setattr(text_to_stream.threading, "Thread", record_thread)
+    monkeypatch.setattr(text_to_stream.queue, "Queue", RecordingQueue)
+    source_error = RuntimeError("upstream text failed")
+
+    def source():
+        yield "Inside." if worker_active else "unfinished"
+        if worker_active:
+            assert engine.started.wait(2)
+        raise source_error
+
+    def play():
+        try:
+            stream.feed(source()).play(buffer_threshold_seconds=0)
+        except BaseException as exc:
+            failures.append(exc)
+
+    play_thread = real_thread(target=play, daemon=True)
+    try:
+        play_thread.start()
+        play_thread.join(3)
+        assert not play_thread.is_alive()
+        assert stream.error_flag
+        assert len(workers) == 1
+        assert not workers[0].is_alive()
+        assert engine.stop_calls == 1
+        assert not stream.abort_events
+        assert not stream.is_playing()
+        assert not stream.play_lock.locked()
+        # Retain the existing public error-reporting behavior in both modes.
+        assert failures == ([source_error] if language_tags else [])
+    finally:
+        engine.stop()
+        for sentence_queue in sentence_queues:
+            sentence_queue.put(None)
+        for worker in workers:
+            worker.join(2)
+        play_thread.join(2)
+        stream.close()
 
 
 def test_fragment_lookahead_is_forwarded_to_stream2sentence(monkeypatch):

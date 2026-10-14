@@ -1,0 +1,725 @@
+{
+  "schema_version": 1,
+  "corpus_id": "portuguese-tts100-20261014",
+  "language": "pt",
+  "seed": 42,
+  "seed_scope": "Fixed corpus order; default requested sampling seed42 per synthesis. No bit-exact guarantee across native builds/references.",
+  "counts": {
+    "total": 100,
+    "short_1_to_3_words": 90,
+    "longer": 10
+  },
+  "word_count_definition": "Whitespace-separated tokens after trimming. Hyphenated forms count as one token.",
+  "coverage": [
+    "single words",
+    "nasal vowels and diphthongs",
+    "nh/lh/ç",
+    "r/z contrasts",
+    "questions and commands",
+    "numbers and directions",
+    "short and longer utterances"
+  ],
+  "dialect_scope": "Generic pt, mostly shared vocabulary with some European Portuguese forms; no dedicated regional pronunciation guarantee.",
+  "entries": [
+    {
+      "id": "pt_short_01",
+      "class": "short",
+      "index": 1,
+      "text": "Relva",
+      "word_count": 1
+    },
+    {
+      "id": "pt_short_02",
+      "class": "short",
+      "index": 2,
+      "text": "Chuva",
+      "word_count": 1
+    },
+    {
+      "id": "pt_short_03",
+      "class": "short",
+      "index": 3,
+      "text": "Sol",
+      "word_count": 1
+    },
+    {
+      "id": "pt_short_04",
+      "class": "short",
+      "index": 4,
+      "text": "Sim",
+      "word_count": 1
+    },
+    {
+      "id": "pt_short_05",
+      "class": "short",
+      "index": 5,
+      "text": "Não",
+      "word_count": 1
+    },
+    {
+      "id": "pt_short_06",
+      "class": "short",
+      "index": 6,
+      "text": "Talvez",
+      "word_count": 1
+    },
+    {
+      "id": "pt_short_07",
+      "class": "short",
+      "index": 7,
+      "text": "Obrigado",
+      "word_count": 1
+    },
+    {
+      "id": "pt_short_08",
+      "class": "short",
+      "index": 8,
+      "text": "Olá",
+      "word_count": 1
+    },
+    {
+      "id": "pt_short_09",
+      "class": "short",
+      "index": 9,
+      "text": "Adeus",
+      "word_count": 1
+    },
+    {
+      "id": "pt_short_10",
+      "class": "short",
+      "index": 10,
+      "text": "Por favor",
+      "word_count": 2
+    },
+    {
+      "id": "pt_short_11",
+      "class": "short",
+      "index": 11,
+      "text": "Bom dia",
+      "word_count": 2
+    },
+    {
+      "id": "pt_short_12",
+      "class": "short",
+      "index": 12,
+      "text": "Boa noite",
+      "word_count": 2
+    },
+    {
+      "id": "pt_short_13",
+      "class": "short",
+      "index": 13,
+      "text": "Até logo",
+      "word_count": 2
+    },
+    {
+      "id": "pt_short_14",
+      "class": "short",
+      "index": 14,
+      "text": "Hoje",
+      "word_count": 1
+    },
+    {
+      "id": "pt_short_15",
+      "class": "short",
+      "index": 15,
+      "text": "Amanhã",
+      "word_count": 1
+    },
+    {
+      "id": "pt_short_16",
+      "class": "short",
+      "index": 16,
+      "text": "Ontem",
+      "word_count": 1
+    },
+    {
+      "id": "pt_short_17",
+      "class": "short",
+      "index": 17,
+      "text": "Agora",
+      "word_count": 1
+    },
+    {
+      "id": "pt_short_18",
+      "class": "short",
+      "index": 18,
+      "text": "Depois",
+      "word_count": 1
+    },
+    {
+      "id": "pt_short_19",
+      "class": "short",
+      "index": 19,
+      "text": "Aqui",
+      "word_count": 1
+    },
+    {
+      "id": "pt_short_20",
+      "class": "short",
+      "index": 20,
+      "text": "Ali",
+      "word_count": 1
+    },
+    {
+      "id": "pt_short_21",
+      "class": "short",
+      "index": 21,
+      "text": "Uma árvore",
+      "word_count": 2
+    },
+    {
+      "id": "pt_short_22",
+      "class": "short",
+      "index": 22,
+      "text": "As flores",
+      "word_count": 2
+    },
+    {
+      "id": "pt_short_23",
+      "class": "short",
+      "index": 23,
+      "text": "O caminho",
+      "word_count": 2
+    },
+    {
+      "id": "pt_short_24",
+      "class": "short",
+      "index": 24,
+      "text": "A ponte",
+      "word_count": 2
+    },
+    {
+      "id": "pt_short_25",
+      "class": "short",
+      "index": 25,
+      "text": "A rua",
+      "word_count": 2
+    },
+    {
+      "id": "pt_short_26",
+      "class": "short",
+      "index": 26,
+      "text": "O parque",
+      "word_count": 2
+    },
+    {
+      "id": "pt_short_27",
+      "class": "short",
+      "index": 27,
+      "text": "A praia",
+      "word_count": 2
+    },
+    {
+      "id": "pt_short_28",
+      "class": "short",
+      "index": 28,
+      "text": "O rio",
+      "word_count": 2
+    },
+    {
+      "id": "pt_short_29",
+      "class": "short",
+      "index": 29,
+      "text": "O mar",
+      "word_count": 2
+    },
+    {
+      "id": "pt_short_30",
+      "class": "short",
+      "index": 30,
+      "text": "Uma nuvem",
+      "word_count": 2
+    },
+    {
+      "id": "pt_short_31",
+      "class": "short",
+      "index": 31,
+      "text": "Três nuvens",
+      "word_count": 2
+    },
+    {
+      "id": "pt_short_32",
+      "class": "short",
+      "index": 32,
+      "text": "Muito vento",
+      "word_count": 2
+    },
+    {
+      "id": "pt_short_33",
+      "class": "short",
+      "index": 33,
+      "text": "Céu azul",
+      "word_count": 2
+    },
+    {
+      "id": "pt_short_34",
+      "class": "short",
+      "index": 34,
+      "text": "Chuva forte",
+      "word_count": 2
+    },
+    {
+      "id": "pt_short_35",
+      "class": "short",
+      "index": 35,
+      "text": "Água fria",
+      "word_count": 2
+    },
+    {
+      "id": "pt_short_36",
+      "class": "short",
+      "index": 36,
+      "text": "Café quente",
+      "word_count": 2
+    },
+    {
+      "id": "pt_short_37",
+      "class": "short",
+      "index": 37,
+      "text": "Pão fresco",
+      "word_count": 2
+    },
+    {
+      "id": "pt_short_38",
+      "class": "short",
+      "index": 38,
+      "text": "Queijo branco",
+      "word_count": 2
+    },
+    {
+      "id": "pt_short_39",
+      "class": "short",
+      "index": 39,
+      "text": "Uma maçã",
+      "word_count": 2
+    },
+    {
+      "id": "pt_short_40",
+      "class": "short",
+      "index": 40,
+      "text": "Dois limões",
+      "word_count": 2
+    },
+    {
+      "id": "pt_short_41",
+      "class": "short",
+      "index": 41,
+      "text": "Uma laranja",
+      "word_count": 2
+    },
+    {
+      "id": "pt_short_42",
+      "class": "short",
+      "index": 42,
+      "text": "Meu amigo",
+      "word_count": 2
+    },
+    {
+      "id": "pt_short_43",
+      "class": "short",
+      "index": 43,
+      "text": "A minha casa",
+      "word_count": 3
+    },
+    {
+      "id": "pt_short_44",
+      "class": "short",
+      "index": 44,
+      "text": "Este livro",
+      "word_count": 2
+    },
+    {
+      "id": "pt_short_45",
+      "class": "short",
+      "index": 45,
+      "text": "Essa cadeira",
+      "word_count": 2
+    },
+    {
+      "id": "pt_short_46",
+      "class": "short",
+      "index": 46,
+      "text": "Um carro",
+      "word_count": 2
+    },
+    {
+      "id": "pt_short_47",
+      "class": "short",
+      "index": 47,
+      "text": "Um avião",
+      "word_count": 2
+    },
+    {
+      "id": "pt_short_48",
+      "class": "short",
+      "index": 48,
+      "text": "O barco",
+      "word_count": 2
+    },
+    {
+      "id": "pt_short_49",
+      "class": "short",
+      "index": 49,
+      "text": "A escola",
+      "word_count": 2
+    },
+    {
+      "id": "pt_short_50",
+      "class": "short",
+      "index": 50,
+      "text": "O trabalho",
+      "word_count": 2
+    },
+    {
+      "id": "pt_short_51",
+      "class": "short",
+      "index": 51,
+      "text": "A janela",
+      "word_count": 2
+    },
+    {
+      "id": "pt_short_52",
+      "class": "short",
+      "index": 52,
+      "text": "A chave",
+      "word_count": 2
+    },
+    {
+      "id": "pt_short_53",
+      "class": "short",
+      "index": 53,
+      "text": "Os olhos",
+      "word_count": 2
+    },
+    {
+      "id": "pt_short_54",
+      "class": "short",
+      "index": 54,
+      "text": "As mãos",
+      "word_count": 2
+    },
+    {
+      "id": "pt_short_55",
+      "class": "short",
+      "index": 55,
+      "text": "Uma mulher",
+      "word_count": 2
+    },
+    {
+      "id": "pt_short_56",
+      "class": "short",
+      "index": 56,
+      "text": "Um homem",
+      "word_count": 2
+    },
+    {
+      "id": "pt_short_57",
+      "class": "short",
+      "index": 57,
+      "text": "Meu irmão",
+      "word_count": 2
+    },
+    {
+      "id": "pt_short_58",
+      "class": "short",
+      "index": 58,
+      "text": "Minha irmã",
+      "word_count": 2
+    },
+    {
+      "id": "pt_short_59",
+      "class": "short",
+      "index": 59,
+      "text": "Peixe pequeno",
+      "word_count": 2
+    },
+    {
+      "id": "pt_short_60",
+      "class": "short",
+      "index": 60,
+      "text": "Folha verde",
+      "word_count": 2
+    },
+    {
+      "id": "pt_short_61",
+      "class": "short",
+      "index": 61,
+      "text": "Velho amigo",
+      "word_count": 2
+    },
+    {
+      "id": "pt_short_62",
+      "class": "short",
+      "index": 62,
+      "text": "Novo começo",
+      "word_count": 2
+    },
+    {
+      "id": "pt_short_63",
+      "class": "short",
+      "index": 63,
+      "text": "Quero água",
+      "word_count": 2
+    },
+    {
+      "id": "pt_short_64",
+      "class": "short",
+      "index": 64,
+      "text": "Não sei",
+      "word_count": 2
+    },
+    {
+      "id": "pt_short_65",
+      "class": "short",
+      "index": 65,
+      "text": "Está bem",
+      "word_count": 2
+    },
+    {
+      "id": "pt_short_66",
+      "class": "short",
+      "index": 66,
+      "text": "Como estás?",
+      "word_count": 2
+    },
+    {
+      "id": "pt_short_67",
+      "class": "short",
+      "index": 67,
+      "text": "Onde fica?",
+      "word_count": 2
+    },
+    {
+      "id": "pt_short_68",
+      "class": "short",
+      "index": 68,
+      "text": "Quanto custa?",
+      "word_count": 2
+    },
+    {
+      "id": "pt_short_69",
+      "class": "short",
+      "index": 69,
+      "text": "Tudo bem?",
+      "word_count": 2
+    },
+    {
+      "id": "pt_short_70",
+      "class": "short",
+      "index": 70,
+      "text": "Quem vem?",
+      "word_count": 2
+    },
+    {
+      "id": "pt_short_71",
+      "class": "short",
+      "index": 71,
+      "text": "Por onde?",
+      "word_count": 2
+    },
+    {
+      "id": "pt_short_72",
+      "class": "short",
+      "index": 72,
+      "text": "Pode repetir?",
+      "word_count": 2
+    },
+    {
+      "id": "pt_short_73",
+      "class": "short",
+      "index": 73,
+      "text": "Mais devagar",
+      "word_count": 2
+    },
+    {
+      "id": "pt_short_74",
+      "class": "short",
+      "index": 74,
+      "text": "Fala claramente",
+      "word_count": 2
+    },
+    {
+      "id": "pt_short_75",
+      "class": "short",
+      "index": 75,
+      "text": "Venha aqui",
+      "word_count": 2
+    },
+    {
+      "id": "pt_short_76",
+      "class": "short",
+      "index": 76,
+      "text": "Vamos juntos",
+      "word_count": 2
+    },
+    {
+      "id": "pt_short_77",
+      "class": "short",
+      "index": 77,
+      "text": "Siga em frente",
+      "word_count": 3
+    },
+    {
+      "id": "pt_short_78",
+      "class": "short",
+      "index": 78,
+      "text": "Vire à esquerda",
+      "word_count": 3
+    },
+    {
+      "id": "pt_short_79",
+      "class": "short",
+      "index": 79,
+      "text": "Vire à direita",
+      "word_count": 3
+    },
+    {
+      "id": "pt_short_80",
+      "class": "short",
+      "index": 80,
+      "text": "Espere um pouco",
+      "word_count": 3
+    },
+    {
+      "id": "pt_short_81",
+      "class": "short",
+      "index": 81,
+      "text": "Abra a porta",
+      "word_count": 3
+    },
+    {
+      "id": "pt_short_82",
+      "class": "short",
+      "index": 82,
+      "text": "Feche a janela",
+      "word_count": 3
+    },
+    {
+      "id": "pt_short_83",
+      "class": "short",
+      "index": 83,
+      "text": "Isso é fácil",
+      "word_count": 3
+    },
+    {
+      "id": "pt_short_84",
+      "class": "short",
+      "index": 84,
+      "text": "Isto parece estranho",
+      "word_count": 3
+    },
+    {
+      "id": "pt_short_85",
+      "class": "short",
+      "index": 85,
+      "text": "Boa ideia",
+      "word_count": 2
+    },
+    {
+      "id": "pt_short_86",
+      "class": "short",
+      "index": 86,
+      "text": "Muito obrigado",
+      "word_count": 2
+    },
+    {
+      "id": "pt_short_87",
+      "class": "short",
+      "index": 87,
+      "text": "Sinto muito",
+      "word_count": 2
+    },
+    {
+      "id": "pt_short_88",
+      "class": "short",
+      "index": 88,
+      "text": "Com licença",
+      "word_count": 2
+    },
+    {
+      "id": "pt_short_89",
+      "class": "short",
+      "index": 89,
+      "text": "Sem problema",
+      "word_count": 2
+    },
+    {
+      "id": "pt_short_90",
+      "class": "short",
+      "index": 90,
+      "text": "Que lindo!",
+      "word_count": 2
+    },
+    {
+      "id": "pt_long_01",
+      "class": "longer",
+      "index": 91,
+      "text": "Hoje vamos passear pelo parque e observar as árvores, as flores e os pássaros perto do caminho.",
+      "word_count": 17
+    },
+    {
+      "id": "pt_long_02",
+      "class": "longer",
+      "index": 92,
+      "text": "Quando a chuva parar, podemos atravessar a ponte e continuar até à pequena praça junto ao rio.",
+      "word_count": 17
+    },
+    {
+      "id": "pt_long_03",
+      "class": "longer",
+      "index": 93,
+      "text": "Tenho três perguntas sobre o trabalho, mas primeiro quero ouvir a tua opinião com calma.",
+      "word_count": 15
+    },
+    {
+      "id": "pt_long_04",
+      "class": "longer",
+      "index": 94,
+      "text": "Na próxima semana, a minha irmã vai visitar uma escola nova e conhecer os professores da turma.",
+      "word_count": 17
+    },
+    {
+      "id": "pt_long_05",
+      "class": "longer",
+      "index": 95,
+      "text": "Por favor, leia esta frase devagar e depois repita a mesma frase com um ritmo mais natural.",
+      "word_count": 17
+    },
+    {
+      "id": "pt_long_06",
+      "class": "longer",
+      "index": 96,
+      "text": "O senhor deixou as chaves sobre a mesa, ao lado do livro azul e de um copo.",
+      "word_count": 17
+    },
+    {
+      "id": "pt_long_07",
+      "class": "longer",
+      "index": 97,
+      "text": "Às oito da manhã, saímos de casa, comprámos pão fresco e encontrámos dois amigos no mercado.",
+      "word_count": 16
+    },
+    {
+      "id": "pt_long_08",
+      "class": "longer",
+      "index": 98,
+      "text": "Embora o vento estivesse forte, as crianças continuaram a brincar perto da praia durante alguns minutos.",
+      "word_count": 16
+    },
+    {
+      "id": "pt_long_09",
+      "class": "longer",
+      "index": 99,
+      "text": "Se não entenderes uma palavra, pede uma explicação e tenta usá-la numa frase simples sobre o teu dia.",
+      "word_count": 18
+    },
+    {
+      "id": "pt_long_10",
+      "class": "longer",
+      "index": 100,
+      "text": "Para chegar à estação, siga em frente, vire à direita na segunda rua e atravesse a praça.",
+      "word_count": 17
+    }
+  ]
+}

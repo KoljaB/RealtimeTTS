@@ -1,0 +1,725 @@
+{
+  "schema_version": 1,
+  "corpus_id": "english-tts100-20261014",
+  "language": "en",
+  "seed": 42,
+  "seed_scope": "Fixed corpus order; default requested sampling seed 42 per synthesis. No bit-exact guarantee across native builds/references.",
+  "counts": {
+    "total": 100,
+    "short_1_to_3_words": 90,
+    "longer": 10
+  },
+  "word_count_definition": "Whitespace-separated tokens after trimming. Contractions and punctuation attached to a token count as one word.",
+  "coverage": [
+    "single words",
+    "contractions",
+    "questions and commands",
+    "numbers and directions",
+    "th/r/l/w contrasts",
+    "consonant clusters",
+    "vowel variety",
+    "short and long utterances"
+  ],
+  "entries": [
+    {
+      "id": "en_short_01",
+      "class": "short",
+      "index": 1,
+      "text": "Grass",
+      "word_count": 1
+    },
+    {
+      "id": "en_short_02",
+      "class": "short",
+      "index": 2,
+      "text": "Rain",
+      "word_count": 1
+    },
+    {
+      "id": "en_short_03",
+      "class": "short",
+      "index": 3,
+      "text": "Hello",
+      "word_count": 1
+    },
+    {
+      "id": "en_short_04",
+      "class": "short",
+      "index": 4,
+      "text": "Yes",
+      "word_count": 1
+    },
+    {
+      "id": "en_short_05",
+      "class": "short",
+      "index": 5,
+      "text": "No",
+      "word_count": 1
+    },
+    {
+      "id": "en_short_06",
+      "class": "short",
+      "index": 6,
+      "text": "Please",
+      "word_count": 1
+    },
+    {
+      "id": "en_short_07",
+      "class": "short",
+      "index": 7,
+      "text": "Thanks",
+      "word_count": 1
+    },
+    {
+      "id": "en_short_08",
+      "class": "short",
+      "index": 8,
+      "text": "Stop",
+      "word_count": 1
+    },
+    {
+      "id": "en_short_09",
+      "class": "short",
+      "index": 9,
+      "text": "Wait...",
+      "word_count": 1
+    },
+    {
+      "id": "en_short_10",
+      "class": "short",
+      "index": 10,
+      "text": "Go!",
+      "word_count": 1
+    },
+    {
+      "id": "en_short_11",
+      "class": "short",
+      "index": 11,
+      "text": "Really?",
+      "word_count": 1
+    },
+    {
+      "id": "en_short_12",
+      "class": "short",
+      "index": 12,
+      "text": "Water",
+      "word_count": 1
+    },
+    {
+      "id": "en_short_13",
+      "class": "short",
+      "index": 13,
+      "text": "World",
+      "word_count": 1
+    },
+    {
+      "id": "en_short_14",
+      "class": "short",
+      "index": 14,
+      "text": "Thought",
+      "word_count": 1
+    },
+    {
+      "id": "en_short_15",
+      "class": "short",
+      "index": 15,
+      "text": "Through",
+      "word_count": 1
+    },
+    {
+      "id": "en_short_16",
+      "class": "short",
+      "index": 16,
+      "text": "Squirrel",
+      "word_count": 1
+    },
+    {
+      "id": "en_short_17",
+      "class": "short",
+      "index": 17,
+      "text": "Rhythm",
+      "word_count": 1
+    },
+    {
+      "id": "en_short_18",
+      "class": "short",
+      "index": 18,
+      "text": "Strengths",
+      "word_count": 1
+    },
+    {
+      "id": "en_short_19",
+      "class": "short",
+      "index": 19,
+      "text": "February",
+      "word_count": 1
+    },
+    {
+      "id": "en_short_20",
+      "class": "short",
+      "index": 20,
+      "text": "Queue",
+      "word_count": 1
+    },
+    {
+      "id": "en_short_21",
+      "class": "short",
+      "index": 21,
+      "text": "Good morning",
+      "word_count": 2
+    },
+    {
+      "id": "en_short_22",
+      "class": "short",
+      "index": 22,
+      "text": "Good night",
+      "word_count": 2
+    },
+    {
+      "id": "en_short_23",
+      "class": "short",
+      "index": 23,
+      "text": "See you",
+      "word_count": 2
+    },
+    {
+      "id": "en_short_24",
+      "class": "short",
+      "index": 24,
+      "text": "Come here",
+      "word_count": 2
+    },
+    {
+      "id": "en_short_25",
+      "class": "short",
+      "index": 25,
+      "text": "Go ahead",
+      "word_count": 2
+    },
+    {
+      "id": "en_short_26",
+      "class": "short",
+      "index": 26,
+      "text": "Sit down",
+      "word_count": 2
+    },
+    {
+      "id": "en_short_27",
+      "class": "short",
+      "index": 27,
+      "text": "Stand up",
+      "word_count": 2
+    },
+    {
+      "id": "en_short_28",
+      "class": "short",
+      "index": 28,
+      "text": "Look up",
+      "word_count": 2
+    },
+    {
+      "id": "en_short_29",
+      "class": "short",
+      "index": 29,
+      "text": "Listen carefully",
+      "word_count": 2
+    },
+    {
+      "id": "en_short_30",
+      "class": "short",
+      "index": 30,
+      "text": "Speak slowly",
+      "word_count": 2
+    },
+    {
+      "id": "en_short_31",
+      "class": "short",
+      "index": 31,
+      "text": "Try again",
+      "word_count": 2
+    },
+    {
+      "id": "en_short_32",
+      "class": "short",
+      "index": 32,
+      "text": "Not yet",
+      "word_count": 2
+    },
+    {
+      "id": "en_short_33",
+      "class": "short",
+      "index": 33,
+      "text": "Almost there",
+      "word_count": 2
+    },
+    {
+      "id": "en_short_34",
+      "class": "short",
+      "index": 34,
+      "text": "Of course",
+      "word_count": 2
+    },
+    {
+      "id": "en_short_35",
+      "class": "short",
+      "index": 35,
+      "text": "Thank you",
+      "word_count": 2
+    },
+    {
+      "id": "en_short_36",
+      "class": "short",
+      "index": 36,
+      "text": "You're welcome",
+      "word_count": 2
+    },
+    {
+      "id": "en_short_37",
+      "class": "short",
+      "index": 37,
+      "text": "Excuse me",
+      "word_count": 2
+    },
+    {
+      "id": "en_short_38",
+      "class": "short",
+      "index": 38,
+      "text": "I'm sorry",
+      "word_count": 2
+    },
+    {
+      "id": "en_short_39",
+      "class": "short",
+      "index": 39,
+      "text": "No problem",
+      "word_count": 2
+    },
+    {
+      "id": "en_short_40",
+      "class": "short",
+      "index": 40,
+      "text": "Why not?",
+      "word_count": 2
+    },
+    {
+      "id": "en_short_41",
+      "class": "short",
+      "index": 41,
+      "text": "Fresh bread",
+      "word_count": 2
+    },
+    {
+      "id": "en_short_42",
+      "class": "short",
+      "index": 42,
+      "text": "Hot tea",
+      "word_count": 2
+    },
+    {
+      "id": "en_short_43",
+      "class": "short",
+      "index": 43,
+      "text": "Cold water",
+      "word_count": 2
+    },
+    {
+      "id": "en_short_44",
+      "class": "short",
+      "index": 44,
+      "text": "Green grass",
+      "word_count": 2
+    },
+    {
+      "id": "en_short_45",
+      "class": "short",
+      "index": 45,
+      "text": "Heavy rain",
+      "word_count": 2
+    },
+    {
+      "id": "en_short_46",
+      "class": "short",
+      "index": 46,
+      "text": "Blue sky",
+      "word_count": 2
+    },
+    {
+      "id": "en_short_47",
+      "class": "short",
+      "index": 47,
+      "text": "Bright stars",
+      "word_count": 2
+    },
+    {
+      "id": "en_short_48",
+      "class": "short",
+      "index": 48,
+      "text": "Soft voice",
+      "word_count": 2
+    },
+    {
+      "id": "en_short_49",
+      "class": "short",
+      "index": 49,
+      "text": "Three trees",
+      "word_count": 2
+    },
+    {
+      "id": "en_short_50",
+      "class": "short",
+      "index": 50,
+      "text": "Thin thread",
+      "word_count": 2
+    },
+    {
+      "id": "en_short_51",
+      "class": "short",
+      "index": 51,
+      "text": "Red roses",
+      "word_count": 2
+    },
+    {
+      "id": "en_short_52",
+      "class": "short",
+      "index": 52,
+      "text": "Yellow flowers",
+      "word_count": 2
+    },
+    {
+      "id": "en_short_53",
+      "class": "short",
+      "index": 53,
+      "text": "Warm weather",
+      "word_count": 2
+    },
+    {
+      "id": "en_short_54",
+      "class": "short",
+      "index": 54,
+      "text": "Quiet room",
+      "word_count": 2
+    },
+    {
+      "id": "en_short_55",
+      "class": "short",
+      "index": 55,
+      "text": "Small house",
+      "word_count": 2
+    },
+    {
+      "id": "en_short_56",
+      "class": "short",
+      "index": 56,
+      "text": "Long road",
+      "word_count": 2
+    },
+    {
+      "id": "en_short_57",
+      "class": "short",
+      "index": 57,
+      "text": "Old friend",
+      "word_count": 2
+    },
+    {
+      "id": "en_short_58",
+      "class": "short",
+      "index": 58,
+      "text": "New shoes",
+      "word_count": 2
+    },
+    {
+      "id": "en_short_59",
+      "class": "short",
+      "index": 59,
+      "text": "Six ships",
+      "word_count": 2
+    },
+    {
+      "id": "en_short_60",
+      "class": "short",
+      "index": 60,
+      "text": "Eight eggs",
+      "word_count": 2
+    },
+    {
+      "id": "en_short_61",
+      "class": "short",
+      "index": 61,
+      "text": "How are you?",
+      "word_count": 3
+    },
+    {
+      "id": "en_short_62",
+      "class": "short",
+      "index": 62,
+      "text": "What's your name?",
+      "word_count": 3
+    },
+    {
+      "id": "en_short_63",
+      "class": "short",
+      "index": 63,
+      "text": "Where are we?",
+      "word_count": 3
+    },
+    {
+      "id": "en_short_64",
+      "class": "short",
+      "index": 64,
+      "text": "What happened here?",
+      "word_count": 3
+    },
+    {
+      "id": "en_short_65",
+      "class": "short",
+      "index": 65,
+      "text": "Can you help?",
+      "word_count": 3
+    },
+    {
+      "id": "en_short_66",
+      "class": "short",
+      "index": 66,
+      "text": "Are you ready?",
+      "word_count": 3
+    },
+    {
+      "id": "en_short_67",
+      "class": "short",
+      "index": 67,
+      "text": "Is this yours?",
+      "word_count": 3
+    },
+    {
+      "id": "en_short_68",
+      "class": "short",
+      "index": 68,
+      "text": "I don't know.",
+      "word_count": 3
+    },
+    {
+      "id": "en_short_69",
+      "class": "short",
+      "index": 69,
+      "text": "I need help.",
+      "word_count": 3
+    },
+    {
+      "id": "en_short_70",
+      "class": "short",
+      "index": 70,
+      "text": "I am here.",
+      "word_count": 3
+    },
+    {
+      "id": "en_short_71",
+      "class": "short",
+      "index": 71,
+      "text": "We are late.",
+      "word_count": 3
+    },
+    {
+      "id": "en_short_72",
+      "class": "short",
+      "index": 72,
+      "text": "It's raining outside.",
+      "word_count": 3
+    },
+    {
+      "id": "en_short_73",
+      "class": "short",
+      "index": 73,
+      "text": "Please come back.",
+      "word_count": 3
+    },
+    {
+      "id": "en_short_74",
+      "class": "short",
+      "index": 74,
+      "text": "Please sit here.",
+      "word_count": 3
+    },
+    {
+      "id": "en_short_75",
+      "class": "short",
+      "index": 75,
+      "text": "Just one moment.",
+      "word_count": 3
+    },
+    {
+      "id": "en_short_76",
+      "class": "short",
+      "index": 76,
+      "text": "Take your time.",
+      "word_count": 3
+    },
+    {
+      "id": "en_short_77",
+      "class": "short",
+      "index": 77,
+      "text": "A little slower.",
+      "word_count": 3
+    },
+    {
+      "id": "en_short_78",
+      "class": "short",
+      "index": 78,
+      "text": "Say that again.",
+      "word_count": 3
+    },
+    {
+      "id": "en_short_79",
+      "class": "short",
+      "index": 79,
+      "text": "Turn left here.",
+      "word_count": 3
+    },
+    {
+      "id": "en_short_80",
+      "class": "short",
+      "index": 80,
+      "text": "Turn right now.",
+      "word_count": 3
+    },
+    {
+      "id": "en_short_81",
+      "class": "short",
+      "index": 81,
+      "text": "Open the door.",
+      "word_count": 3
+    },
+    {
+      "id": "en_short_82",
+      "class": "short",
+      "index": 82,
+      "text": "Close the window.",
+      "word_count": 3
+    },
+    {
+      "id": "en_short_83",
+      "class": "short",
+      "index": 83,
+      "text": "Bring some water.",
+      "word_count": 3
+    },
+    {
+      "id": "en_short_84",
+      "class": "short",
+      "index": 84,
+      "text": "Pass the salt.",
+      "word_count": 3
+    },
+    {
+      "id": "en_short_85",
+      "class": "short",
+      "index": 85,
+      "text": "This feels strange.",
+      "word_count": 3
+    },
+    {
+      "id": "en_short_86",
+      "class": "short",
+      "index": 86,
+      "text": "That sounds good.",
+      "word_count": 3
+    },
+    {
+      "id": "en_short_87",
+      "class": "short",
+      "index": 87,
+      "text": "One more time.",
+      "word_count": 3
+    },
+    {
+      "id": "en_short_88",
+      "class": "short",
+      "index": 88,
+      "text": "Three blue balloons.",
+      "word_count": 3
+    },
+    {
+      "id": "en_short_89",
+      "class": "short",
+      "index": 89,
+      "text": "The world turns.",
+      "word_count": 3
+    },
+    {
+      "id": "en_short_90",
+      "class": "short",
+      "index": 90,
+      "text": "Don't stop now.",
+      "word_count": 3
+    },
+    {
+      "id": "en_long_01",
+      "class": "longer",
+      "index": 91,
+      "text": "The rain has stopped, but the garden path is still wet and slippery.",
+      "word_count": 13
+    },
+    {
+      "id": "en_long_02",
+      "class": "longer",
+      "index": 92,
+      "text": "Would you like a cup of tea before we walk to the station?",
+      "word_count": 13
+    },
+    {
+      "id": "en_long_03",
+      "class": "longer",
+      "index": 93,
+      "text": "Three curious squirrels ran through the trees while a small bird sang nearby.",
+      "word_count": 13
+    },
+    {
+      "id": "en_long_04",
+      "class": "longer",
+      "index": 94,
+      "text": "Please repeat the words slowly: world, thought, strength, and rhythm.",
+      "word_count": 10
+    },
+    {
+      "id": "en_long_05",
+      "class": "longer",
+      "index": 95,
+      "text": "At seven thirty tomorrow morning, we'll meet outside the library on King Street.",
+      "word_count": 13
+    },
+    {
+      "id": "en_long_06",
+      "class": "longer",
+      "index": 96,
+      "text": "I bought twelve fresh eggs, two loaves of bread, and a bottle of milk.",
+      "word_count": 14
+    },
+    {
+      "id": "en_long_07",
+      "class": "longer",
+      "index": 97,
+      "text": "Although the road was narrow, the driver reached the quiet village without any trouble.",
+      "word_count": 14
+    },
+    {
+      "id": "en_long_08",
+      "class": "longer",
+      "index": 98,
+      "text": "She whispered, \"Are you sure?\" Then she opened the window and listened to the wind.",
+      "word_count": 15
+    },
+    {
+      "id": "en_long_09",
+      "class": "longer",
+      "index": 99,
+      "text": "First turn left at the traffic lights, then continue straight until you see the blue house.",
+      "word_count": 16
+    },
+    {
+      "id": "en_long_10",
+      "class": "longer",
+      "index": 100,
+      "text": "The little girl laughed because her grandfather couldn't pronounce the name of the purple dinosaur.",
+      "word_count": 15
+    }
+  ]
+}

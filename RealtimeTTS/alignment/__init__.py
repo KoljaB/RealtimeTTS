@@ -8,6 +8,7 @@ from .base import (
 )
 from .timeline import AlignmentConfig, AlignedSpan, AlignmentSnapshot, AlignmentTimeline
 from .streaming import StreamingTextAligner
+from .evidence import CompletionPolicy
 from .onnx_ctc import OnnxCTCBackend
 from .fake import FakeWordAligner
 # Optional offline/playback integrations must not load PyAudio on a headless
@@ -31,7 +32,7 @@ def __getattr__(name):
 
 __all__ = [
     "AlignmentConfig", "AlignedSpan", "AlignmentSnapshot", "AlignmentTimeline",
-    "StreamingTextAligner",
+    "StreamingTextAligner", "CompletionPolicy",
     "OnnxCTCBackend",
     "CharacterAligner",
     "CharacterAlignment",

@@ -83,6 +83,10 @@ def _check_wheel_contents(wheel: Path) -> None:
         'RealtimeTTS/alignment/decoder.py',
         'RealtimeTTS/alignment/server.py',
         'RealtimeTTS/server.py',
+        'RealtimeTTS/breeze_worker.py',
+        'RealtimeTTS/_audio_formats.py',
+        'RealtimeTTS/alignment/evidence.py',
+        'RealtimeTTS/alignment/windows.py',
     })
     missing = sorted(required_files - names)
     if missing:
@@ -156,6 +160,10 @@ def _check_sdist_contents(sdist: Path) -> None:
         'RealtimeTTS/alignment/decoder.py',
         'RealtimeTTS/alignment/server.py',
         'RealtimeTTS/server.py',
+        'RealtimeTTS/breeze_worker.py',
+        'RealtimeTTS/_audio_formats.py',
+        'RealtimeTTS/alignment/evidence.py',
+        'RealtimeTTS/alignment/windows.py',
         'docs/universal-alignment.md',
         'tools/prepare_breeze_cpp.py',
         'tools/breeze_cpp_controls.json',

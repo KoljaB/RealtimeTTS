@@ -19,6 +19,8 @@ Designed for flexible, real-time audio playback and streaming, with error handli
 from pydub import AudioSegment
 
 from ._audio_backend import pa, pyaudio
+from .audio_tempo import TempoProcessor, SpeedChange, validate_speed
+from .tempo_timeline import TempoTimeline
 import numpy as np
 import subprocess
 import threading
@@ -392,6 +394,8 @@ class AudioBufferManager:
         """
         try:
             chunk = self.audio_buffer.get(timeout=timeout)
+            if isinstance(chunk, SpeedChange):
+                return True, chunk
 
             # Map PyAudio format to bytes per sample
             format_bytes = {
@@ -454,6 +458,8 @@ class StreamPlayer:
         on_audio_chunk=None,
         on_word_spoken=None,
         muted=False,
+        speed=1.0,
+        tempo_timeline=None,
     ):
         """
         Args:
@@ -488,6 +494,12 @@ class StreamPlayer:
         self.on_audio_progress = None
         self.before_audio_chunk = None
         self.volume = 1.0  # Default volume at 100%
+        self.speed = validate_speed(speed)
+        self.tempo_timeline = tempo_timeline or TempoTimeline(self.speed)
+        self._tempo_output_offset = self.tempo_timeline.output_duration
+        self._tempo_processor = None
+        self._tempo_input_seconds = self._tempo_output_seconds = 0.0
+        self.playback_error = None
 
     def _play_mpeg_chunk(self, chunk):
         """
@@ -607,7 +619,10 @@ class StreamPlayer:
                             break
 
                     for timing in self.timings_list:
-                        if timing.start_time <= self.seconds_played:
+                        source_position = self.tempo_timeline.output_to_source(
+                            self._tempo_output_offset + self.seconds_played
+                        )
+                        if timing.start_time <= source_position - 1.0 / self.audio_stream.config.rate:
                             if self.on_word_spoken:
                                 self.on_word_spoken(timing)
                             self.timings_list.remove(timing)
@@ -658,19 +673,82 @@ class StreamPlayer:
         Processes and plays audio data from the buffer
         until it's empty or playback is stopped.
         """
-        while self.playback_active or not self.buffer_manager.audio_buffer.empty():
-            success, chunk = self.buffer_manager.get_from_buffer()
-            if chunk:
-                self._play_chunk(chunk)
-
-            if self.immediate_stop.is_set():
-                logging.info("Immediate stop requested, aborting playback")
-                break
-
-        self.playback_active = False
+        try:
+            while self.playback_active or not self.buffer_manager.audio_buffer.empty():
+                success, chunk = self.buffer_manager.get_from_buffer()
+                if self.immediate_stop.is_set():
+                    break
+                if isinstance(chunk, SpeedChange):
+                    self._finish_tempo_segment(chunk.speed)
+                elif chunk:
+                    self._process_audio_chunk(chunk)
+            if not self.immediate_stop.is_set():
+                self._finish_tempo_segment()
+        except Exception as exc:
+            self.playback_error = exc
+            logging.error("Audio tempo/playback failed: %s", exc)
+        finally:
+            if getattr(self, "_tempo_processor", None) is not None:
+                self._tempo_processor.cancel()
+                self._tempo_processor = None
+            self.playback_active = False
 
         if self.on_playback_stop:
             self.on_playback_stop()
+
+    def _pcm_duration(self, chunk):
+        config = self.audio_stream.config
+        widths = {pyaudio.paInt16: 2, pyaudio.paFloat32: 4, pyaudio.paInt32: 4,
+                  pyaudio.paInt24: 3, pyaudio.paInt8: 1, pyaudio.paUInt8: 1}
+        return len(chunk) / (widths[config.format] * config.channels * config.rate)
+
+    def _new_tempo_processor(self):
+        config = self.audio_stream.config
+        if self.speed == 1.0:
+            return None
+        return TempoProcessor(config.format, config.channels, config.rate, self.speed)
+
+    def _process_audio_chunk(self, chunk):
+        config = self.audio_stream.config
+        if config.format == pyaudio.paCustomFormat:
+            if self.speed != 1.0:
+                raise ValueError("Compressed speed control requires speed_tags=True or a non-default constructor speed")
+            self._play_chunk(chunk)
+            return
+        if self._tempo_processor is None:
+            self._tempo_processor = self._new_tempo_processor()
+        duration = self._pcm_duration(chunk)
+        self._tempo_input_seconds += duration
+        self.tempo_timeline.add_input(duration)
+        if self.speed == 1.0:
+            self._emit_tempo_audio(chunk)
+            return
+        for output in self._tempo_processor.feed(chunk):
+            self._emit_tempo_audio(output)
+            if self.immediate_stop.is_set():
+                break
+
+    def _emit_tempo_audio(self, chunk):
+        duration = self._pcm_duration(chunk)
+        self._tempo_output_seconds += duration
+        self.tempo_timeline.add_output(duration)
+        self._play_chunk(chunk)
+
+    def _finish_tempo_segment(self, next_speed=None):
+        processor = getattr(self, "_tempo_processor", None)
+        if processor is not None:
+            for output in processor.finish():
+                if self.immediate_stop.is_set():
+                    break
+                self._emit_tempo_audio(output)
+            processor.cancel()
+            self._tempo_processor = None
+        timeline = getattr(self, "tempo_timeline", None)
+        if timeline is not None:
+            timeline.finish_segment(next_speed)
+        self._tempo_input_seconds = self._tempo_output_seconds = 0.0
+        if next_speed is not None:
+            self.speed = validate_speed(next_speed)
 
     def get_buffered_seconds(self) -> float:
         """
@@ -679,6 +757,23 @@ class StreamPlayer:
         Returns:
             float: Duration of buffered audio in seconds.
         """
+        if self.audio_stream.config.format != pyaudio.paCustomFormat:
+            if not self.playback_active and self.buffer_manager.audio_buffer.empty():
+                return 0.0
+            config = self.audio_stream.config
+            audio_queue = self.buffer_manager.audio_buffer
+            if hasattr(audio_queue, "mutex") and hasattr(audio_queue, "queue"):
+                with audio_queue.mutex:
+                    queued = tuple(audio_queue.queue)
+                speed, seconds = self.speed, 0.0
+                for item in queued:
+                    if isinstance(item, SpeedChange):
+                        speed = item.speed
+                    elif item:
+                        seconds += self._pcm_duration(item) / speed
+                pending = max(0.0, self._tempo_input_seconds / self.speed - self._tempo_output_seconds)
+                ready = max(0.0, self.tempo_timeline.output_duration - self._tempo_output_offset - self.seconds_played)
+                return seconds + pending + ready
         if self.audio_stream.config.rate > 0:
             return self.buffer_manager.get_buffered_seconds(
                 self.audio_stream.config.rate
@@ -689,6 +784,18 @@ class StreamPlayer:
     def start(self):
         """Starts audio playback."""
         self.first_chunk_played = False
+        self.playback_error = None
+        self.seconds_played = 0.0
+        self._tempo_input_seconds = self._tempo_output_seconds = 0.0
+        self.timings_list.clear()
+        self.tempo_timeline.begin(self.speed)
+        self._tempo_output_offset = self.tempo_timeline.output_duration
+        try:
+            if self.audio_stream.config.format != pyaudio.paCustomFormat:
+                self._tempo_processor = self._new_tempo_processor()
+        except Exception as exc:
+            self.playback_error = exc
+            raise
         self.playback_active = True
         if not self.audio_stream.stream:
             self.audio_stream.open_stream()
@@ -742,8 +849,13 @@ class StreamPlayer:
         time.sleep(0.001)
 
         self.audio_stream.close_stream()
+        if getattr(self, "_tempo_processor", None) is not None:
+            self._tempo_processor.cancel()
+            self._tempo_processor = None
         self.immediate_stop.clear()
         self.buffer_manager.clear_buffer()
+        self._tempo_input_seconds = self._tempo_output_seconds = 0.0
+        self.timings_list = []
         self.playback_thread = None
 
     def pause(self):

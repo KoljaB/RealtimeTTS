@@ -1,0 +1,905 @@
+{
+  "schema_version": 1,
+  "corpus_id": "spanish-tts50-20261013",
+  "language": "es",
+  "seed": 42,
+  "seed_scope": "Fixed corpus index order; default sampling seed 42 for each synthesis. No bit-exact guarantee across native builds/references.",
+  "counts": {
+    "total": 50,
+    "short_1_to_3_words": 40,
+    "longer": 10
+  },
+  "word_count_definition": "Count whitespace-separated tokens after trimming. Punctuation attached to a token does not add a word. Hyphenated pronunciation forms such as Hier-ba and Llu-via count as one token, as requested.",
+  "entries": [
+    {
+      "id": "es_short_01",
+      "class": "short",
+      "index": 1,
+      "text": "Hier-ba",
+      "word_count": 1,
+      "phonetic_focus": [
+        "silent_h",
+        "ie",
+        "r"
+      ],
+      "punctuation": [],
+      "observed_trigger_forms": [
+        "hierba",
+        "Hier-ba"
+      ]
+    },
+    {
+      "id": "es_short_02",
+      "class": "short",
+      "index": 2,
+      "text": "Llu-via",
+      "word_count": 1,
+      "phonetic_focus": [
+        "palatal_ll",
+        "b_v",
+        "ia"
+      ],
+      "punctuation": [],
+      "observed_trigger_forms": [
+        "lluvia",
+        "Llu-via"
+      ]
+    },
+    {
+      "id": "es_short_03",
+      "class": "short",
+      "index": 3,
+      "text": "la hierba",
+      "word_count": 2,
+      "phonetic_focus": [
+        "silent_h",
+        "ie",
+        "r"
+      ],
+      "punctuation": [],
+      "observed_trigger_forms": [
+        "hierba"
+      ]
+    },
+    {
+      "id": "es_short_04",
+      "class": "short",
+      "index": 4,
+      "text": "la lluvia",
+      "word_count": 2,
+      "phonetic_focus": [
+        "palatal_ll",
+        "b_v",
+        "ia"
+      ],
+      "punctuation": [],
+      "observed_trigger_forms": [
+        "lluvia"
+      ]
+    },
+    {
+      "id": "es_short_05",
+      "class": "short",
+      "index": 5,
+      "text": "el camino",
+      "word_count": 2,
+      "phonetic_focus": [
+        "c_soft",
+        "m_n",
+        "stress"
+      ],
+      "punctuation": [],
+      "observed_trigger_forms": [
+        "camino"
+      ]
+    },
+    {
+      "id": "es_short_06",
+      "class": "short",
+      "index": 6,
+      "text": "el cielo",
+      "word_count": 2,
+      "phonetic_focus": [
+        "cie_diphthong",
+        "l"
+      ],
+      "punctuation": [],
+      "observed_trigger_forms": [
+        "cielo"
+      ]
+    },
+    {
+      "id": "es_short_07",
+      "class": "short",
+      "index": 7,
+      "text": "el paraguas",
+      "word_count": 2,
+      "phonetic_focus": [
+        "gua_diphthong",
+        "s"
+      ],
+      "punctuation": [],
+      "observed_trigger_forms": [
+        "paraguas"
+      ]
+    },
+    {
+      "id": "es_short_08",
+      "class": "short",
+      "index": 8,
+      "text": "el perro",
+      "word_count": 2,
+      "phonetic_focus": [
+        "rolled_rr",
+        "p_r"
+      ],
+      "punctuation": [],
+      "observed_trigger_forms": [
+        "perro"
+      ]
+    },
+    {
+      "id": "es_short_09",
+      "class": "short",
+      "index": 9,
+      "text": "el árbol",
+      "word_count": 2,
+      "phonetic_focus": [
+        "accented_vowel",
+        "r_l"
+      ],
+      "punctuation": [],
+      "observed_trigger_forms": [
+        "árbol"
+      ]
+    },
+    {
+      "id": "es_short_10",
+      "class": "short",
+      "index": 10,
+      "text": "la música",
+      "word_count": 2,
+      "phonetic_focus": [
+        "accented_vowel",
+        "s_k"
+      ],
+      "punctuation": [],
+      "observed_trigger_forms": [
+        "música"
+      ]
+    },
+    {
+      "id": "es_short_11",
+      "class": "short",
+      "index": 11,
+      "text": "Buenos días",
+      "word_count": 2,
+      "phonetic_focus": [
+        "b_d",
+        "accented_vowel"
+      ],
+      "punctuation": [],
+      "observed_trigger_forms": []
+    },
+    {
+      "id": "es_short_12",
+      "class": "short",
+      "index": 12,
+      "text": "Buenas noches",
+      "word_count": 2,
+      "phonetic_focus": [
+        "b_n",
+        "ch"
+      ],
+      "punctuation": [],
+      "observed_trigger_forms": []
+    },
+    {
+      "id": "es_short_13",
+      "class": "short",
+      "index": 13,
+      "text": "¿Qué tal?",
+      "word_count": 2,
+      "phonetic_focus": [
+        "question_intonation",
+        "k_t"
+      ],
+      "punctuation": [
+        "inverted_question",
+        "question"
+      ],
+      "observed_trigger_forms": []
+    },
+    {
+      "id": "es_short_14",
+      "class": "short",
+      "index": 14,
+      "text": "¿Dónde vas?",
+      "word_count": 2,
+      "phonetic_focus": [
+        "d_b",
+        "question_intonation"
+      ],
+      "punctuation": [
+        "inverted_question",
+        "question"
+      ],
+      "observed_trigger_forms": []
+    },
+    {
+      "id": "es_short_15",
+      "class": "short",
+      "index": 15,
+      "text": "¿Vienes hoy?",
+      "word_count": 2,
+      "phonetic_focus": [
+        "b_nasal",
+        "diphthong",
+        "question_intonation"
+      ],
+      "punctuation": [
+        "inverted_question",
+        "question"
+      ],
+      "observed_trigger_forms": []
+    },
+    {
+      "id": "es_short_16",
+      "class": "short",
+      "index": 16,
+      "text": "¡Qué sorpresa!",
+      "word_count": 2,
+      "phonetic_focus": [
+        "k_s",
+        "rolled_r"
+      ],
+      "punctuation": [
+        "inverted_exclamation",
+        "exclamation"
+      ],
+      "observed_trigger_forms": []
+    },
+    {
+      "id": "es_short_17",
+      "class": "short",
+      "index": 17,
+      "text": "Más despacio",
+      "word_count": 2,
+      "phonetic_focus": [
+        "accented_vowel",
+        "s_p"
+      ],
+      "punctuation": [],
+      "observed_trigger_forms": []
+    },
+    {
+      "id": "es_short_18",
+      "class": "short",
+      "index": 18,
+      "text": "Por favor",
+      "word_count": 2,
+      "phonetic_focus": [
+        "p_r",
+        "b_f"
+      ],
+      "punctuation": [],
+      "observed_trigger_forms": []
+    },
+    {
+      "id": "es_short_19",
+      "class": "short",
+      "index": 19,
+      "text": "Hasta luego",
+      "word_count": 2,
+      "phonetic_focus": [
+        "j_g",
+        "diphthong"
+      ],
+      "punctuation": [],
+      "observed_trigger_forms": []
+    },
+    {
+      "id": "es_short_20",
+      "class": "short",
+      "index": 20,
+      "text": "Rápido, por favor",
+      "word_count": 3,
+      "phonetic_focus": [
+        "accented_vowel",
+        "p_r",
+        "b_f"
+      ],
+      "punctuation": [
+        "comma"
+      ],
+      "observed_trigger_forms": []
+    },
+    {
+      "id": "es_short_21",
+      "class": "short",
+      "index": 21,
+      "text": "Café caliente",
+      "word_count": 2,
+      "phonetic_focus": [
+        "accented_vowel",
+        "k"
+      ],
+      "punctuation": [],
+      "observed_trigger_forms": []
+    },
+    {
+      "id": "es_short_22",
+      "class": "short",
+      "index": 22,
+      "text": "Pan y sal",
+      "word_count": 3,
+      "phonetic_focus": [
+        "nasal",
+        "y",
+        "s_l"
+      ],
+      "punctuation": [],
+      "observed_trigger_forms": []
+    },
+    {
+      "id": "es_short_23",
+      "class": "short",
+      "index": 23,
+      "text": "Sol y mar",
+      "word_count": 3,
+      "phonetic_focus": [
+        "l_y_m_r"
+      ],
+      "punctuation": [],
+      "observed_trigger_forms": []
+    },
+    {
+      "id": "es_short_24",
+      "class": "short",
+      "index": 24,
+      "text": "Casa azul",
+      "word_count": 2,
+      "phonetic_focus": [
+        "s_z",
+        "a_u_diphthong"
+      ],
+      "punctuation": [],
+      "observed_trigger_forms": []
+    },
+    {
+      "id": "es_short_25",
+      "class": "short",
+      "index": 25,
+      "text": "Río tranquilo",
+      "word_count": 2,
+      "phonetic_focus": [
+        "accented_vowel",
+        "tr"
+      ],
+      "punctuation": [],
+      "observed_trigger_forms": []
+    },
+    {
+      "id": "es_short_26",
+      "class": "short",
+      "index": 26,
+      "text": "Nube gris",
+      "word_count": 2,
+      "phonetic_focus": [
+        "b_g_r"
+      ],
+      "punctuation": [],
+      "observed_trigger_forms": []
+    },
+    {
+      "id": "es_short_27",
+      "class": "short",
+      "index": 27,
+      "text": "Viento fuerte",
+      "word_count": 2,
+      "phonetic_focus": [
+        "ie_diphthong",
+        "f_r"
+      ],
+      "punctuation": [],
+      "observed_trigger_forms": []
+    },
+    {
+      "id": "es_short_28",
+      "class": "short",
+      "index": 28,
+      "text": "Lluvia suave",
+      "word_count": 2,
+      "phonetic_focus": [
+        "palatal_ll",
+        "b_s"
+      ],
+      "punctuation": [],
+      "observed_trigger_forms": [
+        "lluvia"
+      ]
+    },
+    {
+      "id": "es_short_29",
+      "class": "short",
+      "index": 29,
+      "text": "Hierba fresca",
+      "word_count": 2,
+      "phonetic_focus": [
+        "silent_h",
+        "fr"
+      ],
+      "punctuation": [],
+      "observed_trigger_forms": [
+        "hierba"
+      ]
+    },
+    {
+      "id": "es_short_30",
+      "class": "short",
+      "index": 30,
+      "text": "Camino largo",
+      "word_count": 2,
+      "phonetic_focus": [
+        "m_n",
+        "r_g"
+      ],
+      "punctuation": [],
+      "observed_trigger_forms": [
+        "camino"
+      ]
+    },
+    {
+      "id": "es_short_31",
+      "class": "short",
+      "index": 31,
+      "text": "¿Hay tiempo?",
+      "word_count": 2,
+      "phonetic_focus": [
+        "silent_h",
+        "y_t",
+        "question_intonation"
+      ],
+      "punctuation": [
+        "inverted_question",
+        "question"
+      ],
+      "observed_trigger_forms": []
+    },
+    {
+      "id": "es_short_32",
+      "class": "short",
+      "index": 32,
+      "text": "¿Por qué?",
+      "word_count": 2,
+      "phonetic_focus": [
+        "k",
+        "question_intonation"
+      ],
+      "punctuation": [
+        "inverted_question",
+        "question"
+      ],
+      "observed_trigger_forms": []
+    },
+    {
+      "id": "es_short_33",
+      "class": "short",
+      "index": 33,
+      "text": "¡Corre ahora!",
+      "word_count": 2,
+      "phonetic_focus": [
+        "rolled_rr",
+        "w_diphthong"
+      ],
+      "punctuation": [
+        "inverted_exclamation",
+        "exclamation"
+      ],
+      "observed_trigger_forms": []
+    },
+    {
+      "id": "es_short_34",
+      "class": "short",
+      "index": 34,
+      "text": "Uno, dos",
+      "word_count": 2,
+      "phonetic_focus": [
+        "numbers",
+        "d_s"
+      ],
+      "punctuation": [
+        "comma"
+      ],
+      "observed_trigger_forms": []
+    },
+    {
+      "id": "es_short_35",
+      "class": "short",
+      "index": 35,
+      "text": "Ciento veinte",
+      "word_count": 2,
+      "phonetic_focus": [
+        "numbers",
+        "ie_diphthong",
+        "nt"
+      ],
+      "punctuation": [],
+      "observed_trigger_forms": []
+    },
+    {
+      "id": "es_short_36",
+      "class": "short",
+      "index": 36,
+      "text": "Veintidós",
+      "word_count": 1,
+      "phonetic_focus": [
+        "number",
+        "diphthong",
+        "accented_vowel"
+      ],
+      "punctuation": [],
+      "observed_trigger_forms": []
+    },
+    {
+      "id": "es_short_37",
+      "class": "short",
+      "index": 37,
+      "text": "Pingüino feliz",
+      "word_count": 2,
+      "phonetic_focus": [
+        "diaeresis",
+        "g_n",
+        "z"
+      ],
+      "punctuation": [],
+      "observed_trigger_forms": []
+    },
+    {
+      "id": "es_short_38",
+      "class": "short",
+      "index": 38,
+      "text": "Guitarra española",
+      "word_count": 2,
+      "phonetic_focus": [
+        "rolled_rr",
+        "ñ",
+        "guitar_cluster"
+      ],
+      "punctuation": [],
+      "observed_trigger_forms": []
+    },
+    {
+      "id": "es_short_39",
+      "class": "short",
+      "index": 39,
+      "text": "Jardín pequeño",
+      "word_count": 2,
+      "phonetic_focus": [
+        "j",
+        "ñ",
+        "accented_vowel"
+      ],
+      "punctuation": [],
+      "observed_trigger_forms": []
+    },
+    {
+      "id": "es_short_40",
+      "class": "short",
+      "index": 40,
+      "text": "Espera...",
+      "word_count": 1,
+      "phonetic_focus": [
+        "sp_pause",
+        "r"
+      ],
+      "punctuation": [
+        "ellipsis"
+      ],
+      "observed_trigger_forms": []
+    },
+    {
+      "id": "es_long_01",
+      "class": "longer",
+      "index": 41,
+      "text": "La hierba crece junto al camino después de la lluvia.",
+      "word_count": 10,
+      "phonetic_focus": [
+        "silent_h",
+        "palatal_ll",
+        "j",
+        "accented_vowels"
+      ],
+      "punctuation": [
+        "period"
+      ],
+      "observed_trigger_forms": [
+        "hierba",
+        "camino",
+        "lluvia"
+      ]
+    },
+    {
+      "id": "es_long_02",
+      "class": "longer",
+      "index": 42,
+      "text": "¿Puedes decirme si el paraguas está detrás de la puerta azul?",
+      "word_count": 11,
+      "phonetic_focus": [
+        "question_intonation",
+        "gua",
+        "accented_vowels",
+        "d_r"
+      ],
+      "punctuation": [
+        "inverted_question",
+        "question"
+      ],
+      "observed_trigger_forms": [
+        "paraguas"
+      ]
+    },
+    {
+      "id": "es_long_03",
+      "class": "longer",
+      "index": 43,
+      "text": "Hoy caminamos despacio mientras el cielo cambia de gris a dorado.",
+      "word_count": 11,
+      "phonetic_focus": [
+        "diphthongs",
+        "cielo",
+        "g_r",
+        "d"
+      ],
+      "punctuation": [
+        "period"
+      ],
+      "observed_trigger_forms": [
+        "cielo"
+      ]
+    },
+    {
+      "id": "es_long_04",
+      "class": "longer",
+      "index": 44,
+      "text": "Por favor, repite la frase: la música suena clara y tranquila.",
+      "word_count": 11,
+      "phonetic_focus": [
+        "accented_vowel",
+        "s_k",
+        "tr",
+        "request_intonation"
+      ],
+      "punctuation": [
+        "comma",
+        "colon",
+        "period"
+      ],
+      "observed_trigger_forms": [
+        "música"
+      ]
+    },
+    {
+      "id": "es_long_05",
+      "class": "longer",
+      "index": 45,
+      "text": "En el jardín hay tres árboles, dos perros y una fuente pequeña.",
+      "word_count": 12,
+      "phonetic_focus": [
+        "silent_h",
+        "rolled_rr",
+        "ñ",
+        "numbers"
+      ],
+      "punctuation": [
+        "comma",
+        "period"
+      ],
+      "observed_trigger_forms": [
+        "árbol",
+        "perro"
+      ]
+    },
+    {
+      "id": "es_long_06",
+      "class": "longer",
+      "index": 46,
+      "text": "¿Qué ocurre cuando la lluvia golpea suavemente el techo durante la noche?",
+      "word_count": 12,
+      "phonetic_focus": [
+        "palatal_ll",
+        "g",
+        "ch",
+        "question_intonation"
+      ],
+      "punctuation": [
+        "inverted_question",
+        "question"
+      ],
+      "observed_trigger_forms": [
+        "lluvia"
+      ]
+    },
+    {
+      "id": "es_long_07",
+      "class": "longer",
+      "index": 47,
+      "text": "El tren llega a las ocho, pero salimos después de cenar.",
+      "word_count": 11,
+      "phonetic_focus": [
+        "tr",
+        "numbers",
+        "accented_vowels",
+        "s"
+      ],
+      "punctuation": [
+        "comma",
+        "period"
+      ],
+      "observed_trigger_forms": []
+    },
+    {
+      "id": "es_long_08",
+      "class": "longer",
+      "index": 48,
+      "text": "Mi vecino prepara café fuerte y escucha una guitarra española al amanecer.",
+      "word_count": 12,
+      "phonetic_focus": [
+        "ñ",
+        "accented_vowel",
+        "f_r",
+        "guitar_cluster"
+      ],
+      "punctuation": [
+        "period"
+      ],
+      "observed_trigger_forms": []
+    },
+    {
+      "id": "es_long_09",
+      "class": "longer",
+      "index": 49,
+      "text": "Aunque el camino parece largo, seguimos juntos hasta encontrar el río.",
+      "word_count": 11,
+      "phonetic_focus": [
+        "silent_h",
+        "camino",
+        "accented_vowels",
+        "j"
+      ],
+      "punctuation": [
+        "comma",
+        "period"
+      ],
+      "observed_trigger_forms": [
+        "camino"
+      ]
+    },
+    {
+      "id": "es_long_10",
+      "class": "longer",
+      "index": 50,
+      "text": "Cierra la ventana, cuenta cuatro respiraciones y dime si ya estás listo.",
+      "word_count": 12,
+      "phonetic_focus": [
+        "rr",
+        "numbers",
+        "accented_vowel",
+        "request_intonation"
+      ],
+      "punctuation": [
+        "comma",
+        "period"
+      ],
+      "observed_trigger_forms": []
+    }
+  ],
+  "observed_trigger_words": [
+    {
+      "normalized": "hierba",
+      "forms": [
+        "hierba",
+        "Hier-ba"
+      ],
+      "manifest_record_ids": [
+        "rec_b15229ac7316faac",
+        "rec_485b274352f4ce61",
+        "rec_d36177856dab0762",
+        "rec_15095aa41b0674af",
+        "rec_c72804fb484b1f78",
+        "rec_b6622845256791bb"
+      ],
+      "provenance_note": "Appeared in earlier Spanish wire, bounded, reference, and tutor captures; occurrence is not itself a failure label."
+    },
+    {
+      "normalized": "lluvia",
+      "forms": [
+        "lluvia",
+        "Llu-via"
+      ],
+      "manifest_record_ids": [
+        "rec_f0b828a30e165468",
+        "rec_691b2a1582cadd6d",
+        "rec_b3905ccd3be91d0b",
+        "rec_af4e01f7fd26b358",
+        "rec_f4f4842ea483fded",
+        "rec_9c1d2b0bd9bec92d"
+      ],
+      "provenance_note": "Appeared in earlier Spanish wire, bounded, ambiguous, and clean tutor captures; occurrence is not itself a failure label."
+    },
+    {
+      "normalized": "camino",
+      "forms": [
+        "camino"
+      ],
+      "manifest_record_ids": [
+        "rec_af4e01f7fd26b358"
+      ],
+      "provenance_note": "Observed in the ambiguous stream-00000037 text."
+    },
+    {
+      "normalized": "cielo",
+      "forms": [
+        "cielo"
+      ],
+      "manifest_record_ids": [
+        "rec_d0ecead20d3a0645"
+      ],
+      "provenance_note": "Observed in a retained Spanish candidate."
+    },
+    {
+      "normalized": "paraguas",
+      "forms": [
+        "paraguas"
+      ],
+      "manifest_record_ids": [
+        "rec_aa1b314785bdd05c"
+      ],
+      "provenance_note": "Observed in a retained Spanish candidate."
+    },
+    {
+      "normalized": "perro",
+      "forms": [
+        "perro"
+      ],
+      "manifest_record_ids": [
+        "rec_a629c4afc0139617"
+      ],
+      "provenance_note": "Observed in a retained Spanish candidate."
+    },
+    {
+      "normalized": "árbol",
+      "forms": [
+        "árbol"
+      ],
+      "manifest_record_ids": [
+        "rec_8f0b07533feb6390"
+      ],
+      "provenance_note": "Observed in a retained Spanish candidate."
+    },
+    {
+      "normalized": "música",
+      "forms": [
+        "música"
+      ],
+      "manifest_record_ids": [
+        "rec_2c4a09db716a67de",
+        "rec_3e4ce9460343e2fa"
+      ],
+      "provenance_note": "Observed in retained reference-comparison candidates."
+    }
+  ],
+  "reproduction": {
+    "seed": 42,
+    "entry_order": "Use entries in listed index order 1 through 50; do not reshuffle unless a separately recorded seed-derived permutation is requested.",
+    "word_count_check": "assert counts.short_1_to_3_words == 40 and counts.longer == 10; assert every short word_count in [1,3] and every longer word_count >= 8",
+    "audio_reproducibility": "For bit-level or waveform-level comparison, additionally pin the model and exact model hash, voice/reference hash, runtime/backend and quantization, generation settings, sample rate, chunking/streaming mode, and output normalization. A text seed alone cannot establish bit-exact audio."
+  },
+  "acceptance_notes": [
+    "Human acoustic listening is the ground truth for failure/clean decisions. Detector suspected-noise flags are candidates for review and must not be counted as confirmed failures.",
+    "Runs of silence longer than one second are a separate suspicious-silence metric. Report them independently from acoustic hallucination quality and do not equate a pause with a failure.",
+    "ASR or transcript mismatch, pronunciation awkwardness, clipping, truncation, and prompt-compliance errors are separate annotations unless a human listener confirms acoustic hallucination/noise.",
+    "Keep text diversity and phonetic coverage fixed before synthesis; record any per-item generation error, missing output, or retry without silently replacing the text or counting a replay as a new occurrence.",
+    "The observed trigger list is provenance from earlier recordings, not a hard-coded detector rule and not evidence that those words cause failures."
+  ]
+}

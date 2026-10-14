@@ -93,7 +93,8 @@ def test_current_word_uses_absolute_playback_position():
         controller.close()
 
 
-def test_embedded_aligner_finishes_after_queue_detach_with_paragraph_offsets():
+@pytest.mark.parametrize('verified', [True, False])
+def test_embedded_aligner_finishes_after_queue_detach_with_paragraph_offsets(verified):
     engine = FakeEngine(native=True, clock=10)
     engine.streaming_aligner = SimpleNamespace(timestamp_levels=("word", "character"))
     controller = AlignmentController(AlignmentConfig(level="character"))
@@ -111,11 +112,12 @@ def test_embedded_aligner_finishes_after_queue_detach_with_paragraph_offsets():
             callback({"type": "alignment", "engine_audio_offset": offset,
                       "words": [{"word": word, "start_time": 0, "end_time": 0.3}],
                       "characters": [{"character": word, "start_time": 0, "end_time": 0.3}]})
-            callback({"type": "alignment_done", "engine_audio_offset": offset})
+            callback({"type": "alignment_done", "engine_audio_offset": offset,
+                      "completion_verified": verified if word == "a" else True})
         assert not controller.snapshot().final
         done.set()
         snapshot = controller.wait(1)
-        assert snapshot.status == "ready"
+        assert snapshot.status == ("ready" if verified else "partial")
         assert [w.start_time for w in snapshot.words] == [0, 0.5]
         assert [c.start_time for c in snapshot.characters] == [0, 0.5]
         assert [c.text_start for c in snapshot.characters] == [0, 2]
@@ -242,6 +244,59 @@ def test_existing_server_websocket_publishes_shared_timeline(tmp_path):
     assert final[-1]["text_offset_unit"] == "unicode_codepoint"
     assert final[-1]["words"][-1]["text_start"] == 6
     assert any(e["type"] == "alignment_done" for e in events)
+
+
+
+@pytest.mark.parametrize("display_alignment", [False, True])
+def test_verified_engine_cutoff_reaches_websocket_with_fragment_identity(tmp_path, display_alignment):
+    class GuardedEngine(SharedServerEngine):
+        def __init__(self):
+            super().__init__()
+            self.provides_word_timings = True
+            self.streaming_aligner = SimpleNamespace(timestamp_levels=("word",))
+
+        def synthesize(self, text):
+            self.queue.put(np.tile(np.array([1000, -1000], dtype='<i2'), 6000).tobytes())
+            self.on_alignment({"type": "alignment", "words": [
+                {"word": "Hello", "start_time": 0, "end_time": .1}
+            ]})
+            self.on_alignment({
+                "type": "alignment_complete", "completion_verified": True,
+                "stop_requested": True, "end_time": .1, "trim_end_time": .35,
+            })
+            self.on_alignment({"type": "alignment_done", "complete": True})
+            return True
+
+    engine = GuardedEngine()
+    _persist_voice(tmp_path)
+    server = _server(tmp_path, engine)
+    options = {"type": "config", "voice": "mira", "response_format": "pcm"}
+    if display_alignment:
+        options["alignment"] = {"source": "native", "level": "word"}
+    with TestClient(create_app(server)) as client:
+        with client.websocket_connect("/v1/audio/speech-stream") as websocket:
+            websocket.send_json(options)
+            websocket.send_json({"type": "text", "text": "Hello."})
+            websocket.send_json({"type": "end"})
+            events, audio = [], bytearray()
+            while True:
+                message = websocket.receive()
+                if message.get("bytes") is not None:
+                    audio.extend(message["bytes"])
+                    continue
+                event = json.loads(message["text"])
+                events.append(event)
+                if event["type"] in {"done", "error"}:
+                    break
+    assert audio and not any(e["type"] == "error" for e in events), events
+    start = next(e for e in events if e["type"] == "fragment_start")
+    cutoffs = [e for e in events if e["type"] == "alignment_complete"]
+    assert len(cutoffs) == 1, events
+    cutoff = cutoffs[0]
+    assert cutoff["completion_verified"] and cutoff["stop_requested"]
+    assert cutoff["trim_end_time"] == pytest.approx(.35)
+    for name in ("session_id", "request_id", "fragment_index"):
+        assert cutoff[name] == start[name]
 
 
 def test_existing_http_endpoint_rejects_metadata_request(tmp_path):

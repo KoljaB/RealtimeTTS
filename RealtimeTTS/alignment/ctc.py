@@ -53,66 +53,36 @@ def ctc_forced_align(
     if min(targets) < 0 or max(targets) >= vocab_size:
         raise ValueError("target token id is outside the logits vocabulary")
 
-    states = _ctc_states(targets, blank_id)
+    states = np.asarray(_ctc_states(targets, blank_id), dtype=np.int32)
     state_count = len(states)
-    neg_inf = -np.inf
-    scores = np.full((frame_count, state_count), neg_inf, dtype=np.float64)
-    backptr = np.full((frame_count, state_count), -1, dtype=np.int32)
+    scores = np.full(state_count, -np.inf, dtype=np.float64)
+    scores[0] = 0.0
+    backptr = np.zeros((frame_count, state_count), dtype=np.uint8)
+    columns = np.arange(state_count)
+    skip = np.zeros(state_count, dtype=bool)
+    skip[2:] = (states[2:] != blank_id) & (states[2:] != states[:-2])
+    for frame in range(frame_count):
+        one = np.r_[-np.inf, scores[:-1]]
+        two = np.r_[-np.inf, -np.inf, scores[:-2]]
+        two[~skip] = -np.inf
+        candidates = np.stack((scores, one, two))
+        moves = candidates.argmax(axis=0)
+        emission = log_probs[frame, states]
+        if nonblank_frame_mask is not None and not nonblank_frame_mask[frame]:
+            penalty = -np.inf if nonblank_forbidden_penalty is None else float(nonblank_forbidden_penalty)
+            emission = emission + np.where(states == blank_id, 0.0, penalty)
+        scores = candidates[moves, columns] + emission
+        backptr[frame] = moves
 
-    scores[0, 0] = _emission_score(
-        log_probs,
-        0,
-        blank_id,
-        blank_id,
-        nonblank_frame_mask,
-        nonblank_forbidden_penalty,
-    )
-    if state_count > 1:
-        scores[0, 1] = _emission_score(
-            log_probs,
-            0,
-            states[1],
-            blank_id,
-            nonblank_frame_mask,
-            nonblank_forbidden_penalty,
-        )
-
-    for frame in range(1, frame_count):
-        for state in range(state_count):
-            candidates = [(scores[frame - 1, state], state)]
-            if state > 0:
-                candidates.append((scores[frame - 1, state - 1], state - 1))
-            if (
-                state > 1
-                and states[state] != blank_id
-                and states[state] != states[state - 2]
-            ):
-                candidates.append((scores[frame - 1, state - 2], state - 2))
-
-            best_score, best_state = max(candidates, key=lambda item: item[0])
-            if np.isneginf(best_score):
-                continue
-            emission_score = _emission_score(
-                log_probs,
-                frame,
-                states[state],
-                blank_id,
-                nonblank_frame_mask,
-                nonblank_forbidden_penalty,
-            )
-            if np.isneginf(emission_score):
-                continue
-            scores[frame, state] = best_score + emission_score
-            backptr[frame, state] = best_state
-
-    end_candidates = [(scores[-1, state_count - 1], state_count - 1)]
-    if state_count > 1:
-        end_candidates.append((scores[-1, state_count - 2], state_count - 2))
-    best_final_score, best_final_state = max(end_candidates, key=lambda item: item[0])
-    if np.isneginf(best_final_score):
+    final_states = (state_count - 1, state_count - 2)
+    final_state = max(final_states, key=lambda state: scores[state])
+    if not np.isfinite(scores[final_state]):
         raise ValueError("no valid CTC alignment path found")
-
-    path = _backtrack_path(backptr, best_final_state)
+    path = [final_state] * frame_count
+    state = final_state
+    for frame in range(frame_count - 1, -1, -1):
+        path[frame] = state
+        state -= int(backptr[frame, state])
     return _path_to_token_spans(path, states, targets, log_probs)
 
 

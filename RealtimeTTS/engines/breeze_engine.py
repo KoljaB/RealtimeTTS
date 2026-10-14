@@ -141,7 +141,7 @@ class BreezeEngine(BaseEngine):
         self._cancel_requested_at = None
         self.model_id = "BreezeBlue/Breeze-TTS-2"
         self.quant = "Q8_0"
-        self.device = "vulkan"
+        self.device = "unknown"
         self.model_type = "base"
         self.instruction_control = True
         self.direct_voice_control = True

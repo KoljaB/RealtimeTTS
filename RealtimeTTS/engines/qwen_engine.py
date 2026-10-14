@@ -12,7 +12,7 @@ import threading
 import time
 import uuid
 from contextlib import contextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any, Callable, Optional, Tuple, Union
 
@@ -947,9 +947,9 @@ class QwenEngine(BaseEngine):
                 raise
 
     def get_stream_info(self) -> Tuple[int, int, int]:
-        from .._audio_backend import pyaudio
+        from .._audio_formats import INT16
 
-        return pyaudio.paInt16, 1, SAMPLE_RATE
+        return INT16, 1, SAMPLE_RATE
 
     def synthesize(self, text: str, sentence_count: int = 0) -> bool:
         super().synthesize(text, sentence_count)
@@ -1352,7 +1352,7 @@ class QwenEngine(BaseEngine):
             for name in self.speaker_names
         ]
 
-    def set_voice(self, voice: Union[str, QwenVoice]) -> None:
+    def set_voice(self, voice: Union[str, QwenVoice], *, warmup: bool = True) -> None:
         if not isinstance(voice, QwenVoice):
             raise TypeError("QwenEngine.set_voice expects a QwenVoice")
         with self._synthesis_lock:
@@ -1364,13 +1364,37 @@ class QwenEngine(BaseEngine):
                 self.current_voice = voice
                 self._voice_ref = voice_ref
                 self._voice_cache_key = cache_key
-                if self._warmup_enabled:
+                if self._warmup_enabled and warmup:
                     self.warmup()
             except BaseException as exc:
                 self.current_voice, self._voice_ref, self._voice_cache_key = previous
                 if isinstance(exc, (ValueError, TypeError, FileNotFoundError, ImportError)):
                     raise
                 raise self._translate_error(exc, f"preparing voice {voice.name!r}") from exc
+
+    def set_inline_voice(self, voice: QwenVoice) -> None:
+        with self._synthesis_lock:
+            # Restoring a language-only copy needs no reference preparation.
+            if (self.current_voice is not None and isinstance(voice, QwenVoice)
+                    and replace(self.current_voice, language=voice.language) == voice):
+                self.current_voice = voice
+                return
+            self.set_voice(voice, warmup=False)
+
+    def get_language(self) -> str:
+        with self._synthesis_lock:
+            if self.current_voice is None:
+                raise QwenEngineError("Set a QwenVoice before selecting a language")
+            return self.current_voice.language
+
+    def set_language(self, language: str) -> None:
+        # Language is a generation argument, not a new reference preparation.
+        from ..language_router import normalize_qwen_language
+        language = normalize_qwen_language(language, allow_auto=True)
+        with self._synthesis_lock:
+            if self.current_voice is None:
+                raise QwenEngineError("Set a QwenVoice before selecting a language")
+            self.current_voice = replace(self.current_voice, language=language)
 
     def set_voice_parameters(self, **voice_parameters: Any) -> None:
         voice_fields = {"language", "instruct", "speaker"}

@@ -12,9 +12,10 @@ import unicodedata
 
 import numpy as np
 
-from .._audio_backend import pyaudio
+from .. import _audio_formats as formats
 from .audio import audio_bytes_to_mono_float32, pcm_chunk_duration_seconds
-from .backends import align_snapshot, make_alignment_model
+from .backends import CPUAlignmentModel, align_snapshot, make_alignment_model
+from .evidence import coverage_counts
 from .timeline import AlignedSpan, AlignmentConfig, AlignmentTimeline
 
 LOGGER = logging.getLogger(__name__)
@@ -54,11 +55,16 @@ class _Fragment:
     native: bool
     ranges: list | None = None
     samples: int = 0
+    covered: int = 0
+    expected: int = 0
     chunks: list = field(default_factory=list)
+    cursor: object | None = None
+    audio_start: int = 0
     items: dict = field(default_factory=lambda: {"words": [], "characters": []})
     finished: bool = False
     unavailable: bool = False
     native_done: bool = False
+    native_unverified: bool = False
     scheduled_samples: int = 0
     version: int = 0
     done: threading.Event = field(default_factory=threading.Event)
@@ -113,11 +119,11 @@ class EngineAlignmentBinding:
         self.input_format = tuple(engine.get_stream_info())
         self.output_format = self.input_format
         self.decoder = None
-        if self.input_format[0] == pyaudio.paCustomFormat:
+        if self.input_format[0] == formats.CUSTOM:
             from .decoder import MP3Decoder
             rate = self.input_format[2] if self.input_format[2] > 0 else 24000
             self.decoder = MP3Decoder(rate)
-            self.output_format = (pyaudio.paFloat32, 1, rate)
+            self.output_format = (formats.FLOAT32, 1, rate)
         self.audio_queue = _AudioQueue(self.original_queue, self)
         self.timing_queue = _TimingQueue(self.original_timings, self)
         engine.queue, engine.timings = self.audio_queue, self.timing_queue
@@ -173,10 +179,10 @@ class EngineAlignmentBinding:
 
     def silence(self, seconds):
         fmt, channels, rate = self.output_format
-        widths = {pyaudio.paFloat32: 4, pyaudio.paInt16: 2, pyaudio.paInt32: 4,
-                  pyaudio.paInt8: 1, pyaudio.paUInt8: 1}
+        widths = {formats.FLOAT32: 4, formats.INT16: 2, formats.INT32: 4,
+                  formats.INT8: 1, formats.UINT8: 1}
         frames = max(0, round(seconds * rate))
-        fill = b"\x80" if fmt == pyaudio.paUInt8 else b"\0"
+        fill = b"\x80" if fmt == formats.UINT8 else b"\0"
         payload = fill * (frames * channels * widths[fmt])
         self.owner.audio(None, payload, self.output_format)
         self.original_queue.put(payload)
@@ -319,6 +325,7 @@ class AlignmentController:
                 float(getattr(engine, "audio_duration", 0.0)), native,
                 mapped_ranges,
             )
+            fragment.expected = coverage_counts(text, ())[1]
             self._fragments[identifier] = fragment
             if self.config.source == "native" and not native:
                 self._fail(fragment, "Engine does not provide the requested native timestamp level")
@@ -330,6 +337,7 @@ class AlignmentController:
                 return
             fragment.text += text
             fragment.original += text
+            fragment.expected = coverage_counts(fragment.text, ())[1]
             fragment.version += 1
 
     def audio(self, fragment, payload, stream_format):
@@ -441,6 +449,7 @@ class AlignmentController:
                 self._publish(fragment)
             if event.get("type") == "alignment_done":
                 fragment.native_done = True
+                fragment.native_unverified |= event.get("completion_verified") is False
                 self._condition.notify_all()
 
     def _spans(self, fragment):
@@ -478,10 +487,20 @@ class AlignmentController:
                     LOGGER.warning("Ignoring invalid alignment span")
         return spans
 
+    def _coverage(self):
+        expected = sum(f.expected for f in self._fragments.values())
+        return sum(f.covered for f in self._fragments.values()) / expected if expected else 1.0
+
     def _publish(self, fragment):
         if fragment.generation != self._generation:
             return
-        self.timeline.publish(self._spans(fragment), fragment_id=fragment.id, status="aligning")
+        spans = self._spans(fragment)
+        fragment.covered, fragment.expected = coverage_counts(
+            fragment.text, (span.text for span in spans if span.level == self.config.level)
+        )
+        self.timeline.publish(
+            spans, fragment_id=fragment.id, status="aligning", coverage=self._coverage()
+        )
 
     def _run(self):
         while True:
@@ -504,8 +523,11 @@ class AlignmentController:
                             elif time.monotonic() - (fragment.finished_at or time.monotonic()) > 30:
                                 self._fail(fragment, "Native alignment did not finish within 30 seconds")
                         if all(f.done.is_set() for f in self._fragments.values()):
-                            status = "unavailable" if self.timeline.snapshot().errors else "ready"
-                            self.timeline.finish(status=status)
+                            coverage = self._coverage()
+                            status = ("unavailable" if self.timeline.snapshot().errors else
+                                      "partial" if coverage < 1.0 or any(
+                                          f.native_unverified for f in self._fragments.values()) else "ready")
+                            self.timeline.finish(status=status, coverage=coverage)
                             self._finishing = False
                         else:
                             self._condition.wait(timeout=0.05)
@@ -516,6 +538,7 @@ class AlignmentController:
                 text, version = fragment.text, fragment.version
                 final = fragment.finished
                 audio = np.concatenate(fragment.chunks) if fragment.chunks else np.empty(0, np.float32)
+                audio_start = fragment.audio_start
             try:
                 if self._model_error is not None:
                     raise RuntimeError(self._model_error)
@@ -523,6 +546,10 @@ class AlignmentController:
                     self._model = make_alignment_model(self.config, fragment.engine)
                 if not text.strip() or not len(audio):
                     result = {"words": [], "characters": []}
+                elif isinstance(self._model, CPUAlignmentModel):
+                    if fragment.cursor is None:
+                        fragment.cursor = self._model.create_cursor(level=self.config.level)
+                    result = fragment.cursor.align(text, audio, fragment.rate, audio_start=audio_start)
                 else:
                     result = align_snapshot(self._model, text, audio, fragment.rate, self.config.level)
                 with self._condition:
@@ -534,6 +561,15 @@ class AlignmentController:
                         continue
                     fragment.items = result
                     self._publish(fragment)
+                    if fragment.cursor is not None:
+                        discard = fragment.cursor.audio_start - fragment.audio_start
+                        while discard > 0 and fragment.chunks:
+                            count = min(discard, len(fragment.chunks[0]))
+                            fragment.chunks[0] = fragment.chunks[0][count:]
+                            if not len(fragment.chunks[0]):
+                                fragment.chunks.pop(0)
+                            fragment.audio_start += count
+                            discard -= count
                     if final and version == fragment.version:
                         fragment.chunks.clear()
                         fragment.done.set()

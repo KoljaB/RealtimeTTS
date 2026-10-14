@@ -315,6 +315,21 @@ class BaseEngine(ABC, metaclass=BaseInitMeta):
             "The set_voice method must be implemented by the derived class."
         )
 
+    def set_inline_voice(self, voice) -> None:
+        """Select an inline voice without optional synthesis warmup, where supported."""
+        self.set_voice(voice)
+
+    def get_language(self) -> str:
+        """Return the current synthesis language for scoped language controls."""
+        language = getattr(self, "language", None)
+        if isinstance(language, str) and language.strip():
+            return language
+        raise NotImplementedError(f"{self.engine_name} does not expose a synthesis language")
+
+    def set_language(self, language: str) -> None:
+        """Select a synthesis language; multilingual engines override this hook."""
+        raise NotImplementedError(f"{self.engine_name} does not support inline language changes")
+
     def set_voice_parameters(self, **voice_parameters):
         """
         Sets the voice parameters to be used for speech synthesis.
