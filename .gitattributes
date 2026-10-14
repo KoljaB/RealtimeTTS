@@ -1,0 +1,2 @@
+# The native build pins the exact bytes of this control patch.
+tools/breeze_cpp_controls.json text eol=lf
