@@ -1,3 +1,4 @@
+from elevenlabs import VoiceSettings
 from elevenlabs.client import ElevenLabs
 from typing import Union
 from .base_engine import BaseEngine
@@ -94,17 +95,18 @@ class ElevenlabsEngine(BaseEngine):
         """
         super().synthesize(text, sentence_count)
 
-        # NOTE: The new elevenlabs API (v1.0.0+) does not allow setting
-        # voice settings (stability, clarity, etc.) per-request on the stream endpoint.
-        # These settings are now configured with the voice itself in the Voice Lab
-        # or via the API for voice editing. The parameters in __init__ are kept
-        # for compatibility but are not used in this method.
-        
         try:
             audio_stream = self.client.text_to_speech.stream(
                 text=text,
                 voice_id=self.id,
                 model_id=self.model,
+                # clarity, stability and style are 0-100 here, 0-1 in the API
+                voice_settings=VoiceSettings(
+                    stability=self.stability / 100,
+                    similarity_boost=self.clarity / 100,
+                    style=self.style_exxageration / 100,
+                    use_speaker_boost=True,
+                ),
             )
 
             for chunk in audio_stream:
