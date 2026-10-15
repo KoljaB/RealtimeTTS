@@ -53,7 +53,7 @@ Useful parameters include:
 | `output_wavfile` | `None` | Writes synthesized audio to a WAV file. |
 | `on_audio_chunk` | `None` | Receives raw audio chunks as they are ready. |
 | `tokenizer` | `"nltk+rule-based"` | Consensus sentence tokenizer combining NLTK with local boundary rules. NLTK is installed by default; add `RealtimeTTS[stanza]` only when selecting Stanza. |
-| `language` | `"en"` | Sentence-splitting language. |
+| `language` | stream's `language` (`"en"`) | Sentence-splitting language. Leave empty to use the language the stream was created with. |
 | `muted` | `False` | Disables local speaker playback for this call. |
 | `force_first_fragment_after_words` | `30` | Forces the first fragment after this many words. |
 
