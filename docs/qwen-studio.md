@@ -7,6 +7,8 @@ The Qwen server serves its built-in browser client at `/` and `/studio`. Assets 
 
 Studio streams 24 kHz mono PCM directly into Web Audio as chunks arrive. The default transport is WebSocket; HTTP PCM and complete WAV can also be tested. A user click unlocks audio playback. Pause/resume affects browser playback and sends native checkpoint controls over WebSocket; Stop cancels the request and discards pending playback. In Streaming, open a session, send text fragments, then finish input. WAV download contains the received audio, including a partial recording after Stop.
 
+For a trusted local network, start the server with `--host <LAN-IP> --allow-lan --no-auth`. Studio then connects automatically without a key. This explicit option ignores configured key files and `REALTIMETTS_API_KEY`; the normal authenticated mode stays available.
+
 ## Quick start with a cloning example
 
 Create separate environments for CPU and GPU so their dependencies stay clear.

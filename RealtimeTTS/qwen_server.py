@@ -2874,13 +2874,18 @@ def build_argument_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--allow-lan",
         action="store_true",
-        help="Allow a non-loopback bind (requires --api-key)",
+        help="Allow a non-loopback bind (use an API key or explicit --no-auth)",
+    )
+    parser.add_argument(
+        "--no-auth",
+        action="store_true",
+        help="Disable API key authentication for a trusted local network",
     )
     parser.add_argument(
         "--api-key",
         help=(
-            "Bearer token required for every non-health endpoint; mandatory for "
-            "non-loopback hosts"
+            "Bearer token required for every non-health endpoint; non-loopback "
+            "hosts require a key unless --no-auth is explicitly selected"
         ),
     )
     parser.add_argument(
@@ -3063,6 +3068,8 @@ def build_argument_parser() -> argparse.ArgumentParser:
 
 
 def _resolve_api_key(args: Any, parser: argparse.ArgumentParser) -> Optional[str]:
+    if getattr(args, "no_auth", False):
+        return None
     if args.api_key and args.api_key_file:
         parser.error("--api-key and --api-key-file are mutually exclusive")
     api_key = str(args.api_key or os.environ.get("REALTIMETTS_API_KEY") or "").strip()
@@ -3083,10 +3090,11 @@ def _validate_bind_security(
 ) -> None:
     if not _is_loopback_host(args.host) and not args.allow_lan:
         parser.error("--allow-lan is required when --host is not loopback")
-    if not _is_loopback_host(args.host) and not api_key:
+    if not _is_loopback_host(args.host) and not api_key and not getattr(args, "no_auth", False):
         parser.error(
             "a non-loopback host requires --allow-lan and an API key from "
-            "--api-key, --api-key-file, or REALTIMETTS_API_KEY"
+            "--api-key, --api-key-file, or REALTIMETTS_API_KEY; "
+            "use --no-auth explicitly for a trusted local network"
         )
 
 

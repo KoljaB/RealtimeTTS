@@ -161,8 +161,9 @@ an OpenAI-compatible HTTP API. The server provides `/v1/audio/speech`, dynamic
 voice registration, persistent voice latents, and watchdog-ready request/stall
 metrics on `/health`; it is headless and does not install PyAudio/PortAudio.
 The server defaults to loopback (`127.0.0.1`). LAN exposure requires a
-deliberate `--allow-lan` bind plus a built-in API key, or a trusted reverse
-proxy that terminates TLS and enforces authentication. CORS defaults to
+deliberate `--allow-lan` bind plus a built-in API key, explicit `--no-auth` for
+a trusted local network, or a trusted reverse proxy that terminates TLS and
+enforces authentication. CORS defaults to
 explicit localhost origins and rejects wildcard `*`; CORS is not an access
 control boundary. See [the Qwen guide](docs/engines/qwen.md#http-server) for
 deployment, protocol, licensing, and asset boundaries.

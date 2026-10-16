@@ -55,7 +55,9 @@ function studio(codecDefault = null, device = 'cpu', options = {}) {
   function control(id) {
     if (!controls.has(id)) {
       let value = initial[id] || '';
+      const dataset = {};
       controls.set(id, {
+        get dataset() { return dataset; },
         get value() { return value; },
         set value(next) { value = next == null ? '' : String(next); },
         checked: true, disabled: id === 'instructions', clientWidth: 600, options: [],
@@ -208,6 +210,7 @@ test('Connect primes one shared context and pagehide closes it', async () => {
 test('speech overlaps audio activation and stop cancels queued and scheduled sources', async () => {
   const ui = studio(null, 'cpu', {deferResume: true});
   const start = ui.start();
+  await start; // A real DOM dataset is read-only; startup must not reject.
   const ws = ui.socket();
   ws.open();
   ws.message(new Int16Array(1920).buffer);

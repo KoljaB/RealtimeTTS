@@ -276,6 +276,31 @@ def test_server_version_prefers_source_checkout_over_installed_metadata(monkeypa
     assert qwen_server_module._server_version() == __version__
 
 
+def test_explicit_no_auth_allows_lan_without_loading_credentials(tmp_path, monkeypatch):
+    parser = build_argument_parser()
+    args = parser.parse_args([
+        "--host", "192.168.178.22", "--allow-lan", "--no-auth",
+        "--api-key-file", str(tmp_path / "unused-key"),
+    ])
+    monkeypatch.setenv("REALTIMETTS_API_KEY", "unused-environment-key")
+    key = _resolve_api_key(args, parser)
+    assert key is None
+    _validate_bind_security(args, key, parser)
+    server = _server(tmp_path, api_key=key)
+    assert server.authorized(None)
+    assert server.capabilities()["authentication"]["required"] is False
+    with TestClient(create_app(server)) as client:
+        assert client.get("/v1/capabilities").status_code == 200
+        assert client.get("/v1/audio/voices").status_code == 200
+
+
+def test_no_auth_still_requires_explicit_lan_bind():
+    parser = build_argument_parser()
+    args = parser.parse_args(["--host", "192.168.178.22", "--no-auth"])
+    with pytest.raises(SystemExit):
+        _validate_bind_security(args, None, parser)
+
+
 def test_api_key_cors_and_lan_bind_defaults_are_restrictive(tmp_path, monkeypatch):
     parser = build_argument_parser()
     args = parser.parse_args(["--host", "0.0.0.0", "--allow-lan"])

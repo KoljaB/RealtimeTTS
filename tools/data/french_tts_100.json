@@ -1,0 +1,724 @@
+{
+  "schema_version": 1,
+  "corpus_id": "french-tts100-20261016",
+  "language": "fr",
+  "seed": 42,
+  "seed_scope": "Fixed corpus order; default requested sampling seed 42 per synthesis. No bit-exact guarantee across native builds or references.",
+  "counts": {
+    "total": 100,
+    "short_1_to_3_words": 90,
+    "longer": 10
+  },
+  "word_count_definition": "Whitespace-separated tokens after trimming. Contractions and punctuation attached to a token count as one word.",
+  "coverage": [
+    "French uvular r and consonant clusters",
+    "nasal vowels and vowel contrasts",
+    "rounded vowels such as u, eu, and ou",
+    "ch, j, gn, and ill contrasts",
+    "accents, apostrophes, questions, commands, numbers, and directions",
+    "short and longer everyday utterances"
+  ],
+  "dialect_scope": "Generic standard French vocabulary for broad screening; this corpus makes no regional-accent guarantee.",
+  "entries": [
+    {
+      "id": "fr_short_01",
+      "class": "short",
+      "index": 1,
+      "text": "Rouge",
+      "word_count": 1
+    },
+    {
+      "id": "fr_short_02",
+      "class": "short",
+      "index": 2,
+      "text": "Rue",
+      "word_count": 1
+    },
+    {
+      "id": "fr_short_03",
+      "class": "short",
+      "index": 3,
+      "text": "Roux",
+      "word_count": 1
+    },
+    {
+      "id": "fr_short_04",
+      "class": "short",
+      "index": 4,
+      "text": "Feu",
+      "word_count": 1
+    },
+    {
+      "id": "fr_short_05",
+      "class": "short",
+      "index": 5,
+      "text": "Peu",
+      "word_count": 1
+    },
+    {
+      "id": "fr_short_06",
+      "class": "short",
+      "index": 6,
+      "text": "Lune",
+      "word_count": 1
+    },
+    {
+      "id": "fr_short_07",
+      "class": "short",
+      "index": 7,
+      "text": "Brume",
+      "word_count": 1
+    },
+    {
+      "id": "fr_short_08",
+      "class": "short",
+      "index": 8,
+      "text": "Pluie",
+      "word_count": 1
+    },
+    {
+      "id": "fr_short_09",
+      "class": "short",
+      "index": 9,
+      "text": "Bruit",
+      "word_count": 1
+    },
+    {
+      "id": "fr_short_10",
+      "class": "short",
+      "index": 10,
+      "text": "Chanson",
+      "word_count": 1
+    },
+    {
+      "id": "fr_short_11",
+      "class": "short",
+      "index": 11,
+      "text": "Jardin",
+      "word_count": 1
+    },
+    {
+      "id": "fr_short_12",
+      "class": "short",
+      "index": 12,
+      "text": "Bonjour",
+      "word_count": 1
+    },
+    {
+      "id": "fr_short_13",
+      "class": "short",
+      "index": 13,
+      "text": "Grenouille",
+      "word_count": 1
+    },
+    {
+      "id": "fr_short_14",
+      "class": "short",
+      "index": 14,
+      "text": "Fille",
+      "word_count": 1
+    },
+    {
+      "id": "fr_short_15",
+      "class": "short",
+      "index": 15,
+      "text": "Garçon",
+      "word_count": 1
+    },
+    {
+      "id": "fr_short_16",
+      "class": "short",
+      "index": 16,
+      "text": "Pain chaud",
+      "word_count": 2
+    },
+    {
+      "id": "fr_short_17",
+      "class": "short",
+      "index": 17,
+      "text": "Vin blanc",
+      "word_count": 2
+    },
+    {
+      "id": "fr_short_18",
+      "class": "short",
+      "index": 18,
+      "text": "Un grand arbre",
+      "word_count": 3
+    },
+    {
+      "id": "fr_short_19",
+      "class": "short",
+      "index": 19,
+      "text": "Trois trains",
+      "word_count": 2
+    },
+    {
+      "id": "fr_short_20",
+      "class": "short",
+      "index": 20,
+      "text": "Quoi ?",
+      "word_count": 2
+    },
+    {
+      "id": "fr_short_21",
+      "class": "short",
+      "index": 21,
+      "text": "Salut",
+      "word_count": 1
+    },
+    {
+      "id": "fr_short_22",
+      "class": "short",
+      "index": 22,
+      "text": "Merci",
+      "word_count": 1
+    },
+    {
+      "id": "fr_short_23",
+      "class": "short",
+      "index": 23,
+      "text": "Pardon",
+      "word_count": 1
+    },
+    {
+      "id": "fr_short_24",
+      "class": "short",
+      "index": 24,
+      "text": "D'accord",
+      "word_count": 1
+    },
+    {
+      "id": "fr_short_25",
+      "class": "short",
+      "index": 25,
+      "text": "À bientôt",
+      "word_count": 2
+    },
+    {
+      "id": "fr_short_26",
+      "class": "short",
+      "index": 26,
+      "text": "Au revoir",
+      "word_count": 2
+    },
+    {
+      "id": "fr_short_27",
+      "class": "short",
+      "index": 27,
+      "text": "S'il vous plaît",
+      "word_count": 3
+    },
+    {
+      "id": "fr_short_28",
+      "class": "short",
+      "index": 28,
+      "text": "Excusez-moi",
+      "word_count": 1
+    },
+    {
+      "id": "fr_short_29",
+      "class": "short",
+      "index": 29,
+      "text": "Attention",
+      "word_count": 1
+    },
+    {
+      "id": "fr_short_30",
+      "class": "short",
+      "index": 30,
+      "text": "Silence",
+      "word_count": 1
+    },
+    {
+      "id": "fr_short_31",
+      "class": "short",
+      "index": 31,
+      "text": "Par ici",
+      "word_count": 2
+    },
+    {
+      "id": "fr_short_32",
+      "class": "short",
+      "index": 32,
+      "text": "Par là",
+      "word_count": 2
+    },
+    {
+      "id": "fr_short_33",
+      "class": "short",
+      "index": 33,
+      "text": "À gauche",
+      "word_count": 2
+    },
+    {
+      "id": "fr_short_34",
+      "class": "short",
+      "index": 34,
+      "text": "À droite",
+      "word_count": 2
+    },
+    {
+      "id": "fr_short_35",
+      "class": "short",
+      "index": 35,
+      "text": "Tout droit",
+      "word_count": 2
+    },
+    {
+      "id": "fr_short_36",
+      "class": "short",
+      "index": 36,
+      "text": "En haut",
+      "word_count": 2
+    },
+    {
+      "id": "fr_short_37",
+      "class": "short",
+      "index": 37,
+      "text": "En bas",
+      "word_count": 2
+    },
+    {
+      "id": "fr_short_38",
+      "class": "short",
+      "index": 38,
+      "text": "Devant vous",
+      "word_count": 2
+    },
+    {
+      "id": "fr_short_39",
+      "class": "short",
+      "index": 39,
+      "text": "Derrière moi",
+      "word_count": 2
+    },
+    {
+      "id": "fr_short_40",
+      "class": "short",
+      "index": 40,
+      "text": "Près d'ici",
+      "word_count": 2
+    },
+    {
+      "id": "fr_short_41",
+      "class": "short",
+      "index": 41,
+      "text": "Loin d'ici",
+      "word_count": 2
+    },
+    {
+      "id": "fr_short_42",
+      "class": "short",
+      "index": 42,
+      "text": "Où ça ?",
+      "word_count": 3
+    },
+    {
+      "id": "fr_short_43",
+      "class": "short",
+      "index": 43,
+      "text": "Pourquoi ?",
+      "word_count": 2
+    },
+    {
+      "id": "fr_short_44",
+      "class": "short",
+      "index": 44,
+      "text": "Comment ?",
+      "word_count": 2
+    },
+    {
+      "id": "fr_short_45",
+      "class": "short",
+      "index": 45,
+      "text": "Quand même",
+      "word_count": 2
+    },
+    {
+      "id": "fr_short_46",
+      "class": "short",
+      "index": 46,
+      "text": "Peut-être",
+      "word_count": 1
+    },
+    {
+      "id": "fr_short_47",
+      "class": "short",
+      "index": 47,
+      "text": "Bien sûr",
+      "word_count": 2
+    },
+    {
+      "id": "fr_short_48",
+      "class": "short",
+      "index": 48,
+      "text": "Pas encore",
+      "word_count": 2
+    },
+    {
+      "id": "fr_short_49",
+      "class": "short",
+      "index": 49,
+      "text": "Très bien",
+      "word_count": 2
+    },
+    {
+      "id": "fr_short_50",
+      "class": "short",
+      "index": 50,
+      "text": "C'est bon",
+      "word_count": 2
+    },
+    {
+      "id": "fr_short_51",
+      "class": "short",
+      "index": 51,
+      "text": "C'est parti",
+      "word_count": 2
+    },
+    {
+      "id": "fr_short_52",
+      "class": "short",
+      "index": 52,
+      "text": "À demain",
+      "word_count": 2
+    },
+    {
+      "id": "fr_short_53",
+      "class": "short",
+      "index": 53,
+      "text": "À midi",
+      "word_count": 2
+    },
+    {
+      "id": "fr_short_54",
+      "class": "short",
+      "index": 54,
+      "text": "Ce soir",
+      "word_count": 2
+    },
+    {
+      "id": "fr_short_55",
+      "class": "short",
+      "index": 55,
+      "text": "Ce matin",
+      "word_count": 2
+    },
+    {
+      "id": "fr_short_56",
+      "class": "short",
+      "index": 56,
+      "text": "La mer",
+      "word_count": 2
+    },
+    {
+      "id": "fr_short_57",
+      "class": "short",
+      "index": 57,
+      "text": "Le vent",
+      "word_count": 2
+    },
+    {
+      "id": "fr_short_58",
+      "class": "short",
+      "index": 58,
+      "text": "Le feu",
+      "word_count": 2
+    },
+    {
+      "id": "fr_short_59",
+      "class": "short",
+      "index": 59,
+      "text": "La pluie",
+      "word_count": 2
+    },
+    {
+      "id": "fr_short_60",
+      "class": "short",
+      "index": 60,
+      "text": "Une fleur",
+      "word_count": 2
+    },
+    {
+      "id": "fr_short_61",
+      "class": "short",
+      "index": 61,
+      "text": "Un livre",
+      "word_count": 2
+    },
+    {
+      "id": "fr_short_62",
+      "class": "short",
+      "index": 62,
+      "text": "Une chaise",
+      "word_count": 2
+    },
+    {
+      "id": "fr_short_63",
+      "class": "short",
+      "index": 63,
+      "text": "Une fenêtre",
+      "word_count": 2
+    },
+    {
+      "id": "fr_short_64",
+      "class": "short",
+      "index": 64,
+      "text": "Mon ami",
+      "word_count": 2
+    },
+    {
+      "id": "fr_short_65",
+      "class": "short",
+      "index": 65,
+      "text": "Ma sœur",
+      "word_count": 2
+    },
+    {
+      "id": "fr_short_66",
+      "class": "short",
+      "index": 66,
+      "text": "Ton tour",
+      "word_count": 2
+    },
+    {
+      "id": "fr_short_67",
+      "class": "short",
+      "index": 67,
+      "text": "Notre maison",
+      "word_count": 2
+    },
+    {
+      "id": "fr_short_68",
+      "class": "short",
+      "index": 68,
+      "text": "Petit déjeuner",
+      "word_count": 2
+    },
+    {
+      "id": "fr_short_69",
+      "class": "short",
+      "index": 69,
+      "text": "Grand soleil",
+      "word_count": 2
+    },
+    {
+      "id": "fr_short_70",
+      "class": "short",
+      "index": 70,
+      "text": "Vieux pont",
+      "word_count": 2
+    },
+    {
+      "id": "fr_short_71",
+      "class": "short",
+      "index": 71,
+      "text": "Rue calme",
+      "word_count": 2
+    },
+    {
+      "id": "fr_short_72",
+      "class": "short",
+      "index": 72,
+      "text": "Voix douce",
+      "word_count": 2
+    },
+    {
+      "id": "fr_short_73",
+      "class": "short",
+      "index": 73,
+      "text": "Cœur léger",
+      "word_count": 2
+    },
+    {
+      "id": "fr_short_74",
+      "class": "short",
+      "index": 74,
+      "text": "Chien noir",
+      "word_count": 2
+    },
+    {
+      "id": "fr_short_75",
+      "class": "short",
+      "index": 75,
+      "text": "Chat blanc",
+      "word_count": 2
+    },
+    {
+      "id": "fr_short_76",
+      "class": "short",
+      "index": 76,
+      "text": "Trois pommes",
+      "word_count": 2
+    },
+    {
+      "id": "fr_short_77",
+      "class": "short",
+      "index": 77,
+      "text": "Deux oiseaux",
+      "word_count": 2
+    },
+    {
+      "id": "fr_short_78",
+      "class": "short",
+      "index": 78,
+      "text": "Huit heures",
+      "word_count": 2
+    },
+    {
+      "id": "fr_short_79",
+      "class": "short",
+      "index": 79,
+      "text": "Onze minutes",
+      "word_count": 2
+    },
+    {
+      "id": "fr_short_80",
+      "class": "short",
+      "index": 80,
+      "text": "Vingt euros",
+      "word_count": 2
+    },
+    {
+      "id": "fr_short_81",
+      "class": "short",
+      "index": 81,
+      "text": "Je comprends",
+      "word_count": 2
+    },
+    {
+      "id": "fr_short_82",
+      "class": "short",
+      "index": 82,
+      "text": "Je suis prêt",
+      "word_count": 3
+    },
+    {
+      "id": "fr_short_83",
+      "class": "short",
+      "index": 83,
+      "text": "Vas-tu bien?",
+      "word_count": 2
+    },
+    {
+      "id": "fr_short_84",
+      "class": "short",
+      "index": 84,
+      "text": "Venez ici",
+      "word_count": 2
+    },
+    {
+      "id": "fr_short_85",
+      "class": "short",
+      "index": 85,
+      "text": "Écoutez bien",
+      "word_count": 2
+    },
+    {
+      "id": "fr_short_86",
+      "class": "short",
+      "index": 86,
+      "text": "Regarde ça",
+      "word_count": 2
+    },
+    {
+      "id": "fr_short_87",
+      "class": "short",
+      "index": 87,
+      "text": "Ouvre la porte",
+      "word_count": 3
+    },
+    {
+      "id": "fr_short_88",
+      "class": "short",
+      "index": 88,
+      "text": "Ferme les yeux",
+      "word_count": 3
+    },
+    {
+      "id": "fr_short_89",
+      "class": "short",
+      "index": 89,
+      "text": "Dis bonjour",
+      "word_count": 2
+    },
+    {
+      "id": "fr_short_90",
+      "class": "short",
+      "index": 90,
+      "text": "Fais attention",
+      "word_count": 2
+    },
+    {
+      "id": "fr_long_01",
+      "class": "longer",
+      "index": 91,
+      "text": "Ce matin, la boulangère prépare des croissants chauds avant l'arrivée des premiers clients.",
+      "word_count": 13
+    },
+    {
+      "id": "fr_long_02",
+      "class": "longer",
+      "index": 92,
+      "text": "Après la pluie, les enfants traversent le jardin pour observer les escargots près du vieux mur.",
+      "word_count": 16
+    },
+    {
+      "id": "fr_long_03",
+      "class": "longer",
+      "index": 93,
+      "text": "Le train partira à huit heures, alors nous devons rejoindre la gare sans perdre de temps.",
+      "word_count": 16
+    },
+    {
+      "id": "fr_long_04",
+      "class": "longer",
+      "index": 94,
+      "text": "Dans cette petite ville, le marché du samedi rassemble des producteurs venus de plusieurs villages.",
+      "word_count": 15
+    },
+    {
+      "id": "fr_long_05",
+      "class": "longer",
+      "index": 95,
+      "text": "J'aimerais visiter le musée demain et écouter la guide raconter l'histoire de cette ancienne maison.",
+      "word_count": 15
+    },
+    {
+      "id": "fr_long_06",
+      "class": "longer",
+      "index": 96,
+      "text": "Quand le ciel devient rose, les pêcheurs rangent leurs filets et rentrent lentement au port.",
+      "word_count": 15
+    },
+    {
+      "id": "fr_long_07",
+      "class": "longer",
+      "index": 97,
+      "text": "Pour préparer le dîner, coupe les légumes, fais chauffer l'huile et ajoute les herbes fraîches.",
+      "word_count": 15
+    },
+    {
+      "id": "fr_long_08",
+      "class": "longer",
+      "index": 98,
+      "text": "Ma sœur a trouvé un appartement lumineux qui donne sur une place pleine d'arbres.",
+      "word_count": 14
+    },
+    {
+      "id": "fr_long_09",
+      "class": "longer",
+      "index": 99,
+      "text": "Même si la route est longue, nous continuerons à marcher jusqu'au prochain village.",
+      "word_count": 13
+    },
+    {
+      "id": "fr_long_10",
+      "class": "longer",
+      "index": 100,
+      "text": "Le professeur répète chaque phrase clairement afin que tous les élèves puissent participer à la conversation.",
+      "word_count": 16
+    }
+  ]
+}
