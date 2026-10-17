@@ -125,16 +125,17 @@ class OpenAIEngine(BaseEngine):
         if self.timeout is not None:
             params["timeout"] = self.timeout
 
-        response = self.client.audio.speech.create(**params)
-
-        for data in response.iter_bytes():
-            if not first_token_printed:
-                elapsed = time.time() - start_time
-                if self.debug:
-                    print(f"Time to first audio token: {COLOR_YELLOW}{elapsed:.2f}{COLOR_RESET} seconds.")
-                first_token_printed = True
-            # Write the raw audio data into the queue for the stream player to handle
-            self.queue.put(data)
+        # speech.create() reads the whole body before returning; the streaming
+        # variant hands over each chunk as it arrives
+        with self.client.audio.speech.with_streaming_response.create(**params) as response:
+            for data in response.iter_bytes():
+                if not first_token_printed:
+                    elapsed = time.time() - start_time
+                    if self.debug:
+                        print(f"Time to first audio token: {COLOR_YELLOW}{elapsed:.2f}{COLOR_RESET} seconds.")
+                    first_token_printed = True
+                # Write the raw audio data into the queue for the stream player to handle
+                self.queue.put(data)
 
         return True
 
