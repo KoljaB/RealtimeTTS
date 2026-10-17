@@ -127,7 +127,7 @@ standard_requirements = base_requirements + pyaudio_requirements
 system_requirements = [requirements.get("pyttsx3", "pyttsx3")]
 azure_requirements = [requirements.get("azure-cognitiveservices-speech", "azure-cognitiveservices-speech")]
 elevenlabs_requirements = [requirements.get("elevenlabs", "elevenlabs")]
-openai_requirements = [requirements.get("openai", "openai")]
+openai_requirements = [requirements.get("openai", "openai"), "av>=14,<20"]
 gtts_requirements = [requirements.get("gtts", "gtts")]
 coqui_requirements = [requirements.get("coqui_tts", "coqui_tts")]
 edge_requirements = [requirements.get("edge-tts", "edge-tts")]

@@ -26,7 +26,7 @@ jobs:
           sudo apt-get install --yes portaudio19-dev
           python -m pip install --upgrade pip
           python -m pip install pytest "setuptools>=68" numpy requests fastapi httpx soundfile
-          python -m pip install -e .
+          python -m pip install -e ".[openai]"
           python -m pip install pyaudio
       - name: Run focused unit tests
         run: >-
@@ -34,12 +34,16 @@ jobs:
           tests/test_audio_backend.py
           tests/test_base_engine_silence_trim.py
           tests/test_character_alignment.py
+          tests/test_alignment_decoder.py
           tests/test_ctc_alignment.py
           tests/test_higgs_engine.py
           tests/test_inflect_engine.py
           tests/test_kokoro_engine_contract.py
           tests/test_language_router.py
           tests/test_minimax_engine.py
+          tests/test_omnivoice_engine.py
+          tests/test_openai_engine.py
+          tests/test_openai_engine_streaming.py
           tests/test_pocket_engine.py
           tests/test_pocket_gpu_engine.py
           tests/test_qwen_engine.py
@@ -65,6 +69,7 @@ jobs:
           tests/test_safepipe_logging.py
           tests/test_sentence_splitter_preload.py
           tests/test_sentence_tokenizer_defaults.py
+          tests/test_stream_language.py
           tests/test_stream_player_stop.py
           tests/test_text_to_stream_alignment.py
 

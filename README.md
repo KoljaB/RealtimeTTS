@@ -289,7 +289,8 @@ old README and source audit.
   out.
 
 Legacy translated docs remain under `docs/<locale>/` while English is refactored
-as the canonical source.
+as the canonical source. Available legacy translations include
+[Portuguese](docs/pt/index.md) and [Russian](docs/ru/index.md).
 
 ## Server Example
 

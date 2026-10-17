@@ -27,7 +27,7 @@ Each current concrete engine source now has a focused page under `docs/engines/`
 | [`SystemEngine`](engines/system.md) | Local system TTS | `realtimetts[system]` | System voices | PCM through PyAudio. |
 | [`GTTSEngine`](engines/gtts.md) | Free service wrapper | `realtimetts[gtts]` | Network access | Service-backed behavior; no API key. |
 | [`EdgeEngine`](engines/edge.md) | Free service wrapper | `realtimetts[edge]` | Network access, `mpv` | Compressed audio path through mpv. |
-| [`OpenAIEngine`](engines/openai.md) | Cloud API | `realtimetts[openai]` | `OPENAI_API_KEY` | MP3 uses mpv; PCM uses PyAudio. |
+| [`OpenAIEngine`](engines/openai.md) | Cloud API | `realtimetts[openai]` | `OPENAI_API_KEY` | MP3 is continuously decoded with PyAV from the extra; both formats play through PyAudio. |
 | [`AzureEngine`](engines/azure.md) | Cloud API | `realtimetts[azure]` | Constructor key and region | PCM through PyAudio; word timings supported. |
 | [`ElevenlabsEngine`](engines/elevenlabs.md) | Cloud API | `realtimetts[elevenlabs]` | `ELEVENLABS_API_KEY`, `mpv` | MPEG audio path through mpv. |
 | [`CambEngine`](engines/camb.md) | Cloud API | `realtimetts[camb]` | `CAMB_API_KEY` | API-backed multilingual synthesis. |
