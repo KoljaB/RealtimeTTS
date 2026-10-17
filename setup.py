@@ -49,6 +49,7 @@ Available engine options include:
 - **azure**: Azure Speech Services support
 - **elevenlabs**: ElevenLabs API integration
 - **openai**: OpenAI TTS services
+- **atlascloud**: Atlas Cloud TTS services
 - **gtts**: Google Text-to-Speech
 - **edge**: Microsoft Edge TTS
 - **coqui**: Coqui TTS engine
@@ -299,6 +300,7 @@ extras_require = {
     "azure": standard_requirements + azure_requirements,
     "elevenlabs": standard_requirements + elevenlabs_requirements,
     "openai": standard_requirements + openai_requirements,
+    "atlascloud": standard_requirements + requests_requirements,
     "gtts": standard_requirements + gtts_requirements,
     "coqui": standard_requirements + coqui_requirements,
     "edge": standard_requirements + edge_requirements,
