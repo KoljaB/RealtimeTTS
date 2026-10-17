@@ -14,6 +14,7 @@ Converts text into real-time audio using one or more TTS engines. Key features i
 
 from .threadsafe_generators import CharIterator, AccumulatingThreadSafeGenerator
 from .stream_player import StreamPlayer, AudioConfiguration
+from .streaming_audio import DecodedAudioQueue
 from typing import Union, Iterator, List
 from .alignment.audio import is_alignable_stream_format
 from .alignment.capture import CapturedAudioSegment, CapturingAudioQueue
@@ -253,18 +254,27 @@ class TextToAudioStream:
         # Extract stream information (format, channels, rate) from the engine
         format, channels, rate = self.engine.get_stream_info()
 
+        self._decoded_audio_queue = None
+        if format == pyaudio.paCustomFormat and (
+            self.engine.requires_streaming_decode
+            or isinstance(self.engine.queue, DecodedAudioQueue)
+        ):
+            decoder = self.engine.queue if isinstance(self.engine.queue, DecodedAudioQueue) else DecodedAudioQueue(self.engine.queue, rate)
+            self.engine.queue = decoder
+            self._decoded_audio_queue = decoder
+            format, channels, rate = decoder.output_format
+
         self._alignment_capture_queue = None
         if self._should_capture_alignment_audio(format, channels, rate):
-            if isinstance(self.engine.queue, CapturingAudioQueue):
-                self._alignment_capture_queue = self.engine.queue
+            output_queue = self._decoded_audio_queue.wrapped if self._decoded_audio_queue else self.engine.queue
+            if isinstance(output_queue, CapturingAudioQueue):
+                self._alignment_capture_queue = output_queue
             else:
-                self._alignment_capture_queue = CapturingAudioQueue(
-                    self.engine.queue,
-                    format,
-                    channels,
-                    rate,
-                )
-                self.engine.queue = self._alignment_capture_queue
+                self._alignment_capture_queue = CapturingAudioQueue(output_queue, format, channels, rate)
+                if self._decoded_audio_queue:
+                    self._decoded_audio_queue.wrapped = self._alignment_capture_queue
+                else:
+                    self.engine.queue = self._alignment_capture_queue
 
         # An engine can opt in when stream2sentence's one-time import would
         # otherwise dominate its first-response latency.
@@ -622,7 +632,7 @@ class TextToAudioStream:
                 self.wf = open(output_wavfile, "wb")
             else:
                 self.wf = wave.open(output_wavfile, "wb")
-                _, channels, rate = self.engine.get_stream_info()
+                _, channels, rate = self._output_stream_info()
                 self.wf.setnchannels(channels)
                 self.wf.setsampwidth(2)
                 self.wf.setframerate(rate)
@@ -642,7 +652,7 @@ class TextToAudioStream:
                 # Directly synthesize audio using the character iterator
                 self.char_iter.log_characters = self.log_characters
 
-                self.engine.synthesize(self.char_iter)
+                self._synthesize_with_decode(self.char_iter)
 
             finally:
 
@@ -765,7 +775,7 @@ class TextToAudioStream:
                                 alignment_segment = None
                                 capture_started = self._start_alignment_capture(sentence)
                                 try:
-                                    success = self.engine.synthesize(sentence, sentence_count)
+                                    success = self._synthesize_with_decode(sentence, sentence_count)
                                 finally:
                                     alignment_segment = self._finish_alignment_capture(
                                         capture_started
@@ -951,6 +961,9 @@ class TextToAudioStream:
         for abort_event in self.abort_events:
             abort_event.set()
 
+        if self._decoded_audio_queue is not None:
+            self._decoded_audio_queue.cancel()
+
         if self.is_playing():
             self.char_iter.stop()
             self.player.resume()
@@ -1005,6 +1018,29 @@ class TextToAudioStream:
         if self.on_word_spoken:
             self.on_word_spoken(word)
 
+    def _output_stream_info(self):
+        if self._decoded_audio_queue is not None:
+            return self._decoded_audio_queue.output_format
+        return self.engine.get_stream_info()
+
+    def _synthesize_with_decode(self, text, *args):
+        decoder = self._decoded_audio_queue
+        if decoder is None:
+            return self.engine.synthesize(text, *args)
+        decoder.begin()
+        success = False
+        try:
+            success = self.engine.synthesize(text, *args)
+            return success
+        finally:
+            cancelled = self.engine.stop_synthesis_event.is_set() or any(
+                event.is_set() for event in self.abort_events
+            )
+            if success and not cancelled:
+                decoder.finish()
+            else:
+                decoder.cancel()
+
     def _on_audio_chunk(self, chunk):
         """
         Postprocessing of single chunks of audio data.
@@ -1014,7 +1050,7 @@ class TextToAudioStream:
         Args:
             chunk (bytes): The audio data chunk to be processed.
         """
-        format, channels, sample_rate = self.engine.get_stream_info()
+        format, channels, sample_rate = self._output_stream_info()
 
         if format == pyaudio.paFloat32:
             audio_data = np.frombuffer(chunk, dtype=np.float32)
@@ -1309,7 +1345,7 @@ class TextToAudioStream:
         if silence_duration <= 0:
             return
 
-        stream_format, channels, sample_rate = self.engine.get_stream_info()
+        stream_format, channels, sample_rate = self._output_stream_info()
         if sample_rate <= 0 or stream_format == pyaudio.paCustomFormat:
             logging.warning(
                 f"Cannot enqueue silence for engine {self.engine.engine_name} "
@@ -1324,7 +1360,8 @@ class TextToAudioStream:
         else:
             silent_chunk = np.zeros(sample_count, dtype=np.float32)
 
-        self.engine.queue.put(silent_chunk.tobytes())
+        output_queue = self._decoded_audio_queue.wrapped if self._decoded_audio_queue else self.engine.queue
+        output_queue.put(silent_chunk.tobytes())
 
     def _is_engine_mpeg(self):
         """
@@ -1333,7 +1370,7 @@ class TextToAudioStream:
         Returns:
             Boolean indicating if the engine is an MPEG engine.
         """
-        format, channel, rate = self.engine.get_stream_info()
+        format, channel, rate = self._output_stream_info()
         return format == pyaudio.paCustomFormat and channel == -1 and rate == -1
 
     def _synthesis_chunk_generator(

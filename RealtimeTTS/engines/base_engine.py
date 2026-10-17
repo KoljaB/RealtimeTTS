@@ -51,6 +51,7 @@ class BaseEngine(ABC, metaclass=BaseInitMeta):
         # Engines with an expensive first sentence-splitter import can opt in
         # to loading it when TextToAudioStream is constructed.
         self.preload_sentence_tokenizer = False
+        self.requires_streaming_decode = False
 
         # Queue to manage audio chunks for the engine.
         self.queue = queue.Queue()
