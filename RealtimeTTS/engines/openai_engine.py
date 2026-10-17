@@ -28,7 +28,8 @@ class OpenAIEngine(BaseEngine):
             speed: float = None,
             response_format: str = "mp3",
             timeout: float = None,
-            api_key: str = getenv("OPENAI_API_KEY")
+            api_key: str = getenv("OPENAI_API_KEY"),
+            api_url: str | None = None,
         ):
         """
         Initializes an OpenAI realtime text to speech engine object.
@@ -60,7 +61,7 @@ class OpenAIEngine(BaseEngine):
 
         self.timeout = timeout
 
-        self.client = OpenAI(api_key=api_key)
+        self.client = OpenAI(api_key=api_key, base_url=api_url)
         # Assuming queue is defined elsewhere or should be initialized
         self.queue = None
 
