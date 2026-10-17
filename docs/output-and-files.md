@@ -16,8 +16,11 @@ stream.play()
 Use PyAudio device inspection tools or a small local script to find device
 indices for your machine.
 
-Compressed-output engines use mpv. Examples include Edge, ElevenLabs, OpenAI
-when using MP3, MiniMax, and ModelsLab.
+OpenAI MP3 is decoded continuously with PyAV (included in `realtimetts[openai]`)
+and uses the PyAudio device selection above, just like OpenAI PCM.
+
+Some compressed-output engines use mpv, including Edge, ElevenLabs, MiniMax,
+and ModelsLab.
 
 ```python
 stream = TextToAudioStream(engine, mpv_audio_device="auto")

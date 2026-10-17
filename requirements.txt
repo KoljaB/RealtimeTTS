@@ -1,5 +1,5 @@
 # stream2sentence is the core of RealtimeTTS - it quickly converts streamed text into sentences for real-time synthesis
-stream2sentence[nltk]>=1.0.4
+stream2sentence[nltk]>=1.1.0
 
 # azure-cognitiveservices-speech is for AzureEngine
 azure-cognitiveservices-speech>=1.50.0

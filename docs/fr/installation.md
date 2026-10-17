@@ -62,7 +62,7 @@ Le `GTTSEngine` fonctionne dès le départ à l'aide de l'API de synthèse vocal
 ### OpenAIEngine
 Pour utiliser le ``(OpenAIE):
 - définir la variable d'environnement OPENAI_API_KEY
-- installer ffmpeg (voir installation CUDA point 3)
+- installer `realtimetts[openai]` (inclut PyAV pour la lecture MP3).
 
 ### AzureEngine
 Pour utiliser le `ine`, vous aurez besoin de :

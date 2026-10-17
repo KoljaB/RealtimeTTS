@@ -55,23 +55,35 @@ class FakeWire:
         self.incoming.put(None)
 
 
-def _capabilities(*, alignment=False, per_text_language=True, direct=False):
+def _capabilities(
+    *, alignment=False, per_text_language=True, direct=False,
+    vocal_tags=None, non_speech_unit=None
+):
+    features = {
+        "per_request_silence": True,
+        "per_text_language": per_text_language,
+        "direct_voice_control": direct,
+        "streaming_alignment": alignment,
+    }
+    if vocal_tags is not None:
+        features["vocal_tags"] = list(vocal_tags)
+    if non_speech_unit is not None:
+        features["alignment_non_speech_ranges"] = non_speech_unit
     return {
-        "features": {
-            "per_request_silence": True,
-            "per_text_language": per_text_language,
-            "direct_voice_control": direct,
-            "streaming_alignment": alignment,
-        },
+        "features": features,
         "stream_controls": {"segmented_narration": True},
         "audio": {"sample_rate_hz": 24_000, "channels": 1, "encoding": "s16le"},
     }
 
 
-def _install(monkeypatch, factories, *, alignment=False, per_text_language=True, direct=False):
+def _install(
+    monkeypatch, factories, *, alignment=False, per_text_language=True, direct=False,
+    vocal_tags=None, non_speech_unit=None
+):
     created = []
     payload = _capabilities(
-        alignment=alignment, per_text_language=per_text_language, direct=direct
+        alignment=alignment, per_text_language=per_text_language, direct=direct,
+        vocal_tags=vocal_tags, non_speech_unit=non_speech_unit,
     )
     monkeypatch.setattr(remote.requests, "get", lambda *args, **kwargs: Response(payload))
 
@@ -98,6 +110,21 @@ def _engine(monkeypatch, factories, **kwargs):
     return engine, context, created
 
 
+@pytest.mark.parametrize("design", [False, True])
+@pytest.mark.parametrize("initial_delivery", [None, "Warm"])
+def test_delivery_baseline_roundtrip_does_not_duplicate_voice_design(monkeypatch, design, initial_delivery):
+    _install(monkeypatch, [], direct=True)
+    engine = RemoteTTSEngine("http://provider.test", "mira", instructions="Female voice")
+    if design:
+        engine.features["voice_design_voice"] = "mira"
+    engine.set_instructions(initial_delivery)
+    baseline, effective = engine.get_instructions(), engine.instructions
+    engine.set_instructions("Whisper")
+    engine.set_instructions(baseline)
+    assert engine.instructions == effective
+    assert engine.get_instructions() == initial_delivery
+
+
 def test_persistent_connection_uses_segments_and_provider_silence_is_disabled(monkeypatch):
     engine, context, created = _engine(monkeypatch, [_success], per_text_language=True)
     try:
@@ -113,10 +140,88 @@ def test_persistent_connection_uses_segments_and_provider_silence_is_disabled(mo
             "segment_start", "text", "flush",
         ]
         assert sent[0]["silence"] == {"comma": 0, "sentence": 0, "transition": 0}
+        assert "seed" not in sent[0]
+        assert "max_new_tokens" not in sent[0]
         assert [event["segment_id"] for event in sent if event["type"] == "segment_start"] == [1, 2]
         assert [event["segment_id"] for event in sent if event["type"] == "flush"] == [1, 2]
         text_events = [event for event in sent if event["type"] == "text"]
         assert [event["language"] for event in text_events] == ["english", "german"]
+    finally:
+        engine.close_stream_context(context)
+
+
+def test_remote_sampling_parameters_are_sent_in_initial_config_only(monkeypatch):
+    created = _install(monkeypatch, [_success])
+    engine = RemoteTTSEngine(
+        "http://provider.test", "mira", language="en", seed=42, max_new_tokens=256
+    )
+    context = engine.create_stream_context()
+    engine.set_stream_context(context)
+    try:
+        assert engine.synthesize("one")
+        assert engine.queue.get(timeout=1) == PCM
+        assert engine.synthesize("two")
+        assert engine.queue.get(timeout=1) == PCM
+        assert len(created) == 1
+        assert created[0].sent[0]["seed"] == 42
+        assert created[0].sent[0]["max_new_tokens"] == 256
+        assert all("seed" not in event and "max_new_tokens" not in event
+                   for event in created[0].sent[1:])
+    finally:
+        engine.close_stream_context(context)
+
+
+@pytest.mark.parametrize(
+    ("kwargs", "field"),
+    [
+        ({"seed": True}, "seed"),
+        ({"seed": 1.0}, "seed"),
+        ({"seed": -(2**63) - 1}, "seed"),
+        ({"seed": 2**63}, "seed"),
+        ({"max_new_tokens": True}, "max_new_tokens"),
+        ({"max_new_tokens": 256.0}, "max_new_tokens"),
+        ({"max_new_tokens": 0}, "max_new_tokens"),
+        ({"max_new_tokens": 2**31}, "max_new_tokens"),
+    ],
+)
+def test_remote_sampling_parameters_match_server_domains(monkeypatch, kwargs, field):
+    _install(monkeypatch, [_success])
+    with pytest.raises(ValueError, match=field):
+        RemoteTTSEngine("http://provider.test", "mira", language="en", **kwargs)
+
+
+def test_remote_vocal_tags_use_advertised_literals_and_utf16_offsets(monkeypatch):
+    engine, context, created = _engine(
+        monkeypatch,
+        [],
+        vocal_tags=("laugh", "a+b", "breathe heavily"),
+        non_speech_unit="utf16_code_units",
+    )
+    text = "😀 (LAUGH) (a+b) (aaab) (breathe heavily) [laugh] ( laugh ) (giggle)"
+    try:
+        assert engine.alignment_non_speech_ranges(text) == [
+            {"start": 3, "end": 10},
+            {"start": 11, "end": 16},
+            {"start": 24, "end": 41},
+        ]
+        assert created == []
+    finally:
+        engine.close_stream_context(context)
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"vocal_tags": ("laugh",)},
+        {"vocal_tags": ("laugh",), "non_speech_unit": "code_points"},
+        {"non_speech_unit": "utf16_code_units"},
+    ],
+)
+def test_remote_vocal_tags_require_advertised_capability(monkeypatch, kwargs):
+    engine, context, created = _engine(monkeypatch, [], **kwargs)
+    try:
+        assert engine.alignment_non_speech_ranges("😀 (laugh)") == []
+        assert created == []
     finally:
         engine.close_stream_context(context)
 

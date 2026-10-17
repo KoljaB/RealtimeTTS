@@ -105,11 +105,12 @@ def test_input_iterator_failure_releases_sentence_worker(
         @staticmethod
         def generate_sentences(source, **kwargs):
             sentence = ""
-            for char in source:
-                sentence += char
-                if char == ".":
-                    yield sentence
-                    sentence = ""
+            for chunk in source:
+                for char in getattr(chunk, "text", chunk):
+                    sentence += char
+                    if char == ".":
+                        yield sentence
+                        sentence = ""
             if sentence:
                 yield sentence
 
@@ -205,7 +206,7 @@ def test_fragment_lookahead_is_forwarded_to_stream2sentence(monkeypatch):
         @staticmethod
         def generate_sentences(source, **kwargs):
             calls.append(kwargs)
-            text = "".join(source)
+            text = "".join(getattr(chunk, "text", chunk) for chunk in source)
             if text:
                 yield text
 

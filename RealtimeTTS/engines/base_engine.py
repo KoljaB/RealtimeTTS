@@ -52,6 +52,9 @@ class BaseEngine(ABC, metaclass=BaseInitMeta):
         # to loading it when TextToAudioStream is constructed.
         self.preload_sentence_tokenizer = False
 
+        # Streaming compressed packets need one decoder per synthesis response.
+        self.requires_streaming_decode = False
+
         # Queue to manage audio chunks for the engine.
         self.queue = queue.Queue()
 

@@ -77,6 +77,42 @@ class CharIterator:
             self.on_first_text_chunk()
             self.first_chunk_received = True
 
+    def next_available(self, max_chars: int = 4096) -> str:
+        """Consume a bounded snapshot without pulling ahead in an iterator.
+
+        Adjacent feed strings may share a snapshot. For iterator input, only
+        the chunk already obtained by the normal next() call is available.
+        Character callbacks still fire once per consumed character.
+        """
+        if max_chars < 1:
+            raise ValueError("max_chars must be positive")
+        # Freeze queued input before even the first character callback runs.
+        end = len(self.items)
+        first = next(self)
+        remaining = max_chars - 1
+        index = self._index
+        item = self.items[index]
+        if isinstance(item, str):
+            count = min(remaining, len(item) - self._char_index)
+            end = min(end, index + 64)
+            while count < remaining and index + 1 < end:
+                index += 1
+                item = self.items[index]
+                if not isinstance(item, str):
+                    break
+                count += min(remaining - count, len(item))
+        else:
+            count = min(remaining, len(self._current_str) - self._char_index)
+
+        characters = [first]
+        for _ in range(count):
+            try:
+                characters.append(next(self))
+            except StopIteration:
+                # A callback or another thread may have stopped this snapshot.
+                break
+        return "".join(characters)
+
     def __next__(self) -> str:
         """Fetch the next character from the current string or string iterator."""
         if self.immediate_stop.is_set():
@@ -157,9 +193,21 @@ class AccumulatingThreadSafeGenerator:
 
     def __next__(self) -> str:
         """Fetch the next token from the generator in a thread-safe manner."""
+        return self._next(lambda: next(self.generator))
+
+    def iter_available_chunks(self) -> Iterator[str]:
+        """Share accumulation and locking with ordinary character iteration."""
+        while True:
+            try:
+                token = self._next(self.generator.next_available)
+            except StopIteration:
+                return
+            yield token
+
+    def _next(self, pull):
         with self.lock:
             try:
-                token = next(self.generator)
+                token = pull()
                 self.iterated_text += str(token)
 
                 if not self.first_chunk_received and self.on_first_text_chunk:

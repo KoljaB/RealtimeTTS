@@ -241,6 +241,9 @@ class TextToAudioStream:
         self._play_default_language = language
         self._synthesis_language = language
         self._language_baselines = {}
+        self._instruction_baselines = {}
+        self._instruction_error = None
+        self._active_inline_instruction = None
         self._inline_voice_baseline = None
         self._language_error = None
         self._synthesis_speed = self._speed
@@ -282,6 +285,7 @@ class TextToAudioStream:
         self._volume = 1.0  # Default volume at 100%
         self.voice_switch_tags = {}
         self.pause_tags = {}
+        self.instruction_tags = {}
         self.voice_tag_start = "["
         self.voice_tag_end = "]"
         self.active_voice_tag = None
@@ -330,8 +334,13 @@ class TextToAudioStream:
             self._alignment_binding = self.alignment.bind(self.engine)
             format, channels, rate = self._alignment_binding.output_format
             self._alignment_player_offset = self.alignment.snapshot().duration
-        elif format == pyaudio.paCustomFormat and (self.speed_tags or self._speed != 1.0 or isinstance(self.engine.queue, DecodedAudioQueue)):
-            # Decode once before both tempo processing and output callbacks.
+        elif format == pyaudio.paCustomFormat and (
+            self.engine.requires_streaming_decode
+            or self.speed_tags
+            or self._speed != 1.0
+            or isinstance(self.engine.queue, DecodedAudioQueue)
+        ):
+            # Preserve decoder state across network chunks, before playback/callbacks.
             decoder_queue = self.engine.queue if isinstance(self.engine.queue, DecodedAudioQueue) else DecodedAudioQueue(self.engine.queue, rate if rate > 0 else 24000)
             self.engine.queue = decoder_queue
             self._decoded_audio_queue = decoder_queue
@@ -493,6 +502,25 @@ class TextToAudioStream:
         self.voice_switch_tags.clear()
         return self
 
+    def add_instruction(self, tag: str, instructions: str):
+        """Register a sticky delivery control such as [whispered].
+
+        Controls end the current synthesis fragment and are excluded from
+        alignment text. The next control replaces the instruction; completion
+        or cancellation restores each engine's original instruction.
+        Engines must expose set_instructions plus get_instructions() or a
+        public instructions attribute. Unknown tags remain literal text.
+        """
+        tags = dict(self.instruction_tags)
+        key = InlineMarkupParser._tag_key(tag, "instruction")
+        tags[key] = instructions
+        InlineMarkupParser(
+            self._speed, voice_tags=self.voice_switch_tags,
+            pause_tags=self.pause_tags, instruction_tags=tags,
+        )
+        self.instruction_tags = tags
+        return self
+
     def add_pause(self, tag: str = "pause", duration: float = 0.5):
         """
         Registers a pause tag with a default silence duration in seconds.
@@ -584,6 +612,7 @@ class TextToAudioStream:
         debug=False,
         fragment_lookahead_words: int = 0,
         language_transition_silence_duration: float = 0.08,
+        use_available_text_runs: bool = True,
     ):
         """
         Async handling of text to audio synthesis, see play() method.
@@ -618,6 +647,7 @@ class TextToAudioStream:
                 debug,
                 fragment_lookahead_words,
                 language_transition_silence_duration,
+                use_available_text_runs,
             )
             self.play_thread = threading.Thread(target=self.play, args=args)
             self.play_thread.start()
@@ -640,7 +670,7 @@ class TextToAudioStream:
         on_audio_chunk=None,
         tokenizer: str = "",
         tokenize_sentences=None,
-        language: str = "en",
+        language: str = "",
         context_size: int = 12,
         context_size_look_overhead: int = 12,
         comma_silence_duration=0.0,
@@ -653,6 +683,7 @@ class TextToAudioStream:
         debug=False,
         fragment_lookahead_words: int = 0,
         language_transition_silence_duration: float = 0.08,
+        use_available_text_runs: bool = True,
     ):
         """
         Handles the synthesis of text to audio.
@@ -663,6 +694,7 @@ class TextToAudioStream:
         - fast_sentence_fragment: Determines if sentence fragments should be quickly yielded. Useful when a faster response is desired even if a sentence isn't complete.
         - fast_sentence_fragment_allsentences: Fast_sentence_fragment only works on the first sentence. Set this to True if you want to work it on every sentence.
         - fast_sentence_fragment_allsentences_multiple: Can yield multiple sentence fragments, not only a single one.
+        - use_available_text_runs: Keep complete later sentences together within text already available (default True). Does not prefetch iterator chunks. False retains character-by-character splitting. Engines consuming generators directly retain their own segmentation.
         - buffer_threshold_seconds (float): Time in seconds for the buffering threshold, influencing the flow and continuity of audio playback. Set to 0 to deactivate. Default is 0.
           - How it Works: The system verifies whether there is more audio content in the buffer than the duration defined by buffer_threshold_seconds. If so, it proceeds to synthesize the next sentence, capitalizing on the remaining audio to maintain smooth delivery. A higher value means more audio is pre-buffered, which minimizes pauses during playback. Adjust this upwards if you encounter interruptions.
           - Helps to decide when to generate more audio based on buffered content.
@@ -676,7 +708,7 @@ class TextToAudioStream:
         - on_audio_chunk: Callback function that gets called when a single audio chunk is ready.
         - tokenizer: Tokenizer to use for sentence splitting. Leave empty to use the stream setting ("nltk+rule-based" by default). Stanza remains optional and requires the `RealtimeTTS[stanza]` extra.
         - tokenize_sentences (Callable): A function that tokenizes sentences from the input text. You can write your own lightweight tokenizer here if you are unhappy with nltk and stanza. Defaults to None. Takes text as string and should return splitted sentences as list of strings.
-        - language: Language to use for sentence splitting.
+        - language: Language to use for sentence splitting. Leave empty to use the stream setting ("en" by default). An explicit value overrides it for this call.
         - context_size: The number of characters used to establish context for sentence boundary detection. A larger context improves the accuracy of detecting sentence boundaries. Default is 12 characters.
         - context_size_look_overhead: The number of characters to look ahead when determining sentence boundaries. This helps in identifying the end of a sentence more accurately. Default is 12 characters.
         - comma_silence_duration: The duration of silence to insert after a comma in seconds. Default is 0.0 seconds.
@@ -708,6 +740,9 @@ class TextToAudioStream:
                 self.play_lock.release()
                 raise
             self._language_baselines = {}
+            self._instruction_baselines = {}
+            self._instruction_error = None
+            self._active_inline_instruction = None
             self._inline_voice_baseline = (self.active_voice_tag, self.active_voice)
             self._language_error = None
             if self.language_tags:
@@ -809,7 +844,7 @@ class TextToAudioStream:
                                 if self._decoded_audio_queue is not None:
                                     self._finish_decoded_audio()
 
-                    if (not self.language_tags or abort_event.is_set()
+                    if (not (self.language_tags or self.instruction_tags) or abort_event.is_set()
                             or self.char_iter is source or not self.char_iter.items
                             or self.char_iter.immediate_stop.is_set()):
                         break
@@ -841,7 +876,7 @@ class TextToAudioStream:
                 # Accumulate the generated text and reset the character iterators
                 self.generated_text += self.char_iter.iterated_text
 
-                if not self.language_tags or self.char_iter.immediate_stop.is_set():
+                if not (self.language_tags or self.instruction_tags) or self.char_iter.immediate_stop.is_set():
                     self._create_iterators()
 
                 if is_external_call:
@@ -881,11 +916,16 @@ class TextToAudioStream:
                     debug=debug,
                 )
 
-                # Each control boundary flushes preceding text through the splitter.
-                # Ordinary text remains lazy, including character-at-a-time input.
+                # Snapshot only text already in memory; controls still flush
+                # preceding text, and iterator input remains pull-based.
+                source = (
+                    self.thread_safe_char_iter.iter_available_chunks()
+                    if use_available_text_runs else self.thread_safe_char_iter
+                )
                 chunk_generator = self._iter_synthesis_actions(
-                    self.thread_safe_char_iter, s2s, splitter_options,
+                    source, s2s, splitter_options,
                     buffer_threshold_seconds, log_synthesized_text,
+                    use_available_text_runs=use_available_text_runs,
                 )
 
                 sentence_count = 0
@@ -903,12 +943,14 @@ class TextToAudioStream:
                             break
 
                         action_type, action_value = sentence_item
-                        if action_type in ("speed", "language"):
+                        if action_type in ("speed", "language", "instruction"):
                             try:
                                 self._apply_inline_action(action_type, action_value)
                             except Exception as exc:
                                 if action_type == "language":
                                     self._language_error = exc
+                                elif action_type == "instruction":
+                                    self._instruction_error = exc
                                 else:
                                     self._speed_error = exc
                                 abort_event.set()
@@ -1035,18 +1077,23 @@ class TextToAudioStream:
                                     self._reapply_active_voice()
                                     if self.language_tags:
                                         self._apply_inline_action("language", self._synthesis_language)
+                                    if self._active_inline_instruction is not None:
+                                        self._apply_inline_action("instruction", self._active_inline_instruction)
                                     self.player.start()
                                     self.player.on_audio_chunk = self._on_audio_chunk
 
                         sentence_queue.task_done()
 
                 def synthesize_worker():
-                    if not self.language_tags:
+                    if not (self.language_tags or self.instruction_tags):
                         return synthesize_worker_loop()
                     try:
                         synthesize_worker_loop()
                     except Exception as exc:
-                        self._language_error = exc
+                        if self.instruction_tags:
+                            self._instruction_error = self._instruction_error or exc
+                        else:
+                            self._language_error = exc
                         self.error_flag = True
                         abort_event.set()
 
@@ -1073,7 +1120,10 @@ class TextToAudioStream:
 
             except Exception as e:
                 self.error_flag = True
-                if self.language_tags:
+                if self.instruction_tags:
+                    self._instruction_error = self._instruction_error or e
+                    abort_event.set()
+                elif self.language_tags:
                     self._language_error = e
                     abort_event.set()
                 logging.warning(
@@ -1106,7 +1156,7 @@ class TextToAudioStream:
                         self.wf = None
 
             if (not self.error_flag
-                and len(self.char_iter.items) > (0 if self.language_tags else 1)
+                and self.char_iter._index < len(self.char_iter.items)
                 and self.char_iter.iterated_text == ""
                 and not self.char_iter.immediate_stop.is_set()
                 and not abort_event.is_set()
@@ -1119,6 +1169,9 @@ class TextToAudioStream:
                 # we need to start another play() call (!recursively!)
                 self.play(
                     fast_sentence_fragment=fast_sentence_fragment,
+                    fast_sentence_fragment_allsentences=fast_sentence_fragment_allsentences,
+                    fast_sentence_fragment_allsentences_multiple=fast_sentence_fragment_allsentences_multiple,
+                    use_available_text_runs=use_available_text_runs,
                     buffer_threshold_seconds=buffer_threshold_seconds,
                     minimum_sentence_length=minimum_sentence_length,
                     minimum_first_fragment_length=minimum_first_fragment_length,
@@ -1126,10 +1179,16 @@ class TextToAudioStream:
                     reset_generated_text=False,
                     output_wavfile=output_wavfile,
                     on_sentence_synthesized=on_sentence_synthesized,
+                    before_sentence_synthesized=before_sentence_synthesized,
                     on_audio_chunk=on_audio_chunk,
                     tokenizer=tokenizer,
+                    tokenize_sentences=tokenize_sentences,
                     language=language,
                     context_size=context_size,
+                    context_size_look_overhead=context_size_look_overhead,
+                    comma_silence_duration=comma_silence_duration,
+                    sentence_silence_duration=sentence_silence_duration,
+                    default_silence_duration=default_silence_duration,
                     muted=muted,
                     sentence_fragment_delimiters=sentence_fragment_delimiters,
                     force_first_fragment_after_words=force_first_fragment_after_words,
@@ -1149,7 +1208,8 @@ class TextToAudioStream:
                 self.is_playing_flag = False
                 self.play_lock.release()
 
-        failure = self._language_error or self._speed_error or self.player.playback_error
+        failure = (self._instruction_error or self._language_error
+                   or self._speed_error or self.player.playback_error)
         if failure is not None:
             self.error_flag = True
             raise failure
@@ -1382,6 +1442,7 @@ class TextToAudioStream:
             language_voices=self.language_voices,
             voice_tags=self.voice_switch_tags,
             pause_tags=self.pause_tags,
+            instruction_tags=self.instruction_tags,
             initial_voice=initial_voice,
             delimiters=(self.voice_tag_start, self.voice_tag_end),
         )
@@ -1401,7 +1462,7 @@ class TextToAudioStream:
                 actions.extend(group)
         return actions
 
-    def _iter_inline_actions(self, source):
+    def _iter_inline_actions(self, source, *, use_available_text_runs=False):
         """Normalize bounded inline markup without buffering its spoken body."""
         if self.is_playing_flag:
             # Late feed() input may continue through an internal play() call.
@@ -1411,20 +1472,32 @@ class TextToAudioStream:
             parser = self._inline_markup_parser
         else:
             parser = self._new_inline_markup_parser()
+        if use_available_text_runs:
+            from stream2sentence import AvailableTextRun
+        run_id = 0
         for kind, value in parser.iter_actions(
-            source, stopped=lambda: self.char_iter.immediate_stop.is_set()
+            source, stopped=lambda: self.char_iter.immediate_stop.is_set(),
+            coalesce_text=use_available_text_runs,
         ):
-            if kind == "text" and self.alignment is not None:
-                self.alignment.append_source(value)
+            if kind == "text":
+                if self.alignment is not None:
+                    self.alignment.append_source(value)
+                if use_available_text_runs and len(value) > 1:
+                    run_id += 1
+                    value = AvailableTextRun(value, run_id)
             yield kind, value
 
-    def _iter_synthesis_actions(self, source, splitter, options, threshold, log_chunks):
+    def _iter_synthesis_actions(
+        self, source, splitter, options, threshold, log_chunks, *,
+        use_available_text_runs=False,
+    ):
         language = options["language"]
         if self.language_tags and self._inline_markup_parser is not None:
             code = InlineMarkupParser.language_code(self._inline_markup_parser.current_language)
             language = language if code == "auto" else code
         for is_text, actions in groupby(
-            self._iter_inline_actions(source), lambda item: item[0] == "text"
+            self._iter_inline_actions(source, use_available_text_runs=use_available_text_runs),
+            lambda item: item[0] == "text"
         ):
             if is_text:
                 text = (value for _, value in actions)
@@ -1447,7 +1520,40 @@ class TextToAudioStream:
             self._language_baselines[self.engine] = (
                 self.engine.get_language(), self._current_engine_voice(self.engine))
 
+    def _set_inline_instruction(self, instructions):
+        setter = getattr(self.engine, "set_instructions", None)
+        if not callable(setter):
+            raise NotImplementedError(
+                f"{self.engine.engine_name} does not support inline instructions")
+        if self.engine not in self._instruction_baselines:
+            getter = getattr(self.engine, "get_instructions", None)
+            if callable(getter):
+                baseline = getter()
+            elif hasattr(self.engine, "instructions"):
+                baseline = self.engine.instructions
+            else:
+                raise NotImplementedError(
+                    "Inline instructions require get_instructions() or public instructions")
+            self._instruction_baselines[self.engine] = baseline
+        try:
+            setter(instructions)
+        except Exception as exc:
+            self._instruction_error = exc
+            raise
+        self._active_inline_instruction = instructions
+
+    def _restore_inline_instructions(self):
+        for engine, baseline in self._instruction_baselines.items():
+            try:
+                engine.set_instructions(baseline)
+            except Exception as exc:
+                self._instruction_error = self._instruction_error or exc
+                logging.warning("Could not restore inline instruction baseline: %s", exc)
+        self._instruction_baselines.clear()
+        self._active_inline_instruction = None
+
     def _restore_inline_language(self):
+        self._restore_inline_instructions()
         if not self.language_tags:
             return
         for engine, (language, voice) in self._language_baselines.items():
@@ -1481,6 +1587,8 @@ class TextToAudioStream:
                 raise
             if not self.char_iter.immediate_stop.is_set():
                 self.player.buffer_manager.audio_buffer.put(SpeedChange(value))
+        elif action_type == "instruction":
+            self._set_inline_instruction(value)
         elif action_type == "language":
             self._remember_inline_language_engine()
             self.engine.set_language(value)

@@ -60,7 +60,7 @@ El `GTTSEngine` funciona de inmediato usando la API de texto a voz de Google Tra
 ### OpenAIEngine
 Para usar el `OpenAIEngine`:
 - configure la variable de entorno OPENAI_API_KEY
-- instale ffmpeg (ver [instalación de CUDA](#instalación-de-cuda) punto 3)
+- instale `realtimetts[openai]` (incluye PyAV para reproducir MP3).
 
 ### AzureEngine
 Para usar el `AzureEngine`, necesitará:

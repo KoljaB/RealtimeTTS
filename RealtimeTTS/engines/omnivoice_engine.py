@@ -270,8 +270,10 @@ class OmniVoiceEngine(BaseEngine):
                     torch.cuda.synchronize()
                 generate_end = time.perf_counter()
 
-            # The audio tensor shape is typically [1, samples] or [samples]
-            waveform = audio[0].cpu().numpy()
+            # Provider results may contain NumPy waveforms or torch tensors.
+            waveform = audio[0]
+            if hasattr(waveform, "cpu"):
+                waveform = waveform.cpu().numpy()
             if waveform.ndim > 1:
                 waveform = waveform[0]  # Ensure mono
 

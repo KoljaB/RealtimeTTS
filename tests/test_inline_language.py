@@ -16,7 +16,7 @@ from tests.test_text_to_stream_alignment import _FakePyAudio, _PCMEngine
 class WholeRunSplitter:
     @staticmethod
     def generate_sentences(source, **options):
-        value = "".join(source)
+        value = "".join(getattr(chunk, "text", chunk) for chunk in source)
         if value:
             yield value
 
@@ -287,7 +287,7 @@ def test_sentence_splitter_receives_active_language_for_each_scope(
     class RecordingSplitter:
         @staticmethod
         def generate_sentences(source, **options):
-            value = "".join(source)
+            value = "".join(getattr(chunk, "text", chunk) for chunk in source)
             calls.append((value.strip(), options["language"]))
             if value:
                 yield value

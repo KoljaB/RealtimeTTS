@@ -13,6 +13,7 @@ import unicodedata
 import numpy as np
 
 from .. import _audio_formats as formats
+from ..audio_tempo import DecodedAudioQueue
 from .audio import audio_bytes_to_mono_float32, pcm_chunk_duration_seconds
 from .backends import CPUAlignmentModel, align_snapshot, make_alignment_model
 from .evidence import coverage_counts
@@ -113,7 +114,12 @@ class EngineAlignmentBinding:
 
     def __init__(self, owner, engine):
         self.owner, self.engine = owner, engine
+        self._restore_queue = engine.queue
         self.original_queue = engine.queue
+        if isinstance(self.original_queue, DecodedAudioQueue):
+            # Alignment owns decoding now; never send PCM into a prior MP3 decoder.
+            self.original_queue.cancel()
+            self.original_queue = self.original_queue.wrapped
         self.original_timings = engine.timings
         self.original_callback = getattr(engine, "on_alignment", None)
         self.input_format = tuple(engine.get_stream_info())
@@ -189,7 +195,7 @@ class EngineAlignmentBinding:
 
     def detach(self):
         if self.engine.queue is self.audio_queue:
-            self.engine.queue = self.original_queue
+            self.engine.queue = self._restore_queue
         if self.engine.timings is self.timing_queue:
             self.engine.timings = self.original_timings
         if hasattr(self.engine, "on_alignment"):

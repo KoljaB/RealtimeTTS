@@ -29,7 +29,7 @@ class RecordingEngine(_PCMEngine):
 class WholeRunSplitter:
     @staticmethod
     def generate_sentences(source, **options):
-        value = "".join(source)
+        value = "".join(getattr(chunk, "text", chunk) for chunk in source)
         if value:
             yield value
 

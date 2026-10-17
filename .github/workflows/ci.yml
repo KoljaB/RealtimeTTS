@@ -25,7 +25,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install --yes portaudio19-dev
           python -m pip install --upgrade pip
-          python -m pip install pytest "setuptools>=68" numpy requests fastapi httpx soundfile "uvicorn>=0.34,<1" "wsproto>=1.2,<2" "websocket-client>=1.8,<2" "av>=14,<20"
+          python -m pip install pytest "setuptools>=68" numpy requests fastapi httpx soundfile "uvicorn>=0.34,<1" "wsproto>=1.2,<2" "websocket-client>=1.8,<2" "av>=14,<20" "openai==2.38.0"
           python -m pip install -e .
           python -m pip install pyaudio
       - name: Run focused unit tests
@@ -68,6 +68,8 @@ jobs:
           tests/test_language_boundary_pauses.py
           tests/test_inline_boundary_pauses.py
           tests/test_minimax_engine.py
+          tests/test_omnivoice_engine.py
+          tests/test_openai_engine.py
           tests/test_pocket_engine.py
           tests/test_pocket_gpu_engine.py
           tests/test_qwen_engine.py
@@ -86,6 +88,7 @@ jobs:
           tests/test_em_dash_fragments.py
           tests/test_qwen_server.py
           tests/test_sentence_splitter_compat.py
+          tests/test_available_text_runs.py
           tests/test_qwen_server_language_codes.py
           tests/test_qwen_studio.py
           tests/test_release_guard.py
@@ -97,6 +100,7 @@ jobs:
           tests/test_safepipe_logging.py
           tests/test_sentence_splitter_preload.py
           tests/test_sentence_tokenizer_defaults.py
+          tests/test_stream_language.py
           tests/test_stream_player_stop.py
           tests/test_audio_tempo.py
           tests/test_tempo_timeline.py

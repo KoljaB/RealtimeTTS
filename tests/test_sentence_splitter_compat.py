@@ -1,6 +1,9 @@
 import asyncio
 from types import SimpleNamespace
 
+import pytest
+from stream2sentence import AvailableTextRun
+
 import RealtimeTTS.qwen_server as server
 
 
@@ -75,6 +78,70 @@ def test_available_run_caps_keep_order_and_run_identity(monkeypatch):
         assert [run.text for run in runs] == ["ab", "cd", "e"]
         # Both native and compatibility records are built from the same run id.
         assert len(runs) == 3
-        if not server._NATIVE_AVAILABLE_TEXT_RUNS:
-            assert [run.run_id for run in runs] == [1, 1, 1]
+        assert all(isinstance(run, AvailableTextRun) for run in runs)
+        assert [run.run_id for run in runs] == [1, 1, 1]
+    asyncio.run(check())
+
+
+_QUICK_SPLITTER_OPTIONS = {
+    "tokenizer": "rule-based",
+    "minimum_sentence_length": 10,
+    "minimum_first_fragment_length": 9,
+    "quick_yield_single_sentence_fragment": True,
+    "quick_yield_for_all_sentences": True,
+    "force_first_fragment_after_words": float("inf"),
+    "fragment_lookahead_words": 0,
+}
+
+
+@pytest.mark.parametrize(
+    "every_fragment, later_fragments",
+    [
+        (False, ["We can do that tomorrow, though."]),
+        (True, ["We can do that tomorrow,", "though."]),
+    ],
+)
+def test_native_runs_keep_queued_sentence_together_unless_every_fragment_requested(
+    every_fragment, later_fragments
+):
+    assert server._NATIVE_AVAILABLE_TEXT_RUNS
+
+    async def check():
+        items = asyncio.Queue()
+        for part in [
+            "All right, the first check is complete. ",
+            "We can do that tomorrow, ",
+            "though.",
+            server._TEXT_END,
+        ]:
+            items.put_nowait(part)
+        fragments = [
+            part async for part in server._stream_sentence_fragments(
+                items,
+                quick_yield_every_fragment=every_fragment,
+                **_QUICK_SPLITTER_OPTIONS,
+            )
+        ]
+        assert fragments == [
+            "All right,", "the first check is complete.", *later_fragments
+        ]
+
+    asyncio.run(check())
+
+
+def test_native_run_yields_first_fragment_without_waiting_for_more_input():
+    assert server._NATIVE_AVAILABLE_TEXT_RUNS
+
+    async def check():
+        items = asyncio.Queue()
+        items.put_nowait("All right, the first check is ")
+        # No end marker or next input: the first fragment must already be ready.
+        fragments = server._stream_sentence_fragments(
+            items, quick_yield_every_fragment=False, **_QUICK_SPLITTER_OPTIONS
+        )
+        try:
+            assert await asyncio.wait_for(anext(fragments), timeout=1) == "All right,"
+        finally:
+            await fragments.aclose()
+
     asyncio.run(check())

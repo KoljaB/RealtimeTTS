@@ -951,6 +951,7 @@ class QwenHttpServer:
                 "text_exchange": True,
                 "streaming_alignment": getattr(self.engine, "streaming_aligner", None) is not None,
                 "universal_alignment": True,
+                "acoustic_guard": bool(getattr(self.engine, "acoustic_guard", False)),
                 "alignment_modes": ["live", "synced", "export"],
                 "alignment_timestamps": getattr(getattr(self.engine, "streaming_aligner", None), "timestamp_levels", []),
                 "alignment_language": getattr(getattr(getattr(self.engine, "streaming_aligner", None), "backend", None), "language", None),
@@ -2951,6 +2952,8 @@ def build_argument_parser() -> argparse.ArgumentParser:
                         help="CPU INT8 Parakeet model directory for EN/DE/ES/FR/IT/PT/RU alignment")
     parser.add_argument("--hallucination-guard", action=argparse.BooleanOptionalAction,
                         default=True, help="Stop a verified text-complete decoder tail (requires alignment)")
+    parser.add_argument("--acoustic-guard", action=argparse.BooleanOptionalAction,
+                        default=False, help="Stop suspected tonal noise only after one second of unflagged active audio")
     parser.add_argument("--library-path", type=Path)
     parser.add_argument(
         "--device", choices=("native", "gpu", "cpu"), default="native",
@@ -3338,6 +3341,7 @@ def main(argv: Optional[Sequence[str]] = None) -> None:
         alignment_language=args.alignment_language,
         alignment_multilingual_model=args.alignment_multilingual_model,
         hallucination_guard=args.hallucination_guard,
+        acoustic_guard=args.acoustic_guard,
         voice_cache_dir=args.voice_dir / "encoded-cache",
         local_files_only=args.local_files_only,
         library_path=args.library_path,

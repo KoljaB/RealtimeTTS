@@ -425,6 +425,10 @@ class LanguageRoutingEngine(BaseEngine):
     def set_inline_voice(self, voice):
         self.set_voice(voice)
 
+    def get_instructions(self):
+        with self._state_lock:
+            return self._instructions
+
     def set_instructions(self, instructions):
         if not isinstance(instructions, str):
             raise TypeError("instructions must be a string")
@@ -446,6 +450,53 @@ class LanguageRoutingEngine(BaseEngine):
     def _logical_state(self):
         with self._state_lock:
             return self._language, self._logical_voice, self._instructions
+
+    @staticmethod
+    def _normalize_non_speech_ranges(ranges):
+        if not isinstance(ranges, (list, tuple)):
+            return None
+        normalized = []
+        for span in ranges:
+            if not isinstance(span, Mapping):
+                return None
+            start, end = span.get("start"), span.get("end")
+            if (
+                isinstance(start, bool)
+                or isinstance(end, bool)
+                or not isinstance(start, int)
+                or not isinstance(end, int)
+                or start < 0
+                or end < start
+            ):
+                return None
+            normalized.append({"start": start, "end": end})
+        return normalized
+
+    def alignment_non_speech_ranges(self, text):
+        if not isinstance(text, str):
+            raise TypeError("text must be a string")
+        language, _, _ = self._logical_state()
+        concrete = self._default_language if language == "auto" else language
+        entries = self._route_entries(concrete)
+        if not entries:
+            return []
+        candidates = []
+        for entry in entries:
+            method = getattr(entry.engine, "alignment_non_speech_ranges", None)
+            if not callable(method):
+                return []
+            try:
+                ranges = method(text)
+            except Exception:
+                return []
+            normalized = self._normalize_non_speech_ranges(ranges)
+            if normalized is None:
+                return []
+            candidates.append(normalized)
+        first = candidates[0]
+        if any(candidate != first for candidate in candidates[1:]):
+            return []
+        return [dict(span) for span in first]
 
     def _mapped_voice(self, entry, logical_voice):
         if logical_voice is None:

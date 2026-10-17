@@ -275,6 +275,9 @@ class BreezeEngine(BaseEngine):
             raise ValueError("Breeze supports English and Chinese")
         self._voice = replace(self._voice, language=language)
 
+    def get_instructions(self):
+        return getattr(self, "_delivery_instructions", None)
+
     def set_instructions(self, instructions):
         if instructions is not None and not isinstance(instructions, str):
             raise TypeError("instructions must be a string or None")

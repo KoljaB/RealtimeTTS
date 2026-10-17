@@ -25,13 +25,29 @@ from benchmark_spanish_tts_50 import fw, overview, resolve_key, synthesize, tota
 
 SEEDS = (42, 43, 69, 177)
 CASE_COUNT = 100
-EXIT_CODES = {"noise_suspected": 20, "long_silence": 21, "synthesis_error": 22, "asr_error": 23, "unclassified": 24, "resume_error": 25}
+EXIT_CODES = {"noise_suspected": 20, "long_silence": 21, "synthesis_error": 22, "asr_error": 23, "unclassified": 24, "resume_error": 25, "incumbent_dominated": 26}
 ASR_PARAMS = {"word_timestamps": True, "vad_filter": False, "condition_on_previous_text": False, "beam_size": 3, "temperature": 0, "cpu_threads": 1, "num_workers": 1, "compute_type": "float16", "no_speech_threshold": None}
+COUNT_FIELDS = ("requested", "attempted", "synthesis_complete", "synthesis_errors", "asr_complete", "asr_errors", "noise_suspected", "long_silence", "silence_only", "no_anomaly_found", "unclassified")
+
+def aggregate_counts(study_runs, current_counts, current_seed=None):
+    parts = [record["counts"] for seed, record in study_runs.items() if seed != current_seed] + [current_counts]
+    return {name: sum(int(part.get(name, 0)) for part in parts) for name in COUNT_FIELDS}
+
+def dominates(counts, incumbent):
+    return counts.get("noise_suspected", 0) > incumbent.get("noise_suspected", 0) or (counts.get("noise_suspected", 0) == incumbent.get("noise_suspected", 0) and counts.get("silence_only", 0) > incumbent.get("silence_only", 0))
+
+def frozen_profile_mismatch(current, incumbent):
+    for name in ("language", "corpus_sha256", "benchmark_helper_sha256", "detector_sha256", "asr_helper_sha256", "asr_model_sha256", "server_identity_sha256", "detector_config", "asr_params", "seeds", "base_options"):
+        left, right = current.get(name), incumbent.get(name)
+        if name == "base_options":
+            left = {k: v for k, v in left.items() if k != "voice"}; right = {k: v for k, v in right.items() if k != "voice"}
+        if left != right: return name
+    return None
 
 class QualificationStop(RuntimeError):
-    def __init__(self, reason, message, code=None):
+    def __init__(self, reason, message, code=None, details=None):
         super().__init__(message)
-        self.reason, self.code = reason, code or EXIT_CODES[reason]
+        self.reason, self.code, self.details = reason, code or EXIT_CODES[reason], details or {}
 
 def digest(path): return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 def stable(value): return json.dumps(value, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
@@ -62,9 +78,11 @@ def provider(config_path, voice, language):
     if server_id != "a71940298a88b95f317d161025aefbcec56cc758e7fcbc10a6fdf598bf6dbb93": raise ValueError("Frozen production CPU profile differs")
     return cfg, key, caps, options, server_id
 
-def profile(args, corpus_sha, reference, detector_sha, runner_sha, helper_sha, model_sha, server_id, options):
+def profile(args, corpus_sha, reference, detector_sha, runner_sha, helper_sha, model_sha, server_id, options, incumbent=None):
     detector_config = asdict(qc.Config()) if hasattr(qc, "Config") else {}
-    return {"language": args.language, "diagnostic_full": bool(args.diagnostic_full), "voice": args.voice, "corpus_sha256": corpus_sha, "reference": {"path": reference["path"], "sha256": reference["sha256"], "duration_s": reference.get("duration_s")}, "script_sha256": digest(__file__), "benchmark_helper_sha256": runner_sha, "detector_sha256": detector_sha, "asr_helper_sha256": helper_sha, "asr_model_sha256": model_sha, "server_identity_sha256": server_id, "detector_config": detector_config, "asr_params": dict(ASR_PARAMS, language=args.language), "base_options": options, "seeds": list(SEEDS)}
+    result = {"language": args.language, "diagnostic_full": bool(args.diagnostic_full), "voice": args.voice, "corpus_sha256": corpus_sha, "reference": {"path": reference["path"], "sha256": reference["sha256"], "duration_s": reference.get("duration_s")}, "script_sha256": digest(__file__), "benchmark_helper_sha256": runner_sha, "detector_sha256": detector_sha, "asr_helper_sha256": helper_sha, "asr_model_sha256": model_sha, "server_identity_sha256": server_id, "detector_config": detector_config, "asr_params": dict(ASR_PARAMS, language=args.language), "base_options": options, "seeds": list(SEEDS)}
+    if incumbent: result["incumbent_summary"] = incumbent
+    return result
 
 def run_profile(profile_data, seed):
     return {"profile": profile_data, "options": dict(profile_data["base_options"], seed=seed), "seed": seed, "seed_evidence": "requested_supported_parameter_not_echoed_by_provider"}
@@ -135,8 +153,17 @@ def main():
     parser.add_argument("--timeout", type=float, default=60)
     parser.add_argument("--resume", action="store_true")
     parser.add_argument("--diagnostic-full", action="store_true", help="Continue noise, silence, and unavailable-word-timestamp findings through all 400 cases")
+    parser.add_argument("--incumbent-summary", type=Path, help="Diagnostic summary used only for monotonic candidate-dominance pruning")
     parser.add_argument("--reuse-synthesis-from", type=Path, help="Reuse only source-bound PCM/streams from an explicitly recorded prior study; ASR is always fresh")
     args = parser.parse_args()
+    incumbent = None; incumbent_profile = None
+    if args.incumbent_summary:
+        if not args.diagnostic_full: raise ValueError("--incumbent-summary requires --diagnostic-full")
+        incumbent_path = args.incumbent_summary.resolve(); incumbent_data = read_json(incumbent_path); incumbent_counts = incumbent_data.get("counts") or {}; incumbent_profile = incumbent_data.get("profile")
+        total = CASE_COUNT * len(SEEDS); required = ("attempted", "synthesis_complete", "asr_complete", "synthesis_errors", "asr_errors", "unclassified", "noise_suspected", "silence_only")
+        if not isinstance(incumbent_profile, dict) or incumbent_data.get("status") not in {"diagnostic_complete", "qualified_400", "complete_with_findings"} or any(not isinstance(incumbent_counts.get(k), int) for k in required) or incumbent_counts["attempted"] != total or incumbent_counts["synthesis_complete"] != total or incumbent_counts["asr_complete"] != total or any(incumbent_counts[k] != 0 for k in ("synthesis_errors", "asr_errors", "unclassified")) or any(incumbent_counts[k] < 0 for k in ("noise_suspected", "silence_only")):
+            raise ValueError("Incumbent must be a complete 400-case E0U0 summary with nonnegative N/Q counts")
+        incumbent = {"path": str(incumbent_path), "sha256": digest(incumbent_path), "status": incumbent_data.get("status"), "counts": incumbent_counts}
     global requests, dotenv_values, qc
     fw._install_torch_blocker()
     import requests as _requests
@@ -155,7 +182,9 @@ def main():
     reference = source_metadata(args.reference_wav)
     cfg, key, capabilities, base_options, server_id = provider(args.config, args.voice, args.language)
     corpus_sha = digest(args.corpus); runner_sha = digest(Path(sys.modules["benchmark_spanish_tts_50"].__file__)); detector_sha = digest(Path(qc.__file__)); helper_sha = digest(Path(fw.__file__))
-    study_profile = profile(args, corpus_sha, reference, detector_sha, runner_sha, helper_sha, fw.MODEL_SHA256, server_id, base_options)
+    study_profile = profile(args, corpus_sha, reference, detector_sha, runner_sha, helper_sha, fw.MODEL_SHA256, server_id, base_options, incumbent)
+    if incumbent and (mismatch := frozen_profile_mismatch(study_profile, incumbent_profile)):
+        raise ValueError("Incumbent frozen profile differs: " + mismatch)
     reuse_root = args.reuse_synthesis_from.resolve() if args.reuse_synthesis_from else None
     reuse_fingerprint = None
     if reuse_root:
@@ -247,7 +276,12 @@ def main():
                         row["asr_status"], row["asr_error"] = "error", type(exc).__name__
                         row["asr_error_message"] = str(exc)[:400]
                     write_json(checkpoint, row); rows[entry["id"]] = row
-                    current = summary(run_dir, metadata, list(rows.values()), run_started, model_load_s); reason = blocking_reason(row, args.diagnostic_full)
+                    current = summary(run_dir, metadata, list(rows.values()), run_started, model_load_s)
+                    if incumbent and row.get("asr_status") == "complete" and (row.get("check") or {}).get("asr_status") == "word_timestamps_available":
+                        cumulative = aggregate_counts(study_runs, current["counts"], seed)
+                        if dominates(cumulative, incumbent["counts"]):
+                            raise QualificationStop("incumbent_dominated", "Candidate is dominated by incumbent after final ASR/check", code=26, details={"counts": cumulative, "incumbent_comparison": {"path": incumbent["path"], "sha256": incumbent["sha256"], "counts": incumbent["counts"]}})
+                    reason = blocking_reason(row, args.diagnostic_full)
                     print(json.dumps({"phase": "checked", "seed": seed, "case": entry["index"], "noise": row["check"].get("strange_noise_suspected") if row.get("check") else None, "quiet": row["check"].get("long_silence_suspected") if row.get("check") else None, "reason": reason}), flush=True)
                     if reason:
                         current["stop"] = {"reason": reason, "case_id": entry["id"]}; write_json(run_dir / "summary.json", current)
@@ -266,7 +300,9 @@ def main():
         print(json.dumps({"status": final["status"], "counts": all_counts, "output": str(root)}, ensure_ascii=True)); return 0 if (qualified or args.diagnostic_full) else 2
     except QualificationStop as stop:
         stopped_runs = [{"seed": seed, "summary": read_json(root / ("seed-" + str(seed)) / "summary.json")} for seed in seeds if (root / ("seed-" + str(seed)) / "summary.json").exists()]
-        write_json(root / "summary.json", {"status": "stopped", "reason": stop.reason, "exit_code": stop.code, "fingerprint": json_sha(study_profile), "profile": study_profile, "requested_cases": 400, "runs": stopped_runs, "overall_wall_s_this_invocation": time.perf_counter() - job_started})
+        stopped = {"status": "stopped", "reason": stop.reason, "exit_code": stop.code, "fingerprint": json_sha(study_profile), "profile": study_profile, "requested_cases": 400, "runs": stopped_runs, "overall_wall_s_this_invocation": time.perf_counter() - job_started}
+        stopped.update(stop.details)
+        write_json(root / "summary.json", stopped)
         write_json(study_path, {"fingerprint": json_sha(study_profile), "profile": study_profile, "status": "stopped", "reason": stop.reason})
         print(json.dumps({"status": "stopped", "reason": stop.reason, "exit_code": stop.code, "message": str(stop)}), flush=True); return stop.code
     finally:

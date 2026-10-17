@@ -62,7 +62,7 @@ The `GTTSEngine` works out of the box using Google Translate's text-to-speech AP
 ### OpenAIEngine
 To use the `OpenAIEngine`:
 - set environment variable OPENAI_API_KEY
-- install ffmpeg (see [CUDA installation](#cuda-installation) point 3)
+- install `realtimetts[openai]` (includes PyAV for MP3 playback). No external FFmpeg or mpv executable is needed.
 
 ### AzureEngine
 To use the `AzureEngine`, you will need:

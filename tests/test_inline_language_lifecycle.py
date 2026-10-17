@@ -87,7 +87,7 @@ def test_worker_late_feed_keeps_splitter_and_engine_language_in_scope(
     class RecordingSplitter:
         @staticmethod
         def generate_sentences(source, **options):
-            value = "".join(source)
+            value = "".join(getattr(chunk, "text", chunk) for chunk in source)
             if value:
                 calls.append((value.strip(), options["language"]))
                 yield value

@@ -62,7 +62,7 @@ pip install -U realtimetts[all]
 ### OpenAIEngine
 لاستخدام `OpenAIEngine`:
 - تعيين متغير البيئة OPENAI_API_KEY
-- تثبيت ffmpeg (انظر [تثبيت CUDA](#cuda-installation) النقطة 3)
+- تثبيت `realtimetts[openai]` (يتضمن PyAV لتشغيل MP3).
 
 ### AzureEngine
 لاستخدام `AzureEngine`، ستحتاج إلى:

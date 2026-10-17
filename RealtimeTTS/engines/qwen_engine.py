@@ -12,7 +12,7 @@ import threading
 import time
 import uuid
 from contextlib import contextmanager
-from dataclasses import dataclass, replace
+from dataclasses import asdict, dataclass, replace
 from pathlib import Path
 from typing import Any, Callable, Optional, Tuple, Union
 
@@ -346,6 +346,7 @@ class QwenEngine(BaseEngine):
         streaming_aligner: Any = None,
         on_alignment: Optional[Callable[[dict[str, Any]], None]] = None,
         hallucination_guard: bool = True,
+        acoustic_guard: bool = False,
         backend_factory: Optional[Callable[..., Any]] = None,
     ) -> None:
         super().__init__()
@@ -442,6 +443,7 @@ class QwenEngine(BaseEngine):
         self.alignment_cancel_event = None
         self.on_alignment = on_alignment
         self.hallucination_guard = bool(hallucination_guard)
+        self.acoustic_guard = bool(acoustic_guard)
         self.last_alignment = None
 
         try:
@@ -982,12 +984,20 @@ class QwenEngine(BaseEngine):
             startup_audio: list[np.ndarray] = []
             startup_samples = 0
             startup_emitted = False
+            guard = None
+            guard_decision = None
+            guard_samples = 0
+            guard_analysis_ms = 0.0
+            if self.acoustic_guard:
+                from ..audio_guard import StreamingAcousticGuard
+                guard = StreamingAcousticGuard(sample_rate=SAMPLE_RATE)
             pre_roll_samples = int(round(self.trim_pre_roll_ms * SAMPLE_RATE / 1000))
             fade_in_samples = int(round(self.trim_fade_in_ms * SAMPLE_RATE / 1000))
             ending_fade_samples = fade_in_samples if self.trim_silence else 0
             if self.streaming_aligner is not None and self.hallucination_guard:
                 # Immediate alignment stops retain a short fade to avoid a click.
                 ending_fade_samples = max(ending_fade_samples, int(SAMPLE_RATE * 0.025))
+            normal_ending_fade_samples = ending_fade_samples
             ending_fade_after_samples = int(
                 round(self.fragment_fade_out_after_ms * SAMPLE_RATE / 1000)
             )
@@ -1216,11 +1226,32 @@ class QwenEngine(BaseEngine):
                             continue
                         audio = detected
                         self._trim_silence_start_pending = False
+                    if guard is not None:
+                        guard_started = time.perf_counter()
+                        decision = guard.feed(audio)
+                        guard_analysis_ms += (time.perf_counter() - guard_started) * 1000
+                        if guard.armed:
+                            # Retain a fade only once the one-second gate is open.
+                            ending_fade_samples = max(ending_fade_samples, round(SAMPLE_RATE * .025))
+                            ending_fade_after_samples = 0
+                        if decision is not None:
+                            guard_decision = decision
+                            alignment_aborted = True
+                            # Preserve any good prefix in this chunk. Earlier PCM
+                            # is already committed and cannot be retracted here.
+                            keep = max(0, min(len(audio), round(decision.onset_s * SAMPLE_RATE) - guard_samples))
+                            audio = audio[:keep]
+                            cancel_event.finish_generation()
+                            logging.warning("Qwen acoustic guard stopped a continuation: %s", asdict(decision))
+                        guard_samples += len(audio)
                     buffer_or_publish(audio)
                     if alignment is not None:
                         alignment.feed(audio)
+                    if guard_decision is not None:
+                        break
                 if alignment is not None:
-                    alignment.finish(cancelled=cancel_event.cancelled() or self.stop_synthesis_event.is_set())
+                    alignment.finish(cancelled=guard_decision is not None or cancel_event.cancelled()
+                                     or self.stop_synthesis_event.is_set())
                 if (
                     self.trim_silence
                     and self._trim_silence_start_pending
@@ -1241,14 +1272,14 @@ class QwenEngine(BaseEngine):
                 if ending_audio.size and not (
                     cancel_event.cancelled() or self.stop_synthesis_event.is_set()
                 ):
-                    ending_fade_applied_samples = min(
-                        ending_fade_samples, int(ending_audio.size)
-                    )
+                    final_fade_samples = (ending_fade_samples if guard_decision is not None
+                                          else normal_ending_fade_samples)
+                    ending_fade_applied_samples = min(final_fade_samples, int(ending_audio.size))
                     publish_audio(
                         self.apply_fade_out(
                             ending_audio,
                             SAMPLE_RATE,
-                            int(round(ending_fade_samples * 1000 / SAMPLE_RATE)),
+                            int(round(final_fade_samples * 1000 / SAMPLE_RATE)),
                         )
                     )
                     ending_audio = np.empty(0, dtype=np.float32)
@@ -1262,6 +1293,7 @@ class QwenEngine(BaseEngine):
                 self.last_synthesis_profile = {
                     "cancelled": cancel_event.cancelled() or self.stop_synthesis_event.is_set(),
                     "finish_reason": (
+                        "acoustic_noise_tail" if guard_decision is not None else
                         alignment.finish_reason if alignment is not None and alignment.stop_requested.is_set()
                         else "cancelled" if cancel_event.cancelled() or self.stop_synthesis_event.is_set()
                         else "completed"
@@ -1295,6 +1327,11 @@ class QwenEngine(BaseEngine):
                     ),
                     "native": callback_profile,
                 }
+                if guard is not None:
+                    self.last_synthesis_profile["acoustic_guard"] = {
+                        "armed": guard.armed, "analysis_ms": guard_analysis_ms,
+                        "decision": asdict(guard_decision) if guard_decision is not None else None,
+                    }
                 recovery_profile = self._native_stream_recovery_profile()
                 if recovery_profile is not None:
                     self.last_synthesis_profile["onset_recovery"] = recovery_profile
@@ -1330,7 +1367,8 @@ class QwenEngine(BaseEngine):
                 logging.exception("QwenEngine synthesis failed: %s", self.last_error)
                 return False
             finally:
-                alignment_aborted = cancel_event.cancelled() or self.stop_synthesis_event.is_set()
+                alignment_aborted = (guard_decision is not None or cancel_event.cancelled()
+                                     or self.stop_synthesis_event.is_set())
                 if alignment is not None:
                     alignment.finish(cancelled=alignment_aborted)
                 cancel_event.set()

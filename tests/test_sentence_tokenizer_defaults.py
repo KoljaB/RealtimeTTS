@@ -18,6 +18,11 @@ def test_play_inherits_the_tokenizer_configured_on_the_stream():
     )
 
 
+def test_play_inherits_the_language_configured_on_the_stream():
+    assert inspect.signature(TextToAudioStream.play).parameters["language"].default == ""
+    assert inspect.signature(TextToAudioStream.play_async).parameters["language"].default == ""
+
+
 def test_fragment_lookahead_is_opt_in_on_sync_and_async_playback():
     assert (
         inspect.signature(TextToAudioStream.play).parameters[

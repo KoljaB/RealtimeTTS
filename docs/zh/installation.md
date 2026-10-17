@@ -62,7 +62,7 @@ GTTSEngine "开箱即用，使用谷歌翻译的文本到语音 API。无需额�
 ### OpenAIEngine
 要使用 `OpenAIEngine`：
 - 设置环境变量 OPENAI_API_KEY
-- 安装 ffmpeg（参见 [CUDA 安装](#cuda-installation) 第 3 点）
+- 安装 `realtimetts[openai]`（包含用于 MP3 播放的 PyAV）。
 
 ### AzureEngine
 要使用 “AzureEngine”，你需要

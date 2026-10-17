@@ -65,7 +65,7 @@ RealtimeTTS द्वारा समर्थित विभिन्न इ�
 ### OpenAIEngine
 `OpenAIEngine` का उपयोग करने के लिए:
 - पर्यावरण वेरिएबल OPENAI_API_KEY सेट करें
-- ffmpeg स्थापित करें (देखें [CUDA इंस्टॉलेशन](#cuda-installation) बिंदु 3)
+- `realtimetts[openai]` स्थापित करें (MP3 प्लेबैक के लिए PyAV शामिल है)।
 
 ### AzureEngine
 `AzureEngine` का उपयोग करने के लिए आपको चाहिए:

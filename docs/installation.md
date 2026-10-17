@@ -45,7 +45,8 @@ restored `faster_qwen_emotions.py` workflow.
 
 ## Sentence Tokenizer
 
-RealtimeTTS defaults to stream2sentence's `nltk+rule-based` consensus mode.
+RealtimeTTS requires stream2sentence 1.1.0 or newer and defaults to its
+`nltk+rule-based` consensus mode.
 The normal install, including `realtimetts[qwen]`, therefore forwards the
 `stream2sentence[nltk]` extra but does not install Stanza or its PyTorch stack.
 NLTK downloads its small tokenizer data (currently `punkt_tab`, and `punkt`
@@ -138,7 +139,7 @@ local checkout, model files, or Docker example.
 | [`SystemEngine`](engines/system.md) | `pip install "realtimetts[system]"` | Uses system voices through `pyttsx3`. |
 | [`GTTSEngine`](engines/gtts.md) | `pip install "realtimetts[gtts]"` | Network access to the Google Translate TTS service. |
 | [`EdgeEngine`](engines/edge.md) | `pip install "realtimetts[edge]"` | Install `mpv` for compressed audio playback. |
-| [`OpenAIEngine`](engines/openai.md) | `pip install "realtimetts[openai]"` | Set `OPENAI_API_KEY`; install `mpv` for MP3 playback or use PCM response format. |
+| [`OpenAIEngine`](engines/openai.md) | `pip install "realtimetts[openai]"` | Set `OPENAI_API_KEY` or provider credentials; the extra includes PyAV for streaming MP3 playback. |
 | [`AzureEngine`](engines/azure.md) | `pip install "realtimetts[azure]"` | Pass `speech_key` and `service_region`; source does not currently read Azure env vars. |
 | [`ElevenlabsEngine`](engines/elevenlabs.md) | `pip install "realtimetts[elevenlabs]"` | Set `ELEVENLABS_API_KEY`; install `mpv`. |
 | [`CambEngine`](engines/camb.md) | `pip install "realtimetts[camb]"` | Set `CAMB_API_KEY`. |
@@ -191,7 +192,7 @@ Some engines need tools or assets outside Python packages.
 
 | Requirement | Used by | Notes |
 | --- | --- | --- |
-| `mpv` | Engines that stream compressed audio, including Edge, ElevenLabs, OpenAI MP3, MiniMax, and ModelsLab. | Run `mpv --audio-device=help` to inspect mpv output device names. |
+| `mpv` | Engines that stream compressed audio, including Edge, ElevenLabs, MiniMax, and ModelsLab. | Run `mpv --audio-device=help` to inspect mpv output device names. |
 | `ffmpeg` | Audio conversion workflows through `pydub`. | Install from your OS package manager or ffmpeg.org. |
 | Piper executable and model files | `PiperEngine` | `PIPER_PATH` can point to the executable. |
 | Local model checkouts or Hugging Face assets | Many local neural engines | Needed by engines such as Coqui, Parler, StyleTTS2, ZipVoice, LuxTTS, Sopro, Soprano, and MOSS-TTS. |

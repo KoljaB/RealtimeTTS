@@ -442,6 +442,7 @@ def test_shutdown_does_not_close_engine_until_workers_exit(tmp_path):
 def test_websocket_terminal_events_carry_session_and_request_ids(tmp_path, monkeypatch, language, expected):
     async def one_fragment(source, **_kwargs):
         async for chunk in source:
+            chunk = qwen_server_module._sentence_text(chunk)
             if chunk.strip():
                 yield chunk
 
@@ -481,6 +482,7 @@ def test_websocket_terminal_events_carry_session_and_request_ids(tmp_path, monke
 def test_websocket_cancel_emits_cancelled_terminal_event(tmp_path, monkeypatch):
     async def one_fragment(source, **_kwargs):
         async for chunk in source:
+            chunk = qwen_server_module._sentence_text(chunk)
             if chunk.strip():
                 yield chunk
 
@@ -520,6 +522,7 @@ def test_websocket_cancel_emits_cancelled_terminal_event(tmp_path, monkeypatch):
 def test_websocket_cancel_after_end_interrupts_active_audio(tmp_path, monkeypatch):
     async def one_fragment(source, **_kwargs):
         async for chunk in source:
+            chunk = qwen_server_module._sentence_text(chunk)
             if chunk.strip():
                 yield chunk
 
@@ -572,7 +575,7 @@ def test_websocket_pause_resume_is_acknowledged_idempotent_and_stress_safe(
     async def fragment_stream(source, **_kwargs):
         pending = ""
         async for chunk in source:
-            pending += chunk
+            pending += qwen_server_module._sentence_text(chunk)
         if pending.strip():
             yield pending.strip()
 
@@ -699,6 +702,7 @@ def test_websocket_cancel_during_first_fragment_routing_starts_no_worker(
 ):
     async def one_fragment(source, **_kwargs):
         async for chunk in source:
+            chunk = qwen_server_module._sentence_text(chunk)
             if chunk.strip():
                 yield chunk
 
@@ -1568,7 +1572,7 @@ def test_stream_lookahead_reclassifies_then_locks_german_for_the_response(
         pending = ""
         first = True
         async for chunk in source:
-            pending += chunk
+            pending += qwen_server_module._sentence_text(chunk)
             if first and "," in pending:
                 fragment, pending = pending.rsplit(",", 1)
                 first = False

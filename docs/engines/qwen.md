@@ -526,8 +526,20 @@ upstream [qwentts.cpp architecture notes](https://github.com/ServeurpersoCom/qwe
 
 `TextToAudioStream.play()` and `play_async()` accept
 `fragment_lookahead_words=0`. The opt-in setting is passed to
-stream2sentence 1.0.4 or newer; for example, a value of `8` lets the splitter
-prefer a nearby sentence boundary before falling back to a comma fragment.
+stream2sentence (required version: 1.1.0 or newer); for example, a value of `8`
+lets the splitter prefer a nearby sentence boundary before falling back to a
+comma fragment.
+
+The Qwen and Breeze WebSocket servers also use stream2sentence's
+`AvailableTextRun` for text already queued. The first fragment can still start
+early, while a complete later sentence such as "We can do that tomorrow,
+though." stays together instead of splitting at the comma. This does not wait
+for additional incoming text. The regular Python `TextToAudioStream` path also
+uses bounded `AvailableTextRun` snapshots by default; pass
+`use_available_text_runs=False` to `play()` or `play_async()` to disable this.
+Its `fragment_lookahead_words` setting is a separate option. See
+[already available text](../feed-and-playback.md#already-available-text) for
+iterator boundaries, callbacks, and latency tradeoffs.
 
 ## HTTP server
 
@@ -860,6 +872,40 @@ to fragments of 2,048 characters / 128 words and windows of at most six words.
 This is a safety net, not guaranteed language identification: short shared words
 and some Portuguese phrases remain ambiguous. Keep explicit controls on every
 teaching example, especially individual articles and repetitions.
+
+## Optional acoustic continuation guard
+
+Use `QwenCpuEngine(..., acoustic_guard=True)` (also supported by
+`QwenEngine`), or pass `--acoustic-guard` to the Qwen server. It is off by
+default and requires no extra recognition model.
+
+This separate acoustic check handles one measured failure pattern: weak,
+low-frequency tonal audio after more than one second of quiet. It needs a
+complete 0.5-second resumed-audio window. Silence alone, missing alignment,
+ordinary repetition, and a leading-noise diagnostic never trigger this guard.
+
+Each synthesis fragment starts with a fresh gate. Cancellation becomes eligible
+only after one second of previously analyzed, unflagged active audio, excluding
+quiet and unresolved or flagged windows. A later noise decision stops native
+generation and fades the retained tail over 25 ms. An earlier detection cannot
+trigger a retroactive abort. There is no automatic retry or additional startup
+buffer. Existing startup-buffer and onset-trimming settings still apply.
+
+Once armed, the engine retains a 25 ms tail so it can finish smoothly if a
+decision arrives. On normal completion it preserves the configured ordinary
+fade policy; enabling this guard does not add a fade to otherwise untrimmed,
+clean output. Audio already emitted to a client or played cannot be recalled.
+
+`last_synthesis_profile["acoustic_guard"]` records the decision, prior accepted
+audio duration, evidence position and analysis cost. A guard stop has
+`finish_reason="acoustic_noise_tail"`. Alignment is marked interrupted so the
+remaining requested text is not treated as fully aligned.
+
+The counter is an acoustic approximation, not proof of semantic correctness.
+This deliberately narrow rule does not detect every noise, mispronunciation,
+or hallucinated word. Short fragments with less than one second of accepted
+active material remain untouched even when noise is detected. Keep this
+experimental feature opt-in when choosing thresholds for new voices.
 
 ## Warmup, threading, cancellation, and shutdown
 

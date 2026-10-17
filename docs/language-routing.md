@@ -62,11 +62,14 @@ router.set_instructions("warm, encouraging")
 Instructions go only to providers advertising direct voice control. Qwen's
 reference voice does not receive Breeze delivery instructions. Reset manual
 Python instructions with `router.set_instructions("")` when starting a new
-reply. Raw bracket cues are parsed by Miep; they are not a new
-`TextToAudioStream` markup type.
+reply. Freeform bracket cues such as `[warm, encouraging]` are parsed by
+Miep. Python streams recognize only explicitly registered instruction tags,
+as described below; unregistered cues remain literal text.
 
-Provider sampling settings remain on each provider. The router does not apply
-one provider's temperature, token limit, or seed to another provider.
+Provider sampling settings remain on each provider. A `RemoteTTSEngine` route
+can receive `seed=42` and `max_new_tokens=256` at construction; these values are
+sent only in its initial WebSocket config. The router does not apply one
+provider's temperature, token limit, or seed to another provider.
 
 ## One server endpoint for Miep
 
@@ -170,6 +173,50 @@ zero pause settings, so their server pauses are not added a second time.
 Miep trims only the beginning of the logical reply, preserving later gaps across
 language and tempo changes. This fixes missing explicit gaps; it does not by
 itself establish that a native model never clips a final phoneme.
+
+## Delivery instructions within a reply
+
+Register named delivery controls on the Python stream, then place them between
+sentences:
+
+```python
+stream.add_instruction("normal", "Speak at a brisk conversational pace.")
+stream.add_instruction("surprised", "Sound surprised and delighted.")
+stream.add_instruction("whispered", "Whisper softly but clearly.")
+stream.feed(
+    "[normal]Welcome back! [surprised]Oh wow, you learned that already! "
+    "[whispered]Here is a little secret. [normal]Let us continue."
+).play()
+```
+
+Each registered tag ends the preceding synthesis fragment and changes the
+instructions for subsequent fragments, including across language scopes.
+Tags are removed before synthesis and alignment. Unknown tags remain literal;
+registered names must not collide with voice, pause, or built-in controls.
+These are point controls, so use another registered tag to change delivery.
+Completion, cancellation, or failure restores each engine's prior instructions.
+
+The engine must support `set_instructions` and either `get_instructions()` or a
+public `instructions` attribute. Unsupported engines raise an error before the
+controlled text is synthesized. `LanguageRoutingEngine` forwards instructions
+only to routes that support them; a plain Qwen CPU route keeps its reference
+voice without receiving unsupported delivery prompts. Model delivery is still
+probabilistic. Use explicit tempo controls when a consistent speed is needed.
+
+## Vocal cues and alignment
+
+For a remote provider advertising `vocal_tags` and UTF-16 non-speech ranges,
+`RemoteTTSEngine` preserves those exclusions for local alignment. The Python
+language router forwards an exclusion only when all fallback providers on the
+selected route agree, so a fallback that speaks the text cannot silently lose
+its timestamps.
+
+With Breeze, `(chuckle)` is a vocal cue, not a word to force-align. To give a
+standalone chuckle a separate audio interval in a Python stream with
+`language_tags=True`, use `Welcome! <en>(chuckle)</en> Let's continue.`. The cue
+remains in the source text but has no word or character timestamps. Speech
+alignment resumes on the next fragment. This marks an explicit synthesis cue;
+it does not locate arbitrary laughter inside a mixed speech fragment.
 
 ## Streaming behavior
 

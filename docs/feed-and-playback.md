@@ -33,6 +33,38 @@ Each `feed()` call returns the stream, so chaining works:
 stream.feed("Hello from RealtimeTTS.").play()
 ```
 
+## Already Available Text
+
+Sentence-splitting engines use stream2sentence's `AvailableTextRun` by default.
+Complete later sentences already in memory can stay in one synthesis request,
+while the first fragment keeps its normal early release:
+
+```python
+stream.feed(
+    "All right, the first check is complete. "
+    "We can do that tomorrow, though."
+).play(fast_sentence_fragment_allsentences=True)
+```
+
+The later sentence stays together instead of producing a separate "though."
+request. Adjacent strings already queued by `feed()` can be grouped. For an
+iterator, only its current returned chunk is available: RealtimeTTS never pulls
+the next iterator item to fill a group. Snapshots are bounded to 4,096 characters
+and at most 64 queued feed items; a sentence spanning a snapshot limit may still
+be fragmented. Inline voice, language, speed, and pause controls split runs.
+
+Both `play()` and `play_async()` accept `use_available_text_runs=False` to retain
+character-by-character splitting. Explicit
+`fast_sentence_fragment_allsentences_multiple=True` still requests every fragment.
+Engines that consume generators directly retain their own segmentation.
+
+This groups existing input without waiting to collect more, but normal
+sentence-end lookahead may still require following text or end-of-stream.
+Larger synthesis requests can change audio latency and cancellation cost.
+Character callbacks still fire once per consumed character, in order; with
+grouping enabled they run for a bounded snapshot before it reaches the splitter.
+Sentence callbacks follow the resulting synthesis requests.
+
 ## Play
 
 `play()` blocks until synthesis and playback finish:
@@ -47,13 +79,14 @@ Useful parameters include:
 | Parameter | Default | Purpose |
 | --- | --- | --- |
 | `fast_sentence_fragment` | `True` | Allows early synthesis before a full sentence is complete. |
+| `use_available_text_runs` | `True` | Keeps complete later sentences together within bounded, already available text. |
 | `buffer_threshold_seconds` | `0.0` | Waits for enough buffered audio before requesting more text. |
 | `minimum_sentence_length` | `10` | Joins very short fragments before synthesis. |
 | `minimum_first_fragment_length` | `10` | Minimum length for the first yielded fragment. |
 | `output_wavfile` | `None` | Writes synthesized audio to a WAV file. |
 | `on_audio_chunk` | `None` | Receives raw audio chunks as they are ready. |
 | `tokenizer` | `"nltk+rule-based"` | Consensus sentence tokenizer combining NLTK with local boundary rules. NLTK is installed by default; add `RealtimeTTS[stanza]` only when selecting Stanza. |
-| `language` | `"en"` | Sentence-splitting language. |
+| `language` | `""` (inherits the stream setting; `"en"` by default) | Sentence-splitting language for `play()` and `play_async()`. An explicit value overrides it for this call only. |
 | `language_transition_silence_duration` | `0.08` | Minimum gap when inline language tags switch language; existing punctuation pauses cover it. |
 | `muted` | `False` | Disables local speaker playback for this call. |
 | `force_first_fragment_after_words` | `30` | Forces the first fragment after this many words. |

@@ -116,7 +116,7 @@ all_requirements = list(requirements.values())
 
 # Define base requirements (using .get() to prevent KeyErrors if missing from requirements.txt)
 base_requirements =[
-    requirements.get("stream2sentence", "stream2sentence[nltk]>=1.0.4"),
+    requirements.get("stream2sentence", "stream2sentence[nltk]>=1.1.0"),
     requirements.get("pydub", "pydub"),
     requirements.get(
         "audioop-lts",
@@ -124,7 +124,7 @@ base_requirements =[
     ),
     requirements.get("resampy", "resampy"),
 ]
-stanza_tokenizer_requirements = ["stream2sentence[stanza]>=1.0.4"]
+stanza_tokenizer_requirements = ["stream2sentence[stanza]>=1.1.0"]
 pyaudio_requirements = [requirements.get("pyaudio", "pyaudio>=0.2.14")]
 standard_requirements = base_requirements + pyaudio_requirements
 
@@ -132,7 +132,7 @@ standard_requirements = base_requirements + pyaudio_requirements
 system_requirements = [requirements.get("pyttsx3", "pyttsx3")]
 azure_requirements = [requirements.get("azure-cognitiveservices-speech", "azure-cognitiveservices-speech")]
 elevenlabs_requirements = [requirements.get("elevenlabs", "elevenlabs")]
-openai_requirements = [requirements.get("openai", "openai")]
+openai_requirements = [requirements.get("openai", "openai"), "av>=14,<20"]
 gtts_requirements = [requirements.get("gtts", "gtts")]
 coqui_requirements = [requirements.get("coqui_tts", "coqui_tts")]
 edge_requirements = [requirements.get("edge-tts", "edge-tts")]

@@ -8,6 +8,7 @@ from __future__ import annotations
 import json
 import logging
 import math
+import re
 from contextlib import suppress
 import threading
 import time
@@ -21,6 +22,22 @@ from ..language_router import normalize_qwen_language
 from .base_engine import BaseEngine, TimingInfo
 
 LOGGER = logging.getLogger(__name__)
+
+_SIGNED64_MIN = -(2**63)
+_SIGNED64_MAX = 2**63 - 1
+_MAX_NEW_TOKENS = 2**31 - 1
+
+
+def _utf16_offset(text, index):
+    return len(text[:index].encode("utf-16-le")) // 2
+
+
+def _validate_sampling_parameter(name, value, lower, upper):
+    if value is None:
+        return None
+    if isinstance(value, bool) or not isinstance(value, int) or not lower <= value <= upper:
+        raise ValueError(f"{name} is out of domain")
+    return value
 
 
 class _Alignment:
@@ -211,7 +228,7 @@ class RemoteTTSEngine(BaseEngine):
     """
 
     def __init__(self, base_url, voice, *, api_key=None, language="auto",
-                 instructions=None, timeout=120.0):
+                 instructions=None, timeout=120.0, seed=None, max_new_tokens=None):
         parsed = urlsplit(base_url.rstrip("/"))
         if parsed.scheme not in {"http", "https"} or not parsed.netloc or parsed.query or parsed.fragment:
             raise ValueError("base_url must be an HTTP(S) service URL")
@@ -219,7 +236,13 @@ class RemoteTTSEngine(BaseEngine):
             raise ValueError("Use api_key rather than credentials in the service URL")
         if isinstance(timeout, bool) or not math.isfinite(timeout) or timeout <= 0:
             raise ValueError("timeout must be finite and positive")
+        seed = _validate_sampling_parameter("seed", seed, _SIGNED64_MIN, _SIGNED64_MAX)
+        max_new_tokens = _validate_sampling_parameter(
+            "max_new_tokens", max_new_tokens, 1, _MAX_NEW_TOKENS
+        )
         self.base_url, self.timeout = base_url.rstrip("/"), float(timeout)
+        self.seed = seed
+        self.max_new_tokens = max_new_tokens
         self.ws_url = urlunsplit(("wss" if parsed.scheme == "https" else "ws",
                                  parsed.netloc, parsed.path + "/v1/audio/speech-stream", "", ""))
         self._api_key = api_key
@@ -228,6 +251,20 @@ class RemoteTTSEngine(BaseEngine):
         response.raise_for_status()
         self.capabilities = response.json()
         self.features = self.capabilities.get("features", {})
+        self._vocal_tag_pattern = None
+        if self.features.get("alignment_non_speech_ranges") == "utf16_code_units":
+            vocal_tags = self.features.get("vocal_tags")
+            if isinstance(vocal_tags, (list, tuple)):
+                tags = tuple(dict.fromkeys(
+                    tag for tag in vocal_tags if isinstance(tag, str) and tag
+                ))
+                if tags:
+                    self._vocal_tag_pattern = re.compile(
+                        r"\((" + "|".join(
+                            re.escape(tag) for tag in sorted(tags, key=len, reverse=True)
+                        ) + r")\)",
+                        re.IGNORECASE,
+                    )
         controls = self.capabilities.get("stream_controls", {})
         if not self.features.get("per_request_silence") or not controls.get("segmented_narration"):
             raise ValueError("Upgrade the provider server: routing requires per_request_silence and segmented_narration")
@@ -238,6 +275,7 @@ class RemoteTTSEngine(BaseEngine):
         self.direct_voice_control = bool(self.features.get("direct_voice_control"))
         self.instruction_control = self.direct_voice_control
         self._default_instructions = instructions
+        self._delivery_instructions = None
         self.instructions = instructions
         self.set_voice(voice)
         self.set_language(language)
@@ -261,6 +299,20 @@ class RemoteTTSEngine(BaseEngine):
     def get_language(self):
         return self.language
 
+    def alignment_non_speech_ranges(self, text):
+        if not isinstance(text, str):
+            raise TypeError("text must be a string")
+        pattern = self._vocal_tag_pattern
+        if pattern is None:
+            return []
+        return [
+            {
+                "start": _utf16_offset(text, match.start()),
+                "end": _utf16_offset(text, match.end()),
+            }
+            for match in pattern.finditer(text)
+        ]
+
     def set_language(self, language):
         self.language = normalize_qwen_language(language, allow_auto=True)
 
@@ -275,12 +327,17 @@ class RemoteTTSEngine(BaseEngine):
         response.raise_for_status()
         return [voice["name"] for voice in response.json()["voices"]]
 
+    def get_instructions(self):
+        """Return the delivery override accepted by set_instructions."""
+        return self._delivery_instructions
+
     def set_instructions(self, instructions):
         if instructions is not None and not isinstance(instructions, str):
             raise TypeError("instructions must be a string or None")
         if not self.direct_voice_control and instructions:
             raise ValueError("provider does not support delivery instructions")
         direction = instructions.strip() if instructions else None
+        self._delivery_instructions = direction
         design = self.features.get("voice_design_voice") == self.voice
         self.instructions = (
             self._default_instructions + " Delivery: " + direction
@@ -325,6 +382,10 @@ class RemoteTTSEngine(BaseEngine):
                 "voice": self.voice, "language": self.language, "response_format": "pcm",
                 "split_sentences": False, "silence": {"comma": 0, "sentence": 0, "transition": 0},
             }
+            if self.seed is not None:
+                config["seed"] = self.seed
+            if self.max_new_tokens is not None:
+                config["max_new_tokens"] = self.max_new_tokens
             if self.direct_voice_control:
                 config["instructions"] = self.instructions
             connection = context.connection = _Connection(self, config)

@@ -27,6 +27,8 @@ class FakeEngine:
         emit_after_stop=False,
         provides_word_timings=False,
         defer_alignment=False,
+        alignment_ranges=None,
+        supports_alignment_ranges=False,
     ):
         self.engine_name = name
         self.queue = queue.Queue()
@@ -37,6 +39,12 @@ class FakeEngine:
         self.instruction_control = direct_voice_control
         self.provides_word_timings = provides_word_timings
         self.defer_alignment = defer_alignment
+        self._alignment_ranges = tuple(
+            {"start": span["start"], "end": span["end"]}
+            for span in (alignment_ranges or ())
+        )
+        if not supports_alignment_ranges:
+            self.alignment_non_speech_ranges = None
         self.captured_alignments = []
         self.on_alignment = None
         self.last_alignment = None
@@ -55,6 +63,10 @@ class FakeEngine:
 
     def get_stream_info(self):
         return SUPPORTED_STREAM_INFO
+
+    def alignment_non_speech_ranges(self, text):
+        del text
+        return [dict(span) for span in self._alignment_ranges]
 
     def set_inline_voice(self, voice):
         self.calls.append(("voice", voice))
@@ -152,6 +164,57 @@ def test_language_normalization_and_wildcard_selection():
     )
     assert wildcard_only.synthesize("hola") is True
     assert drain(wildcard_only.queue) == [b"wildcard"]
+
+
+def test_alignment_non_speech_ranges_follow_current_and_default_language():
+    english = FakeEngine(
+        "english",
+        alignment_ranges=[{"start": 3, "end": 10}],
+        supports_alignment_ranges=True,
+    )
+    spanish = FakeEngine(
+        "spanish",
+        alignment_ranges=[{"start": 4, "end": 11}],
+        supports_alignment_ranges=True,
+    )
+    router = LanguageRoutingEngine({"en": [english], "es": [spanish]})
+    assert router.alignment_non_speech_ranges("😀 (laugh)") == [
+        {"start": 3, "end": 10}
+    ]
+    router.set_language("es")
+    assert router.alignment_non_speech_ranges("😀 (laugh)") == [
+        {"start": 4, "end": 11}
+    ]
+    router.set_language("auto")
+    assert router.alignment_non_speech_ranges("😀 (laugh)") == [
+        {"start": 3, "end": 10}
+    ]
+    assert english.synthesis_count == spanish.synthesis_count == 0
+
+
+def test_alignment_non_speech_ranges_require_identical_fallback_spans():
+    ranges = [{"start": 3, "end": 10}]
+    first = FakeEngine(
+        "first", alignment_ranges=ranges, supports_alignment_ranges=True
+    )
+    same = FakeEngine(
+        "same", alignment_ranges=ranges, supports_alignment_ranges=True
+    )
+    router = LanguageRoutingEngine({"en": [first, same]})
+    assert router.alignment_non_speech_ranges("text") == ranges
+
+    mismatch = FakeEngine(
+        "mismatch",
+        alignment_ranges=[{"start": 4, "end": 11}],
+        supports_alignment_ranges=True,
+    )
+    router = LanguageRoutingEngine({"en": [first, mismatch]})
+    assert router.alignment_non_speech_ranges("text") == []
+
+    qwen = FakeEngine("qwen")
+    router = LanguageRoutingEngine({"en": [first, qwen]})
+    assert router.alignment_non_speech_ranges("text") == []
+    assert first.synthesis_count == mismatch.synthesis_count == qwen.synthesis_count == 0
 
 
 def test_route_voice_and_sticky_instruction_are_provider_local():

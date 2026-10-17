@@ -60,7 +60,7 @@ Die `GTTSEngine` funktioniert von Haus aus mit der Google Translate Text-to-Spee
 ### OpenAIEngine
 Zur Verwendung der `OpenAIEngine`:
 - Umgebungsvariable OPENAI_API_KEY setzen
-- ffmpeg installieren (siehe [CUDA-Installation](#cuda-installation) Punkt 3)
+- `realtimetts[openai]` installieren (enthält PyAV für die MP3-Wiedergabe).
 
 ### AzureEngine
 Für die Verwendung der `AzureEngine` benötigen Sie:

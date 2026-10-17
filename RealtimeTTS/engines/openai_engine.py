@@ -28,7 +28,8 @@ class OpenAIEngine(BaseEngine):
             speed: float = None,
             response_format: str = "mp3",
             timeout: float = None,
-            api_key: str = getenv("OPENAI_API_KEY")
+            api_key: str = getenv("OPENAI_API_KEY"),
+            api_url: str = None
         ):
         """
         Initializes an OpenAI realtime text to speech engine object.
@@ -45,6 +46,8 @@ class OpenAIEngine(BaseEngine):
             response_format (str, optional): Audio format for the response. Only "mp3" and "pcm" are allowed.
             timeout (float, optional): Timeout for the API call in seconds.
             api_key (str, optional): Your OpenAI API key. If unspecified, uses the OPENAI_API_KEY environment variable.
+            api_url (str, optional): Base URL of an OpenAI-compatible API, including its version path.
+              If unspecified, the SDK uses OPENAI_BASE_URL or the standard OpenAI endpoint.
         """
         self.voices = ["alloy", "ash", "coral", "echo", "fable", "onyx", "nova", "sage", "shimmer"]
         self.model = model
@@ -60,7 +63,7 @@ class OpenAIEngine(BaseEngine):
 
         self.timeout = timeout
 
-        self.client = OpenAI(api_key=api_key)
+        self.client = OpenAI(api_key=api_key, base_url=api_url)
         # Assuming queue is defined elsewhere or should be initialized
         self.queue = None
 
@@ -75,6 +78,7 @@ class OpenAIEngine(BaseEngine):
 
     def post_init(self):
         self.engine_name = "openai"
+        self.requires_streaming_decode = self.response_format == "mp3"
 
     def get_stream_info(self):
         """
@@ -84,13 +88,14 @@ class OpenAIEngine(BaseEngine):
         Returns:
             tuple: A tuple containing the audio format, number of channels,
               and the sample rate.
-              For "pcm" response_format, returns (pyaudio.paInt16, 1, 22050).
-              For "mp3", returns (pyaudio.paCustomFormat, 1, 22050).
+              For "pcm" response_format, returns (pyaudio.paInt16, 1, 24000).
+              For "mp3", returns (pyaudio.paCustomFormat, 1, 24000);
+              TextToAudioStream continuously decodes it to mono PCM at that rate.
         """
         if self.response_format == "pcm":
-            return pyaudio.paInt16, 1, 22050
+            return pyaudio.paInt16, 1, 24000
         else:
-            return pyaudio.paCustomFormat, 1, 22050
+            return pyaudio.paCustomFormat, 1, 24000
 
     def synthesize(self, text: str, sentence_count: int = 0) -> bool:
         """
@@ -124,17 +129,30 @@ class OpenAIEngine(BaseEngine):
         if self.timeout is not None:
             params["timeout"] = self.timeout
 
-        response = self.client.audio.speech.create(**params)
+        pending_pcm = b""
+        with self.client.audio.speech.with_streaming_response.create(**params) as response:
+            for data in response.iter_bytes():
+                if self.stop_synthesis_event.is_set():
+                    return False
+                if self.response_format == "pcm":
+                    # HTTP chunks can end halfway through a 16-bit sample.
+                    data = pending_pcm + data
+                    complete = len(data) - len(data) % 2
+                    pending_pcm = data[complete:]
+                    data = data[:complete]
+                if not data:
+                    continue
+                if not first_token_printed:
+                    elapsed = time.time() - start_time
+                    if self.debug:
+                        print(f"Time to first audio token: {COLOR_YELLOW}{elapsed:.2f}{COLOR_RESET} seconds.")
+                    first_token_printed = True
+                self.queue.put(data)
 
-        for data in response.iter_bytes():
-            if not first_token_printed:
-                elapsed = time.time() - start_time
-                if self.debug:
-                    print(f"Time to first audio token: {COLOR_YELLOW}{elapsed:.2f}{COLOR_RESET} seconds.")
-                first_token_printed = True
-            # Write the raw audio data into the queue for the stream player to handle
-            self.queue.put(data)
-
+        if self.stop_synthesis_event.is_set():
+            return False
+        if pending_pcm:
+            raise ValueError("OpenAI audio response ended with an incomplete PCM sample")
         return True
 
     def get_voices(self):

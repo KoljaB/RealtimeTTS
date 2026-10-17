@@ -62,7 +62,7 @@ RealtimeTTSがサポートする異なるエンジンには、それぞれ独自
 ### OpenAIエンジン
 `OpenAIEngine`を使用するには:
 - 環境変数 OPENAI_API_KEY を設定する
-- ffmpeg をインストールする（[CUDA インストール](#cuda-installation)の3番目のポイントを参照）
+- `realtimetts[openai]`をインストールする（MP3再生用のPyAVが含まれます）。
 
 ### AzureEngine
 `AzureEngine`を使用するには、次のものが必要です：

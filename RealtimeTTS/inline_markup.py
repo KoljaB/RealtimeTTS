@@ -79,6 +79,7 @@ class InlineMarkupParser:
         language_voices: Optional[Mapping[str, Any]] = None,
         voice_tags: Optional[Mapping[str, Any]] = None,
         pause_tags: Optional[Mapping[str, float]] = None,
+        instruction_tags: Optional[Mapping[str, str]] = None,
         initial_voice: Optional[Tuple[Optional[str], Any]] = None,
         delimiters: Tuple[str, str] = ("[", "]"),
     ) -> None:
@@ -104,6 +105,21 @@ class InlineMarkupParser:
         for tag, duration in (pause_tags or {}).items():
             key = self._tag_key(tag, "pause")
             self.pause_tags[key] = self._validate_pause(duration)
+
+        self.instruction_tags: Dict[str, str] = {}
+        reserved = (self._SPEED_NAMES | self._VOICE_NAMES | self.LANGUAGE_CODES
+                    | self.LANGUAGE_NAMES.keys() | {"lang", "language", "pause"})
+        occupied = {tag.casefold() for tag in (*self.voice_tags, *self.pause_tags)}
+        for tag, instructions in (instruction_tags or {}).items():
+            key = self._tag_key(tag, "instruction")
+            if (re.fullmatch(r"[A-Za-z_][A-Za-z0-9_-]*", key) is None
+                    or len(key) > self.MAX_TAG_LENGTH
+                    or key.casefold() in reserved | occupied):
+                raise ValueError(f"Invalid or conflicting instruction tag: {key!r}")
+            if not isinstance(instructions, str):
+                raise TypeError("instructions must be a string")
+            self.instruction_tags[key] = instructions
+            occupied.add(key.casefold())
 
         if (
             not isinstance(delimiters, (tuple, list))
@@ -140,7 +156,8 @@ class InlineMarkupParser:
         self._starts = tuple(
             sorted({pair[0] for pair in self._delimiter_pairs}, key=len, reverse=True)
         )
-        self._enabled = bool(self.language_tags or self.speed_tags or self.voice_tags or self.pause_tags)
+        self._enabled = bool(self.language_tags or self.speed_tags or self.voice_tags
+                             or self.pause_tags or self.instruction_tags)
         self._legacy_state = self._new_state()
 
     @staticmethod
@@ -614,6 +631,10 @@ class InlineMarkupParser:
         if voice is not None:
             return self._open_voice(state, voice[0], voice[1], self_closing)
 
+        instruction = self._lookup(self.instruction_tags, content)
+        if instruction is not None:
+            return [("instruction", instruction[1])]
+
         pause = self._parse_pause(content)
         if pause is not None:
             return [("pause", pause)]
@@ -677,6 +698,41 @@ class InlineMarkupParser:
         self,
         source: Iterable[str],
         stopped: Callable[[], bool] = lambda: False,
+        *,
+        coalesce_text: bool = False,
+    ) -> Iterator[Action]:
+        """Yield controls and text, optionally coalesced within each input chunk.
+
+        Chunk boundaries flush available text without ending the lexer, so
+        partial tags survive and no next source chunk is pulled to fill a run.
+        """
+        if not coalesce_text:
+            yield from self._iter_actions(source, stopped)
+            return
+        text = []
+        for kind, value in self._iter_actions(source, stopped, chunk_boundaries=True):
+            if stopped():
+                return
+            if kind == "text":
+                text.append(value)
+                continue
+            if text:
+                value_text = "".join(text)
+                text.clear()
+                yield ("text", value_text)
+            if stopped():
+                return
+            if kind != "_chunk_end":
+                yield kind, value
+        if text and not stopped():
+            yield ("text", "".join(text))
+
+    def _iter_actions(
+        self,
+        source: Iterable[str],
+        stopped: Callable[[], bool],
+        *,
+        chunk_boundaries: bool = False,
     ) -> Iterator[Action]:
         """Yield actions incrementally, retaining at most one tag candidate."""
         # The state survives successive iter_actions calls until reset().
@@ -687,6 +743,8 @@ class InlineMarkupParser:
                     if stopped():
                         return
                     yield ("text", character)
+                if chunk_boundaries:
+                    yield ("_chunk_end", None)
             return
 
         probe = ""
@@ -776,6 +834,8 @@ class InlineMarkupParser:
                     active_end = ""
                     quote = None
                     in_tag = False
+            if chunk_boundaries:
+                yield ("_chunk_end", None)
 
         if stopped():
             return

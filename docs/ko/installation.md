@@ -61,7 +61,7 @@ RealtimeTTS가 지원하는 다양한 엔진에는 고유한 요구 사항이 �
 ### 오픈AI엔진
 `OpenAIEngine`을 사용하기 위해:
 - 환경 변수 OPENAI_API_KEY 설정
-- ffmpeg 설치 (참고: [CUDA 설치](#cuda-installation) 3번 항목)
+- `realtimetts[openai]` 설치 (MP3 재생용 PyAV 포함).
 
 ### AzureEngine
 `AzureEngine`을 사용하기 위해 다음이 필요합니다:
