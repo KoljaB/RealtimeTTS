@@ -532,7 +532,7 @@ class TextToAudioStream:
         on_audio_chunk=None,
         tokenizer: str = "",
         tokenize_sentences=None,
-        language: str = "en",
+        language: str = "",
         context_size: int = 12,
         context_size_look_overhead: int = 12,
         comma_silence_duration=0.0,
@@ -567,7 +567,7 @@ class TextToAudioStream:
         - on_audio_chunk: Callback function that gets called when a single audio chunk is ready.
         - tokenizer: Tokenizer to use for sentence splitting. Leave empty to use the stream setting ("nltk+rule-based" by default). Stanza remains optional and requires the `RealtimeTTS[stanza]` extra.
         - tokenize_sentences (Callable): A function that tokenizes sentences from the input text. You can write your own lightweight tokenizer here if you are unhappy with nltk and stanza. Defaults to None. Takes text as string and should return splitted sentences as list of strings.
-        - language: Language to use for sentence splitting.
+        - language: Language to use for sentence splitting. Leave empty to use the stream setting ("en" by default).
         - context_size: The number of characters used to establish context for sentence boundary detection. A larger context improves the accuracy of detecting sentence boundaries. Default is 12 characters.
         - context_size_look_overhead: The number of characters to look ahead when determining sentence boundaries. This helps in identifying the end of a sentence more accurately. Default is 12 characters.
         - comma_silence_duration: The duration of silence to insert after a comma in seconds. Default is 0.0 seconds.
