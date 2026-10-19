@@ -550,6 +550,8 @@ class AlignmentController:
                     raise RuntimeError(self._model_error)
                 if self._model is None:
                     self._model = make_alignment_model(self.config, fragment.engine)
+                    if isinstance(self._model, CPUAlignmentModel):
+                        self._model.prepare_worker()
                 if not text.strip() or not len(audio):
                     result = {"words": [], "characters": []}
                 elif isinstance(self._model, CPUAlignmentModel):

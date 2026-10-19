@@ -141,11 +141,12 @@ binaries lack the required native pause/cancel checkpoints and are rejected by
 the engine. Start the rebuilt executable with:
 
 ~~~text
-breeze-server breeze-tts-2-q8_0.gguf --host 127.0.0.1 --port 8137 --ws-port 8138 --chunk-first 1 --chunk-max 40 --voices-dir native-voices
+breeze-server breeze-tts-2-q8_0.gguf --host 127.0.0.1 --port 8137 --ws-port 8138 --chunk-first 4 --chunk-max 6 --voices-dir native-voices
 ~~~
 
-The small first chunk starts streaming promptly; subsequent chunks grow for
-throughput. Reference audio and transcript are cached together; changing either
+These are the same first/max chunk settings as the managed server. Adjust them
+explicitly when tuning another system. Reference audio and transcript are cached
+together; changing either
 creates a new cache entry. Add the `playback` extra for local audio devices.
 Non-loopback API binding requires an environment-based bearer key.
 

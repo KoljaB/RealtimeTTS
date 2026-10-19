@@ -26,5 +26,11 @@ def prepare_studio_alignment(engine, *, local_files_only=False):
     """Display-only timestamps; no native decoder cutoff or audio buffering."""
     from RealtimeTTS.alignment.backends import CPUAlignmentModel
     from RealtimeTTS.alignment.onnx_ctc import OnnxCTCBackend
-    backend = OnnxCTCBackend(alignment_model(local_files_only=local_files_only), threads=2)
-    engine.studio_aligner = CPUAlignmentModel(backend)
+    cpu = getattr(engine, "device", None) == "cpu"
+    existing = getattr(engine, "streaming_aligner", None)
+    backend = getattr(existing, "backend", None)
+    if backend is None:
+        backend = OnnxCTCBackend(alignment_model(local_files_only=local_files_only), threads=1 if cpu else 2)
+    affinity = ((getattr(engine, "cpu_affinity", 0) or 0)
+                | (getattr(engine, "cpu_codec_affinity", 0) or 0)) if cpu else None
+    engine.studio_aligner = CPUAlignmentModel(backend, cpu_affinity=affinity)

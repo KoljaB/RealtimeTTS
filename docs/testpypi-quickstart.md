@@ -58,18 +58,14 @@ Local Studio and synthesis require no API key.
 
 ## Automatic tuning and manual control
 
-Breeze measures streaming chunk profiles before readiness, choosing continuous
-delivery ahead of an early first packet that subsequently underruns. It tests
-two profiles, or a third when throughput is insufficient. This first calibration
-can take a few minutes. A cached choice is reused when the NVIDIA GPU, driver,
-native executable, model, reference and sampling settings match. Without a
-reliable GPU identity it measures again at startup. Calibration is a bounded
-workload measurement, not a guarantee for every text or competing GPU workload.
+Breeze uses the established first/max chunk settings **4/6** and prints them at
+startup. It does not run calibration syntheses or change chunk settings based on
+trial requests. These are working defaults, not a claim of optimal performance
+on every GPU.
 
-- Add --retune to remeasure after a workload change.
-- Add --chunk-first 4 --chunk-max 6 (or your own values) to bypass calibration.
-- --reference-prefix-cache retains the reference-processing optimization.
-- An external --worker-url worker keeps its externally configured chunk settings.
+- `--chunk-first` and `--chunk-max` allow explicit manual tuning.
+- `--reference-prefix-cache` retains the reference-processing optimization.
+- An external `--worker-url` worker keeps its externally configured settings.
 
 Qwen automatically selects the tested profile only when the hardware matches:
 
@@ -80,9 +76,10 @@ Qwen automatically selects the tested profile only when the hardware matches:
 | Linux RTX 4090, single unremapped GPU | 40 ms reserve, CUDA graphs disabled, MPS client priority 0 |
 
 Startup logs name the selected profile. Unknown hardware retains portable
-settings. Explicit CPU scheduling flags bypass automatic CPU selection; explicit
-buffering flags and existing environment settings override profile defaults.
---preset portable disables automatic profile selection. The named presets and
+settings. Explicit tuning flags and existing environment settings override the
+corresponding profile defaults. `--preset portable` disables automatic selection;
+`--cpu-core-split` requests manual core allocation. Local `--model`/`--codec` paths
+require an explicit compatible preset to avoid assuming their model type. The named presets and
 individual CPU worker, affinity, chunk and buffering options remain available;
 see [CPU scheduling](qwen-cpu-scheduling.md).
 

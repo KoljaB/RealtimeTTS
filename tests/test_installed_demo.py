@@ -51,6 +51,17 @@ def test_model_downloads_are_pinned_and_cached(monkeypatch):
     assert calls[1][1]["allow_patterns"] == ["model.int8.onnx", "tokens.txt"]
 
 
+def test_studio_alignment_reuses_explicit_backend_without_download(monkeypatch):
+    from RealtimeTTS import model_assets
+    backend = object()
+    engine = SimpleNamespace(streaming_aligner=SimpleNamespace(backend=backend))
+    def unexpected_download(**kwargs):
+        pytest.fail("Explicit alignment model must take precedence")
+    monkeypatch.setattr(model_assets, "alignment_model", unexpected_download)
+    model_assets.prepare_studio_alignment(engine)
+    assert engine.studio_aligner.backend is backend
+
+
 @pytest.mark.parametrize(("filename", "options"), [
     ("breeze_server.py", []),
     ("qwen_server.py", ["--device", "gpu"]),

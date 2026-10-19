@@ -3,8 +3,8 @@
 Correction for RC7: the Breeze comparison below normalized both binaries to
 1/40 chunks. It did not establish parity with the actual working 4/6 launcher.
 The simple CPU/GPU launches also omitted hardware tuning used by the reference
-services. RC7 restores the verified profiles and adds measured Breeze startup
-selection; see the [current quickstart](testpypi-quickstart.md). The historical
+services. RC7 restores the verified Qwen profiles and Breeze 4/6 settings;
+see the [current quickstart](testpypi-quickstart.md). The historical
 numbers below must not be presented as evidence of complete launcher parity.
 
 RealtimeTTS 0.9.0rc4 uses realtimetts-breeze-native 0.1.0rc2,

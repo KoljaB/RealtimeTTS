@@ -76,14 +76,6 @@ def test_owned_worker_cleanup_and_readiness(monkeypatch, tmp_path, failure):
     assert state["command"][state["command"].index("--chunk-max") + 1] == "6"
 
 
-def test_calibration_rejects_fast_first_packet_with_starving_stream():
-    faster = dict(profile=(2, 4), first_pcm_ms=150, gap_ms=70, rtf=.8)
-    continuous = dict(profile=(4, 6), first_pcm_ms=300, gap_ms=0, rtf=.85)
-    assert breeze_worker._choose_profile([faster, continuous]) is continuous
-    slower = dict(profile=(6, 12), first_pcm_ms=400, gap_ms=0, rtf=.75)
-    assert breeze_worker._choose_profile([continuous, slower]) is continuous
-
-
 @pytest.mark.parametrize("first,maximum", [(0, 6), (8, 4), (4, 65)])
 def test_invalid_manual_chunks_fail_before_starting_worker(tmp_path, first, maximum):
     with pytest.raises(ValueError, match="Breeze chunks"):

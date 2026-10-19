@@ -21,9 +21,35 @@ class CPUAlignmentModel:
 
     supports_partial = True
 
-    def __init__(self, backend, language=None):
+    def __init__(self, backend, language=None, *, cpu_affinity=None):
         self.backend = backend
         self.language = _LANGUAGE_NAMES.get(language, language)
+        self.cpu_affinity = cpu_affinity
+
+    def prepare_worker(self):
+        """Let display-only CPU alignment use time left over by synthesis."""
+        if self.cpu_affinity is None:
+            return
+        import os
+        if os.name == "nt":
+            import ctypes
+            kernel = ctypes.windll.kernel32
+            kernel.GetCurrentThread.restype = ctypes.c_void_p
+            thread = kernel.GetCurrentThread()
+            kernel.SetThreadPriority.argtypes = [ctypes.c_void_p, ctypes.c_int]
+            if not kernel.SetThreadPriority(thread, -2):
+                raise ctypes.WinError()
+            if self.cpu_affinity:
+                kernel.SetThreadAffinityMask.argtypes = [ctypes.c_void_p, ctypes.c_size_t]
+                kernel.SetThreadAffinityMask.restype = ctypes.c_size_t
+                if not kernel.SetThreadAffinityMask(thread, self.cpu_affinity):
+                    raise ctypes.WinError()
+        elif hasattr(os, "setpriority"):
+            import threading
+            os.setpriority(os.PRIO_PROCESS, threading.get_native_id(), 10)
+            if self.cpu_affinity and hasattr(os, "sched_setaffinity"):
+                os.sched_setaffinity(0, {bit for bit in range(self.cpu_affinity.bit_length())
+                                       if self.cpu_affinity & (1 << bit)})
 
     def prepare(self, text, level):
         backend = self.backend
