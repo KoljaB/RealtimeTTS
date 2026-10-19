@@ -1,4 +1,4 @@
-"""Mixed English/Spanish tutor demo. Run with python -m RealtimeTTS.demo."""
+"""Mixed English/Spanish tutor demo. Run this file directly with python demo.py."""
 import argparse
 from pathlib import Path
 
@@ -62,8 +62,8 @@ def main(argv=None):
         display = None
         options = {}
         if not args.no_highlight:
-            from .terminal_highlighting import TerminalHighlighter
-            from .model_assets import alignment_model
+            from RealtimeTTS.terminal_highlighting import TerminalHighlighter
+            from RealtimeTTS.model_assets import alignment_model
             display = TerminalHighlighter(args.alignment_model or alignment_model(),
                                           input_text=None if args.plain else TEXT)
             options = dict(muted=True, alignment=display.alignment, on_alignment=display.update)

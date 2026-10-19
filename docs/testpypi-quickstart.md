@@ -1,4 +1,4 @@
-# TestPyPI release candidate: 0.9.0rc5
+# TestPyPI release candidate: 0.9.0rc6
 
 Use Python 3.11 and [uv](https://docs.astral.sh/uv/). The commands below are the
 same on Windows and Linux. Run them from the folder where you want your .venv.
@@ -20,19 +20,19 @@ PyPI, avoiding unrelated experimental packages on TestPyPI.
 Breeze GPU:
 
 ~~~sh
-uv pip install --python .venv --find-links https://test.pypi.org/simple/realtimetts/ --find-links https://test.pypi.org/simple/realtimetts-breeze-native/ "realtimetts[breeze-server]==0.9.0rc5"
+uv pip install --python .venv --find-links https://test.pypi.org/simple/realtimetts/ --find-links https://test.pypi.org/simple/realtimetts-breeze-native/ "realtimetts[breeze-server]==0.9.0rc6"
 ~~~
 
 Qwen NVIDIA GPU:
 
 ~~~sh
-uv pip install --python .venv --find-links https://test.pypi.org/simple/realtimetts/ "realtimetts[qwen-server]==0.9.0rc5"
+uv pip install --python .venv --find-links https://test.pypi.org/simple/realtimetts/ "realtimetts[qwen-server]==0.9.0rc6"
 ~~~
 
 Qwen CPU:
 
 ~~~sh
-uv pip install --python .venv --find-links https://test.pypi.org/simple/realtimetts/ "realtimetts[qwen-cpu-server]==0.9.0rc5"
+uv pip install --python .venv --find-links https://test.pypi.org/simple/realtimetts/ "realtimetts[qwen-cpu-server]==0.9.0rc6"
 ~~~
 
 Breeze requires a Vulkan-capable GPU and driver. Qwen GPU requires an NVIDIA
@@ -41,21 +41,31 @@ x86-64 with glibc 2.35 or newer; x86-64 CPU inference requires AVX2/FMA/F16C/BMI
 Model weights download on first use and are cached. Breeze model licensing terms
 still apply. Server-only installation does not need PortAudio or a sound device.
 
-## Start the Python modules
+## Start the Python files
 
-Each command starts the named Python file from the installed RealtimeTTS package:
+Run the desired command from the folder containing .venv. These are the full
+server implementations installed by the package, not additional launcher files.
+
+Windows (PowerShell or cmd):
 
 ~~~sh
-uv run --no-project --python .venv python -m RealtimeTTS.breeze_server --reference-prefix-cache
-uv run --no-project --python .venv python -m RealtimeTTS.qwen_server --device gpu
-uv run --no-project --python .venv python -m RealtimeTTS.qwen_server --device cpu
+.venv\Scripts\python.exe .venv\Lib\site-packages\RealtimeTTS\breeze_server.py --reference-prefix-cache
+.venv\Scripts\python.exe .venv\Lib\site-packages\RealtimeTTS\qwen_server.py --device gpu
+.venv\Scripts\python.exe .venv\Lib\site-packages\RealtimeTTS\qwen_server.py --device cpu
 ~~~
 
-Choose the server you need; each runs until stopped with Ctrl+C. --python .venv
-selects the same interpreter used for installation. --no-project prevents uv
-from discovering or syncing an unrelated project in the current directory.
-Python's -m runs breeze_server.py or qwen_server.py inside the installed package,
-so there is no separately generated RealtimeTTS executable to find on PATH.
+Linux (with the Python 3.11 environment created above):
+
+~~~sh
+.venv/bin/python .venv/lib/python3.11/site-packages/RealtimeTTS/breeze_server.py --reference-prefix-cache
+.venv/bin/python .venv/lib/python3.11/site-packages/RealtimeTTS/qwen_server.py --device gpu
+.venv/bin/python .venv/lib/python3.11/site-packages/RealtimeTTS/qwen_server.py --device cpu
+~~~
+
+Choose one Qwen variant. Each server runs until stopped with Ctrl+C.
+For shorter commands or editing, you can copy these complete .py files into
+your working folder and run the same environment Python with breeze_server.py,
+qwen_server.py or demo.py. Their imports use the installed RealtimeTTS package.
 
 Breeze serves http://127.0.0.1:18084/studio; Qwen serves
 http://127.0.0.1:8080/studio. Start only one Qwen instance on that port, or choose
@@ -80,7 +90,7 @@ local audio playback in the same environment (choose qwen-server instead of
 qwen-cpu-server if you prefer Qwen on GPU):
 
 ~~~sh
-uv pip install --python .venv --find-links https://test.pypi.org/simple/realtimetts/ --find-links https://test.pypi.org/simple/realtimetts-breeze-native/ "realtimetts[breeze-server,qwen-cpu-server,demo]==0.9.0rc5"
+uv pip install --python .venv --find-links https://test.pypi.org/simple/realtimetts/ --find-links https://test.pypi.org/simple/realtimetts-breeze-native/ "realtimetts[breeze-server,qwen-cpu-server,demo]==0.9.0rc6"
 ~~~
 
 On Debian/Ubuntu, local playback also needs PortAudio. If PyAudio needs to build,
@@ -90,11 +100,19 @@ install its headers and compiler first:
 sudo apt-get install libportaudio2 portaudio19-dev build-essential python3-dev
 ~~~
 
-Start Breeze and Qwen in separate terminals using the module commands above.
+Start Breeze and Qwen in separate terminals using the script commands above.
 In a third terminal, from the same folder:
 
+Windows:
+
 ~~~sh
-uv run --no-project --python .venv python -m RealtimeTTS.demo
+.venv\Scripts\python.exe .venv\Lib\site-packages\RealtimeTTS\demo.py
+~~~
+
+Linux:
+
+~~~sh
+.venv/bin/python .venv/lib/python3.11/site-packages/RealtimeTTS/demo.py
 ~~~
 
 This runs the packaged demo.py: English/Spanish language switching, three speeds,

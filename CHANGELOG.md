@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.9.0rc6 - Release candidate
+
+- Make the complete breeze_server.py, qwen_server.py and demo.py files directly
+  executable with Python, including their deferred imports. No additional
+  launcher files or duplicated implementations are installed.
+- Document explicit Python-file startup on Windows and Linux.
+
+
 ## 0.9.0rc5 - Release candidate
 
 - Keep the complete emotional Qwen demo in RealtimeTTS/qwen_emotions.py and

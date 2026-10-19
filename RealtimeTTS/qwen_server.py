@@ -62,17 +62,17 @@ except ImportError:  # pragma: no cover - guarded by qwen-server extra
     CORSMiddleware = None  # type: ignore[assignment]
     JSONResponse = Response = StreamingResponse = None  # type: ignore[assignment]
 
-from .engines.qwen_engine import (
+from RealtimeTTS.engines.qwen_engine import (
     DEFAULT_MODEL,
     DEFAULT_QUANT,
     SAMPLE_RATE,
     QwenEngine,
     QwenVoice,
 )
-from .engines.qwen_cpu_engine import QwenCpuEngine
-from .qwen_cpu_topology import split_windows_cpu_cores
-from .text_exchange import TextExchange
-from .language_router import (
+from RealtimeTTS.engines.qwen_cpu_engine import QwenCpuEngine
+from RealtimeTTS.qwen_cpu_topology import split_windows_cpu_cores
+from RealtimeTTS.text_exchange import TextExchange
+from RealtimeTTS.language_router import (
     FastTextLanguageDetector,
     LanguageDetection,
     QwenLanguageRouter,
@@ -176,7 +176,7 @@ def _server_version() -> str:
     try:
         # Prefer the source package: an existing installed distribution can
         # describe an older checkout when the server is run from a worktree.
-        from ._version import __version__
+        from RealtimeTTS._version import __version__
     except (ImportError, AttributeError):
         try:
             return importlib.metadata.version("realtimetts")
@@ -808,7 +808,7 @@ class QwenHttpServer:
         return self.new_boundary_pauses().trailing(text)
 
     def new_boundary_pauses(self, overrides=None):
-        from .speech_boundaries import SpeechBoundaryPauses
+        from RealtimeTTS.speech_boundaries import SpeechBoundaryPauses
         values = {
             "comma": self.comma_silence_duration,
             "sentence": self.sentence_silence_duration,
@@ -1214,7 +1214,7 @@ class QwenHttpServer:
         split_sentences = payload.get("split_sentences", True)
         if not isinstance(split_sentences, bool):
             raise ApiError(400, "invalid_request_error", "'split_sentences' must be a boolean")
-        from .alignment.server import parse_alignment_request
+        from RealtimeTTS.alignment.server import parse_alignment_request
         try:
             alignment = parse_alignment_request(payload.get("alignment"), self.engine, language)
         except (TypeError, ValueError) as exc:
@@ -1379,7 +1379,7 @@ class QwenHttpServer:
                     set_context(getattr(state, "stream_context", None))
                 try:
                     if request.alignment is not None:
-                        from .alignment.server import ServerAlignment
+                        from RealtimeTTS.alignment.server import ServerAlignment
                         shared_alignment = ServerAlignment(self.engine, request, state)
                     if not state.begin_engine():
                         return
@@ -1725,7 +1725,7 @@ class _DetectedLanguageText(str):
 
 async def _stream_mixed_fragments(fragments, *, language, target, detector):
     """Repair only unmarked, already-released fragments; never hold stream input."""
-    from .mixed_language import LanguageSpan, split_mixed_language
+    from RealtimeTTS.mixed_language import LanguageSpan, split_mixed_language
 
     async for fragment in fragments:
         if isinstance(fragment, _LanguageBoundary):
@@ -2092,7 +2092,7 @@ def create_app(server: QwenHttpServer) -> Any:
             if server.language_detector is None:
                 raise ApiError(503, "server_error", "language detector is not configured")
             from dataclasses import asdict
-            from .language_router import normalize_qwen_language, SUPPORTED_QWEN_LANGUAGES
+            from RealtimeTTS.language_router import normalize_qwen_language, SUPPORTED_QWEN_LANGUAGES
             fallback = normalize_qwen_language(payload.get("fallback_language", "english"))
             def classify():
                 detector = server.language_detector
@@ -2691,7 +2691,7 @@ def create_app(server: QwenHttpServer) -> Any:
                 if ((active_segment is not None and segment_cancelled.is_set())
                         or active_segment in skipped_segments):
                     continue
-                from .speech_boundaries import prefix_source_ranges
+                from RealtimeTTS.speech_boundaries import prefix_source_ranges
                 text = spoken_text
                 if options.exchange is not None:
                     text, source_ranges = options.exchange.apply(spoken_text, request.language)
@@ -3147,7 +3147,7 @@ def _set_windows_server_priority() -> None:
 
 def _prepare_demo_voice(server: QwenHttpServer, *, local_files_only: bool) -> str:
     """Register the original, pinned public neutral reference without overwriting voices."""
-    from .qwen_emotions import ASSET_HASHES, build_emotion_entries, cache_root, ensure_references
+    from RealtimeTTS.qwen_emotions import ASSET_HASHES, build_emotion_entries, cache_root, ensure_references
     if getattr(server.engine, "model_type", "base") != "base":
         raise ValueError("--demo-voice requires a Base model that supports reference cloning")
     name = "demo-neutral"
@@ -3393,7 +3393,7 @@ def main(argv: Optional[Sequence[str]] = None) -> None:
         sentence_silence_duration=args.sentence_silence_duration,
     )
     if args.bundled_voices and getattr(engine, "model_type", "base") == "base":
-        from .voices import register_bundled_voices
+        from RealtimeTTS.voices import register_bundled_voices
         try:
             register_bundled_voices(server.registry, "qwen")
         except BaseException:

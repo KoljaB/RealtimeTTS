@@ -1,6 +1,9 @@
 """Installed demo and server reference integration, without model inference."""
 from pathlib import Path
 import sys
+import subprocess
+
+import pytest
 from types import SimpleNamespace
 
 from RealtimeTTS import demo
@@ -46,3 +49,21 @@ def test_model_downloads_are_pinned_and_cached(monkeypatch):
     assert calls[0][0][1] == "breeze-tts-2-q8_0.gguf"
     assert len(calls[0][1]["revision"]) == len(calls[1][1]["revision"]) == 40
     assert calls[1][1]["allow_patterns"] == ["model.int8.onnx", "tokens.txt"]
+
+
+@pytest.mark.parametrize(("filename", "options"), [
+    ("breeze_server.py", []),
+    ("qwen_server.py", ["--device", "gpu"]),
+    ("qwen_server.py", ["--device", "cpu"]),
+    ("demo.py", []),
+])
+def test_complete_scripts_run_directly_outside_the_checkout(tmp_path, filename, options):
+    source = Path(demo.__file__).with_name(filename)
+    script = tmp_path / filename
+    script.write_bytes(source.read_bytes())
+    result = subprocess.run(
+        [sys.executable, "-I", str(script), *options, "--help"],
+        cwd=tmp_path, capture_output=True, text=True, timeout=30,
+    )
+    assert result.returncode == 0, result.stderr
+    assert "usage:" in result.stdout

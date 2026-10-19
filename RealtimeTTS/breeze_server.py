@@ -6,9 +6,9 @@ import base64
 import math
 from pathlib import Path
 
-from .engines.breeze_engine import BreezeEngine, BreezeVoice, VOCAL_TAGS
-from .qwen_server import QwenHttpServer, ApiError, create_app
-from .language_router import FastTextLanguageDetector
+from RealtimeTTS.engines.breeze_engine import BreezeEngine, BreezeVoice, VOCAL_TAGS
+from RealtimeTTS.qwen_server import QwenHttpServer, ApiError, create_app
+from RealtimeTTS.language_router import FastTextLanguageDetector
 
 
 DESIGN_VOICE = "__breeze_voice_design__"
@@ -33,7 +33,7 @@ class BreezeHttpServer(QwenHttpServer):
         self._failure_dir = self.registry.root.parent / "failures"
 
     def record_synthesis_failure(self, request, state):
-        from .breeze_diagnostics import write_failure
+        from RealtimeTTS.breeze_diagnostics import write_failure
         return write_failure(self._failure_dir, request, state,
                              worker_state=self._diagnostics_worker_state,
                              model_path=self._diagnostics_model)
@@ -133,7 +133,7 @@ def main(argv=None):
     import os
     from contextlib import nullcontext
     import uvicorn
-    from .qwen_server import _is_loopback_host
+    from RealtimeTTS.qwen_server import _is_loopback_host
     args = build_argument_parser().parse_args(argv)
     key = os.environ.get(args.api_key_env) if args.api_key_env else None
     if not _is_loopback_host(args.host) and not key:
@@ -143,8 +143,8 @@ def main(argv=None):
     if args.model and args.worker_ws_url:
         raise SystemExit("--model cannot be combined with --worker-ws-url")
     if args.model or not (args.worker_url or args.worker_ws_url):
-        from .breeze_worker import local_worker
-        from .model_assets import breeze_model
+        from RealtimeTTS.breeze_worker import local_worker
+        from RealtimeTTS.model_assets import breeze_model
         worker = local_worker(args.model or breeze_model(), args.voice_dir / "native")
     else:
         worker = nullcontext((args.worker_url or "http://127.0.0.1:8137",
@@ -168,7 +168,7 @@ def main(argv=None):
             startup_warmup_routes=False,
         )
         if args.bundled_voices:
-            from .voices import register_bundled_voices
+            from RealtimeTTS.voices import register_bundled_voices
             register_bundled_voices(server.registry, "breeze")
         if args.voice_reference:
             print(f"Registering reference voice {args.voice}...", flush=True)
