@@ -705,9 +705,9 @@ class _CaptureQueue:
         if self.tempo_processor is None:
             self._publish(pcm)
             return
-        for chunk in self.tempo_processor.feed(pcm):
-            if not self._publish(bytes(chunk)):
-                break
+        processed = b"".join(self.tempo_processor.feed(pcm))
+        if processed:
+            self._publish(processed)
 
     def finish(self) -> None:
         if self._finished:
@@ -718,9 +718,9 @@ class _CaptureQueue:
         if self.state.cancelled.is_set():
             self.tempo_processor.cancel()
             return
-        for chunk in self.tempo_processor.finish():
-            if not self._publish(bytes(chunk)):
-                break
+        processed = b"".join(self.tempo_processor.finish())
+        if processed:
+            self._publish(processed)
 
 
 class _DiscardQueue:
