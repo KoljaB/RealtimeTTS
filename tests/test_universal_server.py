@@ -11,6 +11,7 @@ from fastapi.testclient import TestClient
 
 from RealtimeTTS._audio_backend import pyaudio
 from RealtimeTTS.alignment.base import WordAlignment
+from RealtimeTTS.alignment.timeline import AlignedSpan, AlignmentSnapshot
 from RealtimeTTS.server import create_app
 
 
@@ -402,6 +403,68 @@ def test_native_auto_uses_engine_word_timings_without_model():
         event["type"] == "error" and event["error"]["type"] == "unsupported_operation"
         for event in events
     )
+
+
+def test_alignment_delivery_lock_keeps_final_snapshot_after_notifier():
+    session = create_app(FakeEngine()).state.realtimetts_server.new_session(
+        {}, ordered=True
+    )
+    session.fragment_texts[0] = "hello"
+    provisional = AlignmentSnapshot(
+        text="hello", status="aligning", revision=1
+    )
+    final = AlignmentSnapshot(
+        text="hello",
+        words=(
+            AlignedSpan(
+                "hello", 0.0, 0.01, text_start=0, text_end=5,
+                fragment_id="0:1"
+            ),
+        ),
+        status="ready",
+        final=True,
+        revision=2,
+        coverage=1.0,
+    )
+    notifier_entered = threading.Event()
+    release_notifier = threading.Event()
+    final_started = threading.Event()
+    final_finished = threading.Event()
+    original_emit = session.emit
+
+    def gated_emit(event):
+        if event.get("type") == "alignment" and event.get("revision") == 1:
+            notifier_entered.set()
+            release_notifier.wait(1)
+        original_emit(event)
+
+    session.emit = gated_emit
+    notifier = threading.Thread(
+        target=session._emit_alignment_snapshot, args=(provisional,), daemon=True
+    )
+    notifier.start()
+    assert notifier_entered.wait(1)
+
+    def publish_final():
+        final_started.set()
+        session._emit_alignment_snapshot(final)
+        final_finished.set()
+
+    final_thread = threading.Thread(target=publish_final, daemon=True)
+    final_thread.start()
+    assert final_started.wait(1)
+    assert not final_finished.wait(0.05)
+
+    release_notifier.set()
+    notifier.join(1)
+    final_thread.join(1)
+    assert not notifier.is_alive()
+    assert not final_thread.is_alive()
+
+    first = session.outbound.get(timeout=1)
+    second = session.outbound.get(timeout=1)
+    assert [first[1]["revision"], second[1]["revision"]] == [1, 2]
+    assert second[1]["words"][0]["word"] == "hello"
 
 
 def test_websocket_orders_each_fragment_boundary_around_pcm():

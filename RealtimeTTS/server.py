@@ -441,6 +441,7 @@ class _GenericSession:
         self._engine_locked = False
         self._ended = False
         self._lifecycle_lock = threading.Lock()
+        self._alignment_delivery_lock = threading.Lock()
         self._last_alignment_revision = -1
 
     def emit(self, event: dict[str, Any]) -> None:
@@ -563,13 +564,13 @@ class _GenericSession:
         return [grouped[index] for index in sorted(grouped)]
 
     def _emit_alignment_snapshot(self, snapshot: Any) -> None:
-        revision = int(getattr(snapshot, "revision", -1))
-        with self._lifecycle_lock:
+        with self._alignment_delivery_lock:
+            revision = int(getattr(snapshot, "revision", -1))
             if revision <= self._last_alignment_revision:
                 return
             self._last_alignment_revision = revision
-        for fragment in self._alignment_for_snapshot(snapshot):
-            self.emit({"type": "alignment", **fragment})
+            for fragment in self._alignment_for_snapshot(snapshot):
+                self.emit({"type": "alignment", **fragment})
 
     def _on_alignment(self, snapshot: Any) -> None:
         self._emit_alignment_snapshot(snapshot)
