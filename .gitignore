@@ -203,3 +203,4 @@ tests/test_qwen_highlight.py
 tools/qwen_alignment_repro.py
 /tools/qwen_cpu_overlap/
 /tools/qwen_gpu_startup/
+/tools/data/qwen17b_spanish_passages.json
