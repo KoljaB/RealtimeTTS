@@ -256,7 +256,8 @@ does not guarantee that every sound is reproduced convincingly on every seed.
 
 Breeze's [model card](https://huggingface.co/BreezeBlue/Breeze-TTS-2) documents
 English and Mandarin, reference-guided directions and inline vocal events.
-This integration does not claim additional trained languages or word alignment.
+Studio supplies word and character highlighting through its alignment model.
+This does not extend Breeze's trained language support.
 
 
 ## Background language classification

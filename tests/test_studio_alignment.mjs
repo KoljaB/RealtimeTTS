@@ -9,13 +9,16 @@ const source = fs.readFileSync(
   path.join(path.dirname(fileURLToPath(import.meta.url)), '../RealtimeTTS/studio/studio.js'),
   'utf8',
 );
+const html = fs.readFileSync(
+  path.join(path.dirname(fileURLToPath(import.meta.url)), '../RealtimeTTS/studio/index.html'),
+  'utf8',
+);
 
 function studio() {
   const controls = new Map();
   const initial = {
     voice: 'generic_voice', language: 'en', transport: 'ws',
-    alignmentSource: '', alignmentLevel: 'word', alignmentMode: 'live',
-    alignmentBufferSeconds: '', temperature: '0.9', top_p: '1', top_k: '50',
+    temperature: '0.9', top_p: '1', top_k: '50',
     seed: '-1', max_new_tokens: '2048', repetition_penalty: '1.05',
     subtalker_temperature: '', subtalker_top_p: '', subtalker_top_k: '',
     subtalker_do_sample: '',
@@ -251,7 +254,13 @@ function json(s, expression) {
   return JSON.parse(JSON.stringify(s.run(expression)));
 }
 
-test('generic capability fallback omits unsupported controls and serializes alignment', () => {
+test('studio keeps live alignment inside the editable speech window', () => {
+  assert.match(html, /id="textHighlight"/);
+  assert.doesNotMatch(html, /id="alignmentPanel"/);
+  assert.doesNotMatch(html, /id="alignmentLevel"/);
+});
+
+test('generic capability fallback omits unsupported controls and prefers character alignment', () => {
   const s = studio();
   s.run("caps=normalizeCapabilities({engine:{name:'generic',model_id:'generic'},model:{id:'generic'},features:{model_type:'base'}});defaults()");
   assert.equal(s.run('isQwen()'), false);
@@ -261,28 +270,19 @@ test('generic capability fallback omits unsupported controls and serializes alig
   assert.equal(s.control('cloneControls').hidden, true);
   assert.equal(s.control('voicePanel').hidden, true);
   assert.equal(s.control('temperature').hidden, true);
-  s.control('alignmentSource').value = 'auto';
-  assert.deepEqual(json(s, 'requestOptions().alignment'), {source: 'auto', level: 'word', mode: 'live'});
+  assert.deepEqual(json(s, 'requestOptions().alignment'), {source: 'auto', level: 'character', mode: 'live'});
   assert.equal(json(s, "Object.hasOwn(requestOptions(),'temperature')"), false);
-  s.control('alignmentLevel').value = 'character';
-  s.control('alignmentMode').value = 'synced';
-  s.control('alignmentBufferSeconds').value = '0.5';
-  assert.deepEqual(json(s, 'requestOptions().alignment'), {
-    source: 'auto', level: 'character', mode: 'synced', max_buffer_seconds: 0.5,
-  });
-  s.control('alignmentMode').value = 'export';
-  assert.deepEqual(json(s, 'requestOptions().alignment'), {
-    source: 'auto', level: 'character', mode: 'export',
-  });
+  s.run("caps.features.alignment_timestamps=['word'];");
+  assert.deepEqual(json(s, 'requestOptions().alignment'), {source: 'auto', level: 'word', mode: 'live'});
+  s.run("caps.features.alignment_timestamps=[];");
+  assert.equal(json(s, "Object.hasOwn(requestOptions(),'alignment')"), false);
 });
 
-test('speed and live alignment controls are serialized', () => {
+test('speed stays configurable while live character alignment is automatic', () => {
   const s = studio();
   s.run("caps=normalizeCapabilities({engine:{name:'generic',model_id:'generic'},model:{id:'generic'},features:{model_type:'base'},playback:{speed:{min:0.25,max:4,default:1}}});defaults()");
   s.control('speed').value = '1.5';
   assert.equal(json(s, 'requestOptions().speed'), 1.5);
-  assert.deepEqual(json(s, 'requestOptions().alignment'), {source: 'auto', level: 'word', mode: 'live'});
-  s.control('alignmentLevel').value = 'character';
   assert.deepEqual(json(s, 'requestOptions().alignment'), {source: 'auto', level: 'character', mode: 'live'});
   s.control('speed').value = '0.1';
   assert.throws(() => s.run('requestOptions()'), /Speed must be between/);
@@ -307,8 +307,8 @@ test('alignment revisions, code-point spans, old deltas, and stale runs are fenc
       start_time: 0, end_time: 9}]}), false);
   const fragment = state.fragments.get(0);
   assert.equal(fragment.characters[1].character, '\u{1F600}');
-  assert.ok(s.control('alignmentText').children.some(x =>
-    x.className === 'alignment-token' && x.textContent === '\u{1F600}'));
+  assert.ok(s.control('textHighlight').children.some(x =>
+    x.className === 'studio-alignment-token' && x.textContent === '\u{1F600}'));
   assert.equal(send(s, run, {type: 'alignment', request_id: 'r1', fragment_index: 0,
     characters: [{character: 'B', text_start: 2, text_end: 3, start_time: .6, end_time: .8}]}), true);
   assert.equal(fragment.characters[2].end_time, .8);
@@ -329,6 +329,40 @@ test('alignment revisions, code-point spans, old deltas, and stale runs are fenc
     fragment_index: 0, revision: 3}), false);
 });
 
+
+test('overlay keeps measured word and character highlights on the same text', () => {
+  const s = studio();
+  const opts = {source: 'auto', level: 'character', mode: 'live'};
+  const state = s.run('createAlignmentState(' + JSON.stringify(opts) + ')');
+  const run = {alignment: state, samples: 0, done: false, ctx: {currentTime: .25}};
+  setRun(s, run);
+  send(s, run, {type: 'fragment_start', request_id: 'r1', fragment_index: 0,
+    text: 'hello', sample_rate_hz: 100});
+  send(s, run, {type: 'alignment', request_id: 'r1', fragment_index: 0, revision: 1,
+    words: [{word: 'hello', text_start: 0, text_end: 5, start_time: .1, end_time: .4}],
+    characters: [{character: 'e', text_start: 1, text_end: 2, start_time: .2, end_time: .3}]});
+  state.playbackSegments = [{sampleStart: 0, sampleCount: 100, sampleRate: 100, when: 0}];
+  s.run('renderAlignmentState(run.alignment);updateAlignmentHighlight(run)');
+  const active = JSON.parse(s.run("JSON.stringify({word:run.alignment.overlayWords[0].tokens[0].dataset.alignmentActive,character:run.alignment.overlayCharacters[0].tokens[0].dataset.alignmentActive})"));
+  assert.deepEqual(active, {word: 'true', character: 'true'});
+  run.ctx.currentTime = .5;
+  s.run('updateAlignmentHighlight(run)');
+  assert.equal(s.run("run.alignment.overlayWords[0].tokens[0].dataset.alignmentComplete"), 'true');
+});
+test('edited speech text does not fabricate highlights from stale fragments', () => {
+  const s = studio();
+  const state = s.run('createAlignmentState(' + JSON.stringify({source: 'auto', level: 'word', mode: 'live'}) + ')');
+  const run = {alignment: state, samples: 0, done: false, ctx: null};
+  setRun(s, run);
+  send(s, run, {type: 'fragment_start', request_id: 'r1', fragment_index: 0,
+    text: 'original', sample_rate_hz: 100});
+  send(s, run, {type: 'alignment', request_id: 'r1', fragment_index: 0, revision: 1,
+    words: [{word: 'original', text_start: 0, text_end: 8, start_time: 0, end_time: .5}]});
+  s.control('text').value = 'edited';
+  s.run('renderAlignmentText(run.alignment)');
+  assert.equal(state.overlayWords.length, 0);
+  assert.equal(state.overlayCharacters.length, 0);
+});
 test('alignment accepts per-fragment request ids and fences stale session data', () => {
   const s = studio();
   const opts = {source: 'auto', level: 'word', mode: 'live'};

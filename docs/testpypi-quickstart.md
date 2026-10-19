@@ -88,8 +88,8 @@ Hardware tuning happens at runtime.
 
 ## Speed and live highlighting
 
-Both Studio pages expose Speed and a Words / Characters selector beside the
-playback controls. Highlighting starts automatically with WebSocket playback,
+Both Studio pages expose Speed. During WebSocket playback, the speech text
+itself highlights the active word and current character in different colors,
 using the playback clock and measured timestamps. The multilingual CPU alignment
 model is prepared once before readiness, independently of GPU synthesis. It
 adds no intentional playback buffer and does not cut or regenerate speech.
