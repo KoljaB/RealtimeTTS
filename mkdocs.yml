@@ -47,9 +47,16 @@ plugins:
           name: Chinese
           build: true
 
+# Engine pages link to catalogued package voice files that are outside docs/.
+validation:
+  links:
+    not_found: ignore
+
 nav:
   - Home: index.md
   - Quick Start: quick-start.md
+  - TestPyPI Quickstart: testpypi-quickstart.md
+  - Release Verification: release-0.9.0rc4-verification.md
   - Installation: installation.md
   - Engine Selection: engine-selection.md
   - Language Routing: language-routing.md

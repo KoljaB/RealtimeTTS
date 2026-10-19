@@ -9,13 +9,16 @@ engine, or any dependency from a package index.
 from __future__ import annotations
 
 import argparse
+import hashlib
+import json
+import re
 import subprocess
 import sys
 import tarfile
 import tempfile
 import venv
 import zipfile
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Optional
 
 
@@ -53,6 +56,87 @@ def _venv_python(environment: Path) -> Path:
 
 def _run(command: list[str], *, cwd: Optional[Path] = None) -> None:
     subprocess.run(command, check=True, cwd=cwd)
+
+
+_CATALOG_PATH = 'RealtimeTTS/voices/catalog.json'
+_VOICE_SUFFIXES = ('.wav', '.flac', '.mp3', '.ogg', '.m4a')
+_FORBIDDEN_ASSET_SUFFIXES = _VOICE_SUFFIXES + (
+    '.spk', '.rvq', '.gguf', '.safetensors', '.ckpt',
+    '.pt', '.pth', '.onnx', '.bin', '.model', '.weights',
+    '.npy', '.npz', '.tflite', '.mlmodel', '.pb', '.pkl', '.pickle',
+)
+_SHA256_RE = re.compile(r'^[0-9a-f]{64}$')
+
+
+def _catalogued_voice_hashes(catalog: bytes) -> dict[str, str]:
+    try:
+        payload = json.loads(catalog)
+    except (TypeError, UnicodeError, ValueError) as error:
+        raise SystemExit(f'bundled voice catalog is not valid JSON: {error}') from error
+    voices = payload.get('voices') if isinstance(payload, dict) else None
+    if not isinstance(voices, list) or not voices:
+        raise SystemExit('bundled voice catalog has no voices list')
+
+    expected: dict[str, str] = {}
+    for entry in voices:
+        if not isinstance(entry, dict):
+            raise SystemExit('bundled voice catalog contains a non-object entry')
+        file_name = entry.get('file')
+        digest = entry.get('sha256')
+        if not isinstance(file_name, str) or not file_name:
+            raise SystemExit('bundled voice catalog contains an invalid file path')
+        relative = PurePosixPath(file_name)
+        if (
+            chr(92) in file_name
+            or relative.is_absolute()
+            or relative.as_posix() != file_name
+            or any(part in {'', '.', '..'} for part in relative.parts)
+            or relative.suffix.lower() not in _VOICE_SUFFIXES
+        ):
+            raise SystemExit(
+                f'bundled voice catalog contains an unsafe voice path: {file_name}'
+            )
+        archive_name = f'RealtimeTTS/voices/{relative.as_posix()}'
+        if archive_name in expected:
+            raise SystemExit(f'bundled voice catalog repeats: {file_name}')
+        if not isinstance(digest, str) or not _SHA256_RE.fullmatch(digest.lower()):
+            raise SystemExit(f'bundled voice catalog has an invalid SHA-256: {file_name}')
+        expected[archive_name] = digest.lower()
+    return expected
+
+
+def _validate_catalogued_assets(
+    names: set[str],
+    expected_hashes: dict[str, str],
+    read_bytes,
+    artifact: str,
+) -> None:
+    missing = sorted(set(expected_hashes) - names)
+    if missing:
+        raise SystemExit(
+            f'{artifact} is missing catalogued voice files: ' + ', '.join(missing)
+        )
+    unexpected = sorted(
+        name
+        for name in names
+        if name.lower().endswith(_FORBIDDEN_ASSET_SUFFIXES)
+        and name not in expected_hashes
+    )
+    if unexpected:
+        raise SystemExit(
+            f'{artifact} unexpectedly bundles model or voice assets: '
+            + ', '.join(unexpected)
+        )
+    mismatches = []
+    for name, expected in sorted(expected_hashes.items()):
+        actual = hashlib.sha256(read_bytes(name)).hexdigest()
+        if actual != expected:
+            mismatches.append(f'{name} (expected {expected}, got {actual})')
+    if mismatches:
+        raise SystemExit(
+            f'{artifact} has catalogued voice hash mismatches: '
+            + ', '.join(mismatches)
+        )
 
 
 def _check_wheel_contents(wheel: Path) -> None:
@@ -107,19 +191,11 @@ def _check_wheel_contents(wheel: Path) -> None:
             "wheel is missing dist-info license files: "
             + ", ".join(sorted(missing_licenses))
         )
-    forbidden_suffixes = (
-        ".wav", ".flac", ".mp3", ".ogg", ".m4a",
-        ".spk", ".rvq", ".gguf", ".safetensors", ".ckpt",
-        ".pt", ".pth", ".onnx",
-    )
-    bundled_assets = sorted(
-        name for name in names if name.lower().endswith(forbidden_suffixes)
-    )
-    if bundled_assets:
-        raise SystemExit(
-            "wheel unexpectedly bundles model or voice assets: "
-            + ", ".join(bundled_assets)
-        )
+    with zipfile.ZipFile(wheel) as archive:
+        if _CATALOG_PATH not in names:
+            raise SystemExit(f"wheel is missing the bundled voice catalog: {_CATALOG_PATH}")
+        expected = _catalogued_voice_hashes(archive.read(_CATALOG_PATH))
+        _validate_catalogued_assets(names, expected, archive.read, "wheel")
 
 
 def _check_sdist_contents(sdist: Path) -> None:
@@ -180,19 +256,26 @@ def _check_sdist_contents(sdist: Path) -> None:
         for name in names
     ):
         raise SystemExit("sdist unexpectedly contains the test suite")
-    forbidden_suffixes = (
-        ".wav", ".flac", ".mp3", ".ogg", ".m4a",
-        ".spk", ".rvq", ".gguf", ".safetensors", ".ckpt",
-        ".pt", ".pth", ".onnx",
-    )
-    bundled_assets = sorted(
-        name for name in names if name.lower().endswith(forbidden_suffixes)
-    )
-    if bundled_assets:
-        raise SystemExit(
-            "sdist unexpectedly bundles model or voice assets: "
-            + ", ".join(bundled_assets)
-        )
+    with tarfile.open(sdist, mode="r:gz") as archive:
+        members = {
+            "/".join(Path(member.name).parts[1:]).replace(chr(92), "/"): member
+            for member in archive.getmembers()
+            if len(Path(member.name).parts) > 1
+        }
+        if _CATALOG_PATH not in members:
+            raise SystemExit(f"sdist is missing the bundled voice catalog: {_CATALOG_PATH}")
+        catalog_member = archive.extractfile(members[_CATALOG_PATH])
+        if catalog_member is None:
+            raise SystemExit(f"sdist voice catalog is not a regular file: {_CATALOG_PATH}")
+        expected = _catalogued_voice_hashes(catalog_member.read())
+
+        def read_member(name: str) -> bytes:
+            handle = archive.extractfile(members[name])
+            if handle is None:
+                raise SystemExit(f"sdist catalogued voice is not a regular file: {name}")
+            return handle.read()
+
+        _validate_catalogued_assets(names, expected, read_member, "sdist")
 
 
 def main() -> int:
