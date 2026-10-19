@@ -352,7 +352,7 @@ extras_require = {
     "routing": base_requirements + ["numpy", "requests>=2.31", "websocket-client>=1.8,<2", "fastapi>=0.115,<1", "uvicorn>=0.34,<1", "wsproto>=1.2,<2"],
     "qwen-server": base_requirements + qwen_common_requirements + qwen_server_requirements + ["wsproto>=1.2,<2"],
     "breeze": base_requirements + ["numpy", "requests>=2.31", "websocket-client>=1.8,<2"],
-    "breeze-server": base_requirements + ["realtimetts-breeze-native==0.1.0rc1", "huggingface-hub>=0.36", "numpy", "requests>=2.31", "websocket-client>=1.8,<2", "fastapi>=0.115,<1", "uvicorn>=0.34,<1", "wsproto>=1.2,<2"],
+    "breeze-server": base_requirements + ["realtimetts-breeze-native==0.1.0rc2", "huggingface-hub>=0.36", "numpy", "requests>=2.31", "websocket-client>=1.8,<2", "fastapi>=0.115,<1", "uvicorn>=0.34,<1", "wsproto>=1.2,<2"],
     "demo": standard_requirements + ["requests>=2.31", "websocket-client>=1.8,<2", "rich>=13", "huggingface-hub>=0.36", "onnxruntime>=1.18,<2", "scipy>=1.10", "num2words>=0.5.14", "av>=14,<20"],
     "qwen-cpu": base_requirements + qwen_cpu_common_requirements + pyaudio_requirements,
     "qwen-cpu-server": base_requirements + qwen_cpu_common_requirements + qwen_server_requirements + ["wsproto>=1.2,<2"],

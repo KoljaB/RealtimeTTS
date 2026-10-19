@@ -70,13 +70,13 @@ these server installations in a fresh Python 3.11 or 3.12 virtual environment:
 ```bash
 # NVIDIA GPU on Windows or Linux x86-64
 python -m pip install "realtimetts[qwen-server]"
-realtimetts-qwen-server --device gpu --clone-mode speaker_only --demo-voice
+python -m RealtimeTTS.qwen_server --device gpu --clone-mode speaker_only --demo-voice
 ```
 
 ```bash
 # CPU on Windows: example for 12 physical cores; adjust both worker counts
 python -m pip install "realtimetts[qwen-cpu-server]"
-realtimetts-qwen-server --device cpu --cpu-threads 6 --cpu-codec-threads 6 --cpu-core-split --cpu-stream-frames 1 --cpu-fused-attention --startup-buffer-ms 80 --onset-silence-profile qwen3_tts_12hz_0_6b_base_q8_v1 --demo-voice
+python -m RealtimeTTS.qwen_server --device cpu --cpu-threads 6 --cpu-codec-threads 6 --cpu-core-split --cpu-stream-frames 1 --cpu-fused-attention --startup-buffer-ms 80 --onset-silence-profile qwen3_tts_12hz_0_6b_base_q8_v1 --demo-voice
 ```
 
 Neither server extra needs Torch, a local CUDA Toolkit, or PortAudio. GPU mode

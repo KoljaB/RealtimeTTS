@@ -1,8 +1,9 @@
 # realtimetts-breeze-native
 
 This directory contains a small prebuilt-native wheel assembler for the
-RealtimeTTS Breeze worker. The Windows TestPyPI candidate is 0.1.0rc1.
-Linux packaging remains separately qualified before publication.
+RealtimeTTS Breeze worker. The TestPyPI candidate is 0.1.0rc2.
+Windows and Linux builds are produced by GitHub Actions in
+https://github.com/KoljaB/realtimetts-breeze-native.
 
 The wheel contains the pinned patched breeze-server executable, a shell-free
 launcher, third-party notices, and deterministic build-info.json. Model GGUF
@@ -14,7 +15,7 @@ from the selected GGUF. The wheel has no downloader or cache manager.
 - Breeze-TTS-2.cpp: a0e177f91242ebbd2ea8d61548d742c89e4b9e06
 - ggml: 36da57138425487184aa1da2eee2cde155909c6f
 - control patch SHA-256:
-  990b37b0d56047ae0bbe85b14709f7b094a070f825599e991a95d0eb1f6d2e6a
+  5d4e5e3b69c0fa1f81bb4d291b78764270c6dbb18656e2a4ce4bce9f2dbabf4e
 
 The first release targets the official Q8_0 model only. CFG=4 remains the
 tested default. CFG=1 can be documented later with its quality tradeoff.

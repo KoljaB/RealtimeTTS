@@ -1,4 +1,4 @@
-"""Mixed English/Spanish tutor demo, installed as realtimetts-demo."""
+"""Mixed English/Spanish tutor demo. Run with python -m RealtimeTTS.demo."""
 import argparse
 from pathlib import Path
 

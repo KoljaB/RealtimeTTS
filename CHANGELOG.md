@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.9.0rc4 - Release candidate
+
+- Use the portable Breeze native 0.1.0rc2 builds, including reference-prefix
+  caching, bounded continuation context and cache diagnostics from the working
+  runtime. Enable caching with --reference-prefix-cache. Machine-specific CPU
+  affinity and thread settings remain runtime options.
+- Document Windows/Linux installation and Python module startup with an explicit
+  uv environment, without activation scripts or console-script wrappers.
+- Retain the bundled 12 reference WAVs and installed Python tutor demo from rc3.
+
 ## 0.9.0rc2 - Unreleased
 
 ### Added
