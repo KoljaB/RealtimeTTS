@@ -2928,8 +2928,8 @@ def _default_voice_dir() -> Path:
 
 def build_argument_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="RealtimeTTS native Qwen3-TTS HTTP server")
-    parser.add_argument("--model", help="Direct talker GGUF path")
-    parser.add_argument("--codec", help="Direct codec GGUF path")
+    parser.add_argument("--model", help="Direct talker GGUF path; local paths require an explicit compatible --preset")
+    parser.add_argument("--codec", help="Direct codec GGUF path; local paths require an explicit compatible --preset")
     parser.add_argument("--model-id", default=DEFAULT_MODEL, help="Hugging Face model id")
     parser.add_argument("--quant", default=DEFAULT_QUANT)
     parser.add_argument("--alias", default="qwen3-tts-native-q8")
@@ -3256,17 +3256,19 @@ def _apply_server_preset(args: Any, parser: argparse.ArgumentParser, argv: Seque
         args.preset = None
         return
     default_model = not (args.model or args.codec or args.model_id != DEFAULT_MODEL
-                         or args.quant.upper() != "Q8_0")
+                         or str(args.quant).upper() != "Q8_0")
+    explicit_local_default = bool(args.model and args.codec) and args.model_id == DEFAULT_MODEL
+    explicit_local_default = explicit_local_default and str(args.quant).upper() == "Q8_0"
+
     if args.preset is None:
-        manual = any(option.startswith(("--cpu-", "--no-cpu-")) for option in supplied)
-        if not default_model or manual:
+        if not default_model or args.cpu_core_split:
             return
         args.preset = (_automatic_cpu_preset() if args.device == "cpu"
                        else _automatic_gpu_preset())
         if args.preset is None:
             return
-    if not default_model:
-        parser.error("Hardware presets require the default 0.6B Base Q8_0 model; use explicit options for other models")
+    if not default_model and not explicit_local_default:
+        parser.error("Hardware presets require the default 0.6B Base Q8_0 model or explicit compatible local paths")
     if args.preset == "linux-4090":
         if not sys.platform.startswith("linux") or args.device == "cpu":
             parser.error("--preset linux-4090 requires Linux and --device gpu")

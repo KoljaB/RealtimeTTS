@@ -1827,25 +1827,61 @@ def test_explicit_flush_releases_speech_before_end_and_retains_session(tmp_path,
     assert engine.calls == ["Let me check that for you.", "The result is ready."]
 
 
-def test_automatic_cpu_profile_respects_manual_tuning_and_opt_out(monkeypatch):
+def test_automatic_cpu_profile_keeps_auto_fields_for_manual_tuning_and_opt_out(monkeypatch):
     from types import SimpleNamespace
+
     monkeypatch.setattr(qwen_server_module, "_automatic_cpu_preset", lambda: "windows-3900x")
     monkeypatch.setattr(qwen_server_module, "os",
                         SimpleNamespace(name="nt", cpu_count=lambda: 24, environ={}))
     parser = build_argument_parser()
     arguments = ["--device", "cpu"]
+
     args = parser.parse_args(arguments)
     qwen_server_module._apply_server_preset(args, parser, arguments)
     assert args.preset == "windows-3900x"
     assert (args.cpu_threads, args.cpu_codec_threads, args.cpu_stream_frames) == (6, 6, 1)
+    assert (args.cpu_affinity, args.cpu_codec_affinity) == (0x555, 0x555000)
     assert args.cpu_fused_attention is True
-    for extra in (["--cpu-threads", "3"], ["--preset", "portable"]):
+
+    argv = arguments + ["--cpu-threads", "3"]
+    args = parser.parse_args(argv)
+    qwen_server_module._apply_server_preset(args, parser, argv)
+    assert args.preset == "windows-3900x"
+    assert (args.cpu_threads, args.cpu_codec_threads, args.cpu_stream_frames) == (3, 6, 1)
+    assert (args.cpu_affinity, args.cpu_codec_affinity) == (0x555, 0x555000)
+
+    argv = arguments + ["--startup-buffer-ms", "120"]
+    args = parser.parse_args(argv)
+    qwen_server_module._apply_server_preset(args, parser, argv)
+    assert args.preset == "windows-3900x"
+    assert args.startup_buffer_ms == 120
+    assert args.cpu_codec_threads == 6
+
+    for extra in (["--cpu-core-split"], ["--preset", "portable"]):
         argv = arguments + extra
         args = parser.parse_args(argv)
         qwen_server_module._apply_server_preset(args, parser, argv)
         assert args.preset is None
         assert args.cpu_codec_threads == 0
-    argv = arguments + ["--startup-buffer-ms", "120"]
-    args = parser.parse_args(argv)
-    qwen_server_module._apply_server_preset(args, parser, argv)
-    assert args.startup_buffer_ms == 120
+
+def test_local_model_paths_require_named_profile_for_auto_tuning(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+
+    parser = build_argument_parser()
+    model = tmp_path / "talker.gguf"
+    codec = tmp_path / "codec.gguf"
+    arguments = ["--device", "cpu", "--model", str(model), "--codec", str(codec)]
+    monkeypatch.setattr(qwen_server_module, "_automatic_cpu_preset", lambda: "windows-3900x")
+    monkeypatch.setattr(qwen_server_module, "os",
+                        SimpleNamespace(name="nt", cpu_count=lambda: 24, environ={}))
+
+    args = parser.parse_args(arguments)
+    qwen_server_module._apply_server_preset(args, parser, arguments)
+    assert args.preset is None
+    assert args.cpu_threads is None and args.cpu_codec_threads == 0
+
+    named = ["--preset", "windows-3900x", *arguments]
+    args = parser.parse_args(named)
+    qwen_server_module._apply_server_preset(args, parser, named)
+    assert args.preset == "windows-3900x"
+    assert (args.cpu_threads, args.cpu_codec_threads) == (6, 6)
