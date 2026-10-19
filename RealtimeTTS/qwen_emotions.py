@@ -1,11 +1,10 @@
 """The complete, editable emotional Qwen showcase.
 
-Run this file directly: python faster_qwen_emotions.py --device cpu
+Run from the repository root: python RealtimeTTS/qwen_emotions.py --device cpu
 The voice definitions, setup, playback loop and terminal presentation live here.
 Default output is compact and colored; --verbose includes native diagnostics.
 The original 0.6B Base model and speaker-only reference cloning are retained.
 Instruct labels describe each emotion; Base does not support instruction control.
-The packaged RealtimeTTS.qwen_emotions command is built from this same file.
 """
 from __future__ import annotations
 
@@ -684,7 +683,6 @@ def main(argv=None, *, default_reference_dir: Optional[Path] = None) -> int:
 
 
 if __name__ == "__main__":
-    # Direct checkout use keeps the original references next to this script.
-    # In a wheel the module uses the ordinary user cache/download path.
-    reference_dir = Path(__file__).resolve().parent / "ears_emotional_speaker11"
+    # A checkout uses the original recordings; installed copies use the user cache.
+    reference_dir = Path(__file__).resolve().parents[1] / "tests" / "ears_emotional_speaker11"
     raise SystemExit(main(default_reference_dir=reference_dir if reference_dir.is_dir() else None))

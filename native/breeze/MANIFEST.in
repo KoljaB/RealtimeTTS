@@ -1,4 +1,0 @@
-include build_package.py
-include README.md
-include LICENSE
-recursive-include src/realtimetts_breeze_native/licenses *.txt

@@ -109,8 +109,8 @@ standard `nltk+rule-based` tokenizer and prints progress immediately.
 
 ## Emotional showcase (the video command)
 
-The advertised `tests/faster_qwen_emotions.py` entry point is restored in
-0.8.6. It retains the original eleven recordings/texts, 0.6B Base model,
+The complete demo is in `RealtimeTTS/qwen_emotions.py`. It retains the
+original eleven recordings/texts, 0.6B Base model,
 and speaker-only emotion-reference workflow on the maintained native engine.
 See [the emotional demo guide](../qwen-emotions.md) for the original install/run
 commands, CPU and HTTP-server variants, headless output, and release status.

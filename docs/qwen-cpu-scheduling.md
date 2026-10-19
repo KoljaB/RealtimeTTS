@@ -48,7 +48,7 @@ affinity layouts must be checked on the target platform.
 ## Windows Ryzen 9 3900X: ready-to-run server
 
 For the tested Windows Ryzen 9 3900X (12 physical cores, 24 logical CPUs), use
-[server_3900x.cmd](https://github.com/KoljaB/RealtimeTTS/blob/v0.8.10/tools/qwen_cpu_overlap/server_3900x.cmd). This is an explicit
+the installed server preset `--preset windows-3900x`. This is an explicit
 machine-specific profile, not automatic CPU detection. Do not use these affinity
 masks on a different processor or logical-core layout.
 
@@ -57,17 +57,14 @@ In Windows cmd, create a folder for the test and run:
 ```bat
 uv venv --python 3.11 --managed-python
 uv pip install --python .venv\Scripts\python.exe "realtimetts[qwen-cpu-server]==0.8.10"
-.venv\Scripts\realtimetts-qwen-server.exe --preset windows-3900x --cpu-fused-attention --demo-voice
+.venv\Scripts\python.exe -m RealtimeTTS.qwen_server --preset windows-3900x --cpu-fused-attention --demo-voice
 ```
 
-The profile now lives in the installed package. Downloading the CMD launcher is
-optional; it calls the same profile and enables the demo voice. The public neutral
+The profile lives in the installed package. The public neutral
 reference is registered and warmed before the server is ready. For a matching
 GPU installation, see the [CPU/GPU quick start](qwen-studio.md#quick-start-with-a-cloning-example).
 
-The launcher uses an activated venv, a `.venv` next to the downloaded file, or
-the repository-root `.venv` when run from a checkout. It uses the normal model
-cache and permits the first-run model download. It does not require PowerShell.
+The server uses the normal model cache and permits the first-run model download.
 Keep the server running and open http://127.0.0.1:8080/studio. Connect without a
 key for the default local-only server and select **demo-neutral**, or add your
 own reference under **Voices**. An optional transcript is needed for Full ICL; speaker-only cloning
@@ -80,12 +77,12 @@ reference through an existing server:
 .venv\Scripts\python.exe -m RealtimeTTS.qwen_emotions --server http://127.0.0.1:8080 --emotions neutral --no-play
 ```
 
-The launcher selects six generation workers and six codec workers, one-frame
+The preset selects six generation workers and six codec workers, one-frame
 chunks, and separate physical-core masks `0x555` / `0x555000`. It sets only its
 own Python process to Windows **AboveNormal** priority; it does not change
 system-wide settings. The server startup reserve is 80 ms. Studio's
 separate browser buffer defaults to 0 ms and remains editable. Extra CLI arguments can be appended,
-for example `server_3900x.cmd --port 8081`.
+for example by adding `--port 8081` to the server command.
 
 Windows scheduling and competing workloads can change throughput. Earlier Ryzen
 3900X browser checks with a two-frame cadence completed short German streams at displayed
@@ -146,5 +143,5 @@ unexplained; later checks did not reproduce it. Timing of audible audio used
 PortAudio's first non-silent sample DAC schedule, not a microphone measurement.
 
 GPU finer-startup scheduling remains experimental and is excluded here.
-The complete emotional demo remains editable in tests/faster_qwen_emotions.py;
+The complete emotional demo remains editable in RealtimeTTS/qwen_emotions.py;
 compact colored output is the default and --verbose exposes native diagnostics.

@@ -15,24 +15,24 @@ PyPI publication; candidate results do not replace final-artifact checks.
    (the historical rehearsal used `realtimetts==0.8.6rc5` and
    `realtimetts-qwen-native-cpu==0.3.0rc1`); the CPU extra must pin the exact
    matching native version. Existing public GPU native wheels can remain pinned.
-3. Exercise the exact artifacts in the declared isolated/runtime environments,
-   obtain the required fresh signed attestation, and publish to TestPyPI through
-   `tools/release_guard.py publish`. TestPyPI does not bypass the parity guard.
+3. Exercise the exact artifacts in the declared isolated/runtime environments
+   and publish to TestPyPI with standard Twine. TestPyPI still requires the
+   same artifact, installation, and runtime checks as a final release.
 4. Download the uploaded artifacts again and verify their index SHA-256 values.
    Test in fresh virtual environments, with no editable install, local source
    shadowing, manual `site-packages` patches, or undeclared native-library paths.
-5. If a fix is needed, commit it and build a new candidate (`rc2`, etc.). Uploaded
+5. If a fix is needed, commit it and build a new candidate (rc2, etc.). Uploaded
    filenames cannot be replaced, even if a release is deleted. Keep failed
    candidates and their results as evidence; do not try to overwrite them.
-6. Once the candidates pass, build the final-version artifacts once. Publish
-   those first to TestPyPI and repeat the installation/runtime acceptance. Then
-   publish the **same unchanged final files** to PyPI, with fresh attestation and
-   matching public refs. An RC wheel cannot simply be renamed to a final wheel.
+6. Once the candidates pass, build the final-version artifacts once. Publish the
+   final files first to TestPyPI and repeat the installation/runtime acceptance.
+   Then publish the same unchanged final files to PyPI and repeat the index-hash
+   verification. An RC wheel cannot simply be renamed to a final wheel.
 
 ## Rehearse the advertised workflow
 
 Keep the original Python 3.11 environment creation and
-`cd tests; python faster_qwen_emotions.py` entry point. For the package rehearsal,
+`python RealtimeTTS/qwen_emotions.py` entry point. For the package rehearsal,
 replace `pip install -e .[qwen]` with installation of the exact uploaded
 candidate; an editable installation would mask missing packaged files.
 The checkout supplies only the historical script and original reference WAVs.

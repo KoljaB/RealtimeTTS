@@ -248,13 +248,7 @@ def _check_sdist_contents(sdist: Path) -> None:
     missing = sorted(required_files - names)
     if missing:
         raise SystemExit(f"sdist is missing required release files: {', '.join(missing)}")
-    # The editable emotions demo is intentionally shipped in the sdist.
-    allowed_demo_entries = {"tests", "tests/faster_qwen_emotions.py"}
-    if any(
-        name not in allowed_demo_entries
-        and (name.startswith("tests/") or "/tests/" in name)
-        for name in names
-    ):
+    if any(name.startswith("tests/") or "/tests/" in name for name in names):
         raise SystemExit("sdist unexpectedly contains the test suite")
     with tarfile.open(sdist, mode="r:gz") as archive:
         members = {
@@ -331,7 +325,6 @@ def main() -> int:
                         "assert {'breeze', 'breeze-server', 'speechify', 'alignment-cpu', 'alignment-multilingual'} <= extras",
                         "assert dist.metadata['Requires-Python'].replace(' ', '') == '>=3.10,<3.15'",
                         "assert any(ep.name == 'realtimetts-qwen-server' for ep in dist.entry_points)",
-                        "assert any(ep.name == 'realtimetts-qwen-emotions' for ep in dist.entry_points)",
                         "assert any(ep.name == 'realtimetts-breeze-server' for ep in dist.entry_points)",
                         "import RealtimeTTS.qwen_emotions as demo",
                         "assert demo.main(['--list']) == 0",

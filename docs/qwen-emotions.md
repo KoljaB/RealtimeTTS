@@ -1,7 +1,7 @@
 # Emotional Qwen showcase
 
-`tests/faster_qwen_emotions.py` is the supported entry point advertised in the
-emotional Qwen video. Its old filename is intentional. It now uses the maintained
+`RealtimeTTS/qwen_emotions.py` contains the complete emotional Qwen demo
+from the video and is included in the installed package. It uses the maintained
 native Qwen backend, with the original eleven reference recordings and spoken
 texts, 0.6B Base Q8, and speaker-only cloning. Some original showcase texts contain
 strong language. Emotion comes from the recording, not an instruction prompt.
@@ -23,7 +23,7 @@ Publication is gated on fresh non-editable TestPyPI installations and real
 synthesis, followed by publication of the same final artifacts to PyPI. See
 the [TestPyPI acceptance plan](qwen-release-rehearsal.md).
 
-## GPU: the existing video command
+## GPU: run the demo
 
 Create and activate a Python 3.11 virtual environment. On Windows cmd:
 
@@ -34,8 +34,7 @@ python -m pip install --upgrade pip
 git clone https://github.com/KoljaB/RealtimeTTS.git
 cd RealtimeTTS
 python -m pip install -e ".[qwen]"
-cd tests
-python faster_qwen_emotions.py
+python RealtimeTTS/qwen_emotions.py
 ```
 
 On Linux/macOS the environment commands are `python3 -m venv test_env` and
@@ -47,7 +46,7 @@ Ubuntu); macOS needs PortAudio (for example `brew install portaudio`). Windows
 Python 3.11 has a prebuilt PyAudio wheel.
 
 The maintained CPU equivalent uses `python -m pip install -e ".[qwen-cpu]"` and
-`python faster_qwen_emotions.py --device cpu`.
+`python RealtimeTTS/qwen_emotions.py --device cpu`.
 The model is not silently changed to 1.7B or another backend. The local CPU demo
 also enables the deployed CPU onset-silence profile and recovery. The CPU server
 command below enables those explicitly. Exact production reproduction additionally
@@ -73,7 +72,7 @@ server's `/studio` page for browser playback. To exercise the original emotional
 references against either server without needing an audio device:
 
 ```bash
-python faster_qwen_emotions.py --server http://127.0.0.1:8080 --no-play
+python RealtimeTTS/qwen_emotions.py --server http://127.0.0.1:8080 --no-play
 ```
 
 With only a package installation (no Git clone), the equivalent command is:
@@ -84,7 +83,7 @@ python -m RealtimeTTS.qwen_emotions --server http://127.0.0.1:8080 --no-play
 
 The installed module downloads the original public reference WAVs from a pinned
 repository revision into the user cache and verifies SHA-256 hashes. A checkout
-uses the tracked WAVs beside the historical script. No `.pt` conversion or Torch
+uses the tracked WAVs in `tests/ears_emotional_speaker11`. No `.pt` conversion or Torch
 cache is required. Voice preparation is cached by the native engine.
 
 For local playback from a server client install `realtimetts[playback]`, then omit
@@ -96,8 +95,8 @@ with `emotions-demo-`; they do not replace the server's normal voices.
 ## Quick checks and output
 
 ```bash
-python faster_qwen_emotions.py --list
-python faster_qwen_emotions.py --emotions neutral anger --text "This is a short test." --no-play
+python RealtimeTTS/qwen_emotions.py --list
+python RealtimeTTS/qwen_emotions.py --emotions neutral anger --text "This is a short test." --no-play
 ```
 
 Every successful run saves one nonempty 24 kHz mono WAV per emotion and a

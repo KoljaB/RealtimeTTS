@@ -109,14 +109,13 @@ language routing, and reproducing the deployed CPU settings.
 
 CPU decoder overlap is available through explicit worker and chunk settings.
 See [CPU scheduling and measured results](docs/qwen-cpu-scheduling.md).
-Windows Ryzen 9 3900X users can use the [tested cmd launcher and fresh-venv guide](docs/qwen-cpu-scheduling.md#windows-ryzen-9-3900x-ready-to-run-server).
+Windows Ryzen 9 3900X users can use the [CPU preset and fresh-venv guide](docs/qwen-cpu-scheduling.md#windows-ryzen-9-3900x-ready-to-run-server).
 
 ### Emotional Qwen demo from the video
 
-The complete editable demo is in `tests/faster_qwen_emotions.py`, including the
+The complete editable demo is in `RealtimeTTS/qwen_emotions.py`, including the
 voice texts and playback loop. Its compact colored output is the default;
 add `--verbose` for native diagnostics. Warnings and errors remain visible.
-The packaged `RealtimeTTS.qwen_emotions` command is built from the same source.
 It keeps the original eleven emotional references/texts and the 0.6B Base Q8
 speaker-only workflow. In an activated Python 3.11 or 3.12 environment:
 
@@ -124,12 +123,11 @@ speaker-only workflow. In an activated Python 3.11 or 3.12 environment:
 git clone https://github.com/KoljaB/RealtimeTTS.git
 cd RealtimeTTS
 python -m pip install -e ".[qwen]"
-cd tests
-python faster_qwen_emotions.py
+python RealtimeTTS/qwen_emotions.py
 ```
 
 For CPU use `.[qwen-cpu]` when installing, then run
-`python faster_qwen_emotions.py --device cpu`. Local playback on Linux/macOS
+`python RealtimeTTS/qwen_emotions.py --device cpu`. Local playback on Linux/macOS
 needs PortAudio (see below). The first run downloads the model pair if needed.
 See the [emotional showcase guide](docs/qwen-emotions.md) for the complete
 virtual-environment setup, headless/server mode, and package-only commands.

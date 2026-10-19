@@ -1,4 +1,4 @@
-# TestPyPI release candidate: 0.9.0rc4
+# TestPyPI release candidate: 0.9.0rc5
 
 Use Python 3.11 and [uv](https://docs.astral.sh/uv/). The commands below are the
 same on Windows and Linux. Run them from the folder where you want your .venv.
@@ -20,19 +20,19 @@ PyPI, avoiding unrelated experimental packages on TestPyPI.
 Breeze GPU:
 
 ~~~sh
-uv pip install --python .venv --find-links https://test.pypi.org/simple/realtimetts/ --find-links https://test.pypi.org/simple/realtimetts-breeze-native/ "realtimetts[breeze-server]==0.9.0rc4"
+uv pip install --python .venv --find-links https://test.pypi.org/simple/realtimetts/ --find-links https://test.pypi.org/simple/realtimetts-breeze-native/ "realtimetts[breeze-server]==0.9.0rc5"
 ~~~
 
 Qwen NVIDIA GPU:
 
 ~~~sh
-uv pip install --python .venv --find-links https://test.pypi.org/simple/realtimetts/ "realtimetts[qwen-server]==0.9.0rc4"
+uv pip install --python .venv --find-links https://test.pypi.org/simple/realtimetts/ "realtimetts[qwen-server]==0.9.0rc5"
 ~~~
 
 Qwen CPU:
 
 ~~~sh
-uv pip install --python .venv --find-links https://test.pypi.org/simple/realtimetts/ "realtimetts[qwen-cpu-server]==0.9.0rc4"
+uv pip install --python .venv --find-links https://test.pypi.org/simple/realtimetts/ "realtimetts[qwen-cpu-server]==0.9.0rc5"
 ~~~
 
 Breeze requires a Vulkan-capable GPU and driver. Qwen GPU requires an NVIDIA
@@ -80,7 +80,7 @@ local audio playback in the same environment (choose qwen-server instead of
 qwen-cpu-server if you prefer Qwen on GPU):
 
 ~~~sh
-uv pip install --python .venv --find-links https://test.pypi.org/simple/realtimetts/ --find-links https://test.pypi.org/simple/realtimetts-breeze-native/ "realtimetts[breeze-server,qwen-cpu-server,demo]==0.9.0rc4"
+uv pip install --python .venv --find-links https://test.pypi.org/simple/realtimetts/ --find-links https://test.pypi.org/simple/realtimetts-breeze-native/ "realtimetts[breeze-server,qwen-cpu-server,demo]==0.9.0rc5"
 ~~~
 
 On Debian/Ubuntu, local playback also needs PortAudio. If PyAudio needs to build,

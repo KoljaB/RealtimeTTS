@@ -16,10 +16,10 @@ from RealtimeTTS import qwen_emotions as demo
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_advertised_script_lists_original_emotions_from_tests_directory():
+def test_advertised_script_lists_original_emotions():
     result = subprocess.run(
-        [sys.executable, "-B", "faster_qwen_emotions.py", "--list"],
-        cwd=ROOT / "tests", capture_output=True, text=True, check=True,
+        [sys.executable, "-B", str(ROOT / "RealtimeTTS" / "qwen_emotions.py"), "--list"],
+        cwd=ROOT, capture_output=True, text=True, check=True,
     )
     assert result.stdout.splitlines() == list(demo.ASSET_HASHES)
 
@@ -143,13 +143,6 @@ def test_server_demo_registers_wav_and_streams_pcm_without_local_engine(tmp_path
     assert len(calls) == 3
     assert demo._check_wav(tmp_path / "neutral.wav") == .1
 
-
-def test_demo_is_packaged_and_console_entry_point_is_preserved():
-    assert (ROOT / "RealtimeTTS" / "qwen_emotions.py").read_text(encoding="utf-8") == (
-        ROOT / "tests" / "faster_qwen_emotions.py"
-    ).read_text(encoding="utf-8")
-    assert (ROOT / "RealtimeTTS" / "qwen_emotions.py").is_file()
-    assert "realtimetts-qwen-emotions=RealtimeTTS.qwen_emotions:main" in (ROOT / "setup.py").read_text()
 
 def test_compact_native_filter_preserves_warnings_errors_and_unknown_lines(capfd):
     with demo.filtered_native_stderr(enabled=True):

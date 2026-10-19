@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.9.0rc5 - Release candidate
+
+- Keep the complete emotional Qwen demo in RealtimeTTS/qwen_emotions.py and
+  remove its duplicate source, build-copy hook and console-script entry point.
+- Remove the redundant Windows 3900X launcher; the installed CPU preset remains.
+- Maintain Breeze native builds exclusively in the separate native repository.
+- Simplify releases to standard build, installation checks and Twine upload;
+  remove the signature guard and its dedicated tests.
+- Remove the unused root Hello World placeholder. Native dependencies,
+  bundled voices and inference settings are unchanged from rc4.
+
 ## 0.9.0rc4 - Release candidate
 
 - Use the portable Breeze native 0.1.0rc2 builds, including reference-prefix

@@ -3,7 +3,6 @@ import re
 from pathlib import Path
 
 import setuptools
-from setuptools.command.build_py import build_py as _build_py
 
 _ROOT = Path(__file__).resolve().parent
 _version_text = (Path(__file__).resolve().parent / "RealtimeTTS" / "_version.py").read_text(
@@ -13,19 +12,6 @@ _version_match = re.search(r'^__version__ = "([^"]+)"$', _version_text, re.MULTI
 if _version_match is None:
     raise RuntimeError("Could not determine RealtimeTTS package version")
 current_version = _version_match.group(1)
-
-class BuildPy(_build_py):
-    """Ship the complete demo from its original editable source location."""
-
-    def run(self):
-        super().run()
-        source = _ROOT / "tests" / "faster_qwen_emotions.py"
-        target = Path(self.build_lib) / "RealtimeTTS" / "qwen_emotions.py"
-        # The normal build already creates this package directory. Force the
-        # canonical source over the checkout-only adapter, even on rebuilds.
-        import shutil
-        shutil.copyfile(source, target)
-
 
 # Read the contents of README.md
 with (_ROOT / "README.md").open("r", encoding="utf-8") as fh:
@@ -374,7 +360,6 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/KoljaB/realtimetts",
     packages=setuptools.find_packages(exclude=["tests", "tests.*"]),
-    cmdclass={"build_py": BuildPy},
     classifiers=[
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.10",
@@ -399,7 +384,6 @@ setuptools.setup(
             "realtimetts-qwen-server=RealtimeTTS.qwen_server:main",
             "realtimetts-breeze-server=RealtimeTTS.breeze_server:main",
             "realtimetts-language-server=RealtimeTTS.language_routing_server:main",
-            "realtimetts-qwen-emotions=RealtimeTTS.qwen_emotions:main",
         ],
     },
     keywords="real-time, text-to-speech, TTS, streaming, audio, voice, synthesis, sentence-segmentation, low-latency, character-streaming, dynamic feedback, audio-output, text-input, TTS-engine, audio-playback, stream-player, sentence-fragment, audio-feedback, interactive, python",

@@ -41,7 +41,7 @@ To add PyAudio explicitly, use `realtimetts[playback]`. The `qwen-server` and
 `qwen-cpu-server` extras are headless and do not require PyAudio/PortAudio.
 Use Python 3.11 or 3.12 for the Qwen GPU/CPU workflows; see the
 [emotional showcase guide](qwen-emotions.md) for platform requirements and the
-restored `faster_qwen_emotions.py` workflow.
+directly runnable `RealtimeTTS/qwen_emotions.py` demo.
 
 ## Sentence Tokenizer
 
