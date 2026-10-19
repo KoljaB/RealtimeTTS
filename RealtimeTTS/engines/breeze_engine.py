@@ -29,11 +29,23 @@ VOCAL_TAGS = (
     "clears throat", "cough", "sniffle", "lip smack", "click tongue", "yawn",
     "sneeze", "hiccup", "burp", "gulp", "gag", "grunt", "scoff", "snort",
 )
-_TONE = re.compile(r"(?:^|(?<=[\r\n]))[ \t]*\[([^\]\r\n]{1,500})\][ \t\r\n]*")
-_INLINE_VOCAL_TAG = re.compile(
-    r"\((" + "|".join(re.escape(tag) for tag in sorted(VOCAL_TAGS, key=len, reverse=True)) + r")\)",
+_SOUND_NAMES = "|".join(re.escape(tag).replace(r"\ ", r"[ _]") for tag in VOCAL_TAGS)
+_DIRECTION = re.compile(
+    r"\[(?P<sound>" + _SOUND_NAMES + r")\]"
+    r"|(?:^|(?<=[\r\n]))[ \t]*\[(?P<tone>[^\]\r\n]{1,500})\][ \t\r\n]*",
     re.IGNORECASE,
 )
+_INLINE_VOCAL_TAG = re.compile(
+    r"\((" + "|".join(re.escape(tag) for tag in VOCAL_TAGS) + r")\)"
+    r"|\[(" + _SOUND_NAMES + r")\]",
+    re.IGNORECASE,
+)
+_VOCAL_DIRECTIONS = {
+    "chuckle": "Chuckle briefly.",
+    "laugh": "Brief laughter.",
+    "clear throat": "Clear your throat once, briefly.",
+    "sigh": "Exhale a gentle sigh.",
+}
 
 
 class BreezeEngineError(RuntimeError):
@@ -81,7 +93,7 @@ def alignment_non_speech_ranges(text: str) -> list[dict[str, int]]:
 
     Square-bracket tone directions are deliberately excluded: they are
     paragraph instructions and are removed before synthesis, while these
-    parenthesized tags remain in the original text as vocal inserts.
+    parenthesized tags and square-bracket sound shortcuts are vocal inserts.
     """
     return [
         {"start": _utf16_offset(text, match.start()),
@@ -91,13 +103,18 @@ def alignment_non_speech_ranges(text: str) -> list[dict[str, int]]:
 
 
 def directed_blocks(text: str, instruction: str):
-    """Separate paragraph-leading directions without touching inline sounds."""
+    """Expand [sound] shortcuts with a temporary direction, like the Python demo."""
     start = 0
-    for tag in _TONE.finditer(text):
+    for tag in _DIRECTION.finditer(text):
         preceding = text[start:tag.start()].strip()
         if preceding:
             yield preceding, instruction
-        instruction = tag.group(1).strip()
+        if tag.group("sound"):
+            sound = tag.group("sound").lower().replace("_", " ")
+            yield f"({sound})", _VOCAL_DIRECTIONS.get(
+                sound, f"Make a brief {sound} sound without speaking words.")
+        else:
+            instruction = tag.group("tone").strip()
         start = tag.end()
     remaining = text[start:].strip()
     if remaining:

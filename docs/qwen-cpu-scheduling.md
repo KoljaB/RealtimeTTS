@@ -1,5 +1,11 @@
 # Qwen CPU scheduling
 
+For 0.9.0rc7, use the [direct Python quickstart](testpypi-quickstart.md).
+The server now automatically selects the verified Windows 3900X or Linux
+i9-13900KF profile when the CPU/core layout matches. Explicit CPU tuning
+flags take precedence; --preset portable disables automatic selection.
+The measurements below retain their original versions and test conditions.
+
 RealtimeTTS 0.8.10 pins realtimetts-qwen-native-cpu 0.4.2 for the CPU extras.
 The CUDA native package remains at 0.2.0. Model weights, Q8_0 precision, voices
 and sampling settings are unchanged by the CPU scheduling options.

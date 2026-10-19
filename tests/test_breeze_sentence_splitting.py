@@ -50,6 +50,24 @@ def test_websocket_option_changes_actual_engine_calls(tmp_path, split):
     assert len([event for event in events if event["type"] == "fragment_start"]) == len(calls)
 
 
+def test_explicit_studio_sound_instructions_keep_their_audio_fragment(tmp_path):
+    from RealtimeTTS.engines.breeze_engine import directed_blocks
+    engine, client = server_client(tmp_path)
+    text = "[Speak naturally and warmly] Hello!\n[Chuckle briefly] (chuckle)\n[Speak naturally and warmly] That was a lovely surprise, and I am glad you are here."
+    with client, client.websocket_connect("/v1/audio/speech-stream") as ws:
+        ws.send_json({"type": "config", "voice": "test"})
+        ws.send_json({"type": "text", "text": text})
+        ws.send_json({"type": "end"})
+        receive_done(ws)
+    blocks = []
+    for fragment, _ in engine.seen:
+        parsed = list(directed_blocks(fragment, "Natural"))
+        assert parsed, fragment  # A bare direction must not become a no-PCM request.
+        blocks.extend(parsed)
+    assert ("(chuckle)", "Chuckle briefly") in blocks
+    assert blocks[0] == ("Hello!", "Speak naturally and warmly")
+
+
 @pytest.mark.parametrize("format", ["pcm", "wav"])
 def test_http_remains_whole_text(tmp_path, format):
     engine, client = server_client(tmp_path)

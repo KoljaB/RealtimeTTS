@@ -225,6 +225,25 @@ The engine also understands paragraph-leading [tone] tags in complete input,
 including CR/LF and whitespace immediately after a tag. For incremental model
 output, Miep parses these tags before segmentation and sends instruction metadata.
 
+Studio shows the sound cue and its editable voice instruction explicitly:
+
+```text
+[Speak naturally and warmly] Hello!
+[Chuckle briefly] (chuckle)
+[Speak naturally and warmly] That was a lovely surprise, and I am glad you are here.
+```
+
+Change [Chuckle briefly] to, for example, [Chuckle softly and shyly] to adjust
+the delivery. Put instructions at the start of a new line, followed by the
+sound or speech on that same line so streaming does not split off a bare
+instruction. The (chuckle) cue
+produces the sound; the following [Speak naturally and warmly] explicitly
+returns to speech. The vocal-insert button inserts this full editable block.
+Like the Python demo, this gives the sound its own instruction. A bare
+parenthesized cue does not supply one. Sound realization is model-dependent.
+The optional [chuckle] shorthand still uses its built-in instruction; use the
+explicit form above when you want to control it.
+
 The application vocal-event allowlist is:
 (laugh), (chuckle), (giggle), (cry), (sob), (whimper), (groan),
 (moan), (sigh), (gasp), (inhale), (exhale), (breathe heavily),

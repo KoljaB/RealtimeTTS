@@ -11,11 +11,20 @@ def breeze_model():
     ))
 
 
-def alignment_model():
+def alignment_model(*, local_files_only=False):
     from huggingface_hub import snapshot_download
     print("Preparing multilingual highlighting model (downloaded once, then cached)...", flush=True)
     return Path(snapshot_download(
         "csukuangfj/sherpa-onnx-omnilingual-asr-1600-languages-300M-ctc-int8-2025-11-12",
         revision="6abf1ece20cd2308bdb7d13cd78ec1c44fa4c094",
         allow_patterns=["model.int8.onnx", "tokens.txt"],
+        local_files_only=local_files_only,
     ))
+
+
+def prepare_studio_alignment(engine, *, local_files_only=False):
+    """Display-only timestamps; no native decoder cutoff or audio buffering."""
+    from RealtimeTTS.alignment.backends import CPUAlignmentModel
+    from RealtimeTTS.alignment.onnx_ctc import OnnxCTCBackend
+    backend = OnnxCTCBackend(alignment_model(local_files_only=local_files_only), threads=2)
+    engine.studio_aligner = CPUAlignmentModel(backend)

@@ -38,6 +38,15 @@ test('Breeze reference payload excludes Qwen-only fields and accepts native zero
   for(const field of ['clone_mode','do_sample','subtalker_do_sample','subtalker_temperature']) assert.ok(!(field in p));
   assert.equal(s.element('cloneControls').hidden,true);assert.equal(s.element('refText').required,true);
 });
+test('Breeze example and picker expose editable sound instructions',()=>{
+  const s=setup();s.element('text').value='Once when I was six years old, I saw a magnificent picture.';
+  vm.runInContext('defaults();applyMode();',s.context);
+  assert.equal(s.element('text').value,"[Speak naturally and warmly] Hello!\n[Chuckle briefly] (chuckle)\n[Speak naturally and warmly] That was a lovely surprise, and I am glad you are here.");
+  assert.equal(s.element('vocalTag').children[1].text,'(chuckle)');
+  assert.equal(vm.runInContext("vocalInsert('chuckle',false)",s.context), '\n[Chuckle briefly] (chuckle)\n');
+  assert.equal(vm.runInContext("vocalInsert('chuckle')",s.context), '\n[Chuckle briefly] (chuckle)\n[Speak naturally and warmly] ');
+});
+
 test('Breeze design combines the description and direction and sends no reference selection',()=>{
   const s=setup();s.element('synthesisMode').value='design';
   assert.throws(()=>s.options(),/Stimme beschreiben/);

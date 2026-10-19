@@ -117,6 +117,11 @@ def build_argument_parser():
     parser.add_argument("--seed", type=int, default=44)
     parser.add_argument("--max-new-tokens", type=int, default=500)
     parser.add_argument("--reference-prefix-cache", action="store_true")
+    parser.add_argument("--retune", action="store_true", help="Remeasure streaming chunks instead of using the cached profile")
+    parser.add_argument("--chunk-first", type=int, help="Manual first chunk size; bypass startup calibration")
+    parser.add_argument("--chunk-max", type=int, help="Manual maximum chunk size; use with --chunk-first")
+    parser.add_argument("--alignment", action=argparse.BooleanOptionalAction, default=True,
+                        help="Prepare live Studio highlighting before readiness (default: on)")
     parser.add_argument("--language-id-model", type=Path,
                         help="Local fastText lid.176.bin for background text classification")
     parser.add_argument("--alignment-model", type=Path)
@@ -143,9 +148,21 @@ def main(argv=None):
     if args.model and args.worker_ws_url:
         raise SystemExit("--model cannot be combined with --worker-ws-url")
     if args.model or not (args.worker_url or args.worker_ws_url):
-        from RealtimeTTS.breeze_worker import local_worker
+        from RealtimeTTS.breeze_worker import local_worker, calibrated_worker
         from RealtimeTTS.model_assets import breeze_model
-        worker = local_worker(args.model or breeze_model(), args.voice_dir / "native")
+        model = args.model or breeze_model()
+        if args.chunk_first is not None or args.chunk_max is not None:
+            if args.chunk_first is None or args.chunk_max is None:
+                raise SystemExit("Pass both --chunk-first and --chunk-max")
+            worker = local_worker(model, args.voice_dir / "native",
+                                  chunk_first=args.chunk_first, chunk_max=args.chunk_max)
+        else:
+            reference = (BreezeVoice(args.voice, args.voice_reference, args.voice_reference_text)
+                         if args.voice_reference else BreezeVoice.builtin("en"))
+            worker = calibrated_worker(model, args.voice_dir / "native", reference, retune=args.retune,
+                settings=dict(cfg_scale=args.cfg_scale, seed=args.seed,
+                              max_new_tokens=args.max_new_tokens,
+                              reference_prefix_cache=args.reference_prefix_cache))
     else:
         worker = nullcontext((args.worker_url or "http://127.0.0.1:8137",
                               args.worker_ws_url or "ws://127.0.0.1:8138"))
@@ -158,6 +175,9 @@ def main(argv=None):
                               alignment_model=args.alignment_model,
                               alignment_language=args.alignment_language,
                               alignment_threads=args.alignment_threads)
+        if args.alignment:
+            from RealtimeTTS.model_assets import prepare_studio_alignment
+            prepare_studio_alignment(engine)
         server = BreezeHttpServer(
             engine, voice_dir=args.voice_dir, api_key=key,
             language_detector=(FastTextLanguageDetector(args.language_id_model)

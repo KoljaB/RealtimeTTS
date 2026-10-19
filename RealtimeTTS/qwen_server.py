@@ -70,6 +70,7 @@ from RealtimeTTS.engines.qwen_engine import (
     QwenVoice,
 )
 from RealtimeTTS.engines.qwen_cpu_engine import QwenCpuEngine
+from RealtimeTTS.audio_tempo import TempoProcessor, validate_speed
 from RealtimeTTS.qwen_cpu_topology import split_windows_cpu_cores
 from RealtimeTTS.text_exchange import TextExchange
 from RealtimeTTS.language_router import (
@@ -522,6 +523,7 @@ class SpeechOptions:
     alignment: Any = None
     mixed_language: Optional[str] = None
     silence: Optional[Mapping[str, float]] = None
+    speed: float = 1.0
 
 
 @dataclass(frozen=True)
@@ -536,6 +538,7 @@ class SpeechRequest:
     alignment: Any = None
     source_text: Optional[str] = None
     source_ranges: Any = None
+    speed: float = 1.0
 
 
 class SynthesisState:
@@ -631,19 +634,19 @@ class _CaptureQueue:
         *,
         abort: Callable[[SynthesisState, str, str, int], None],
         max_output_bytes: int,
+        tempo_processor: Optional[TempoProcessor] = None,
     ) -> None:
         self.state = state
         self.metrics = metrics
         self.abort = abort
         self.max_output_bytes = max_output_bytes
+        self.tempo_processor = tempo_processor
+        self._input_bytes = 0
+        self._finished = False
 
-    def put(self, item: Any, block: bool = True, timeout: Optional[float] = None) -> None:
-        del block, timeout
-        if self.state.cancelled.is_set():
-            return
-        pcm = bytes(item)
-        if not pcm:
-            return
+    def _publish(self, pcm: bytes) -> bool:
+        if self.state.cancelled.is_set() or not pcm:
+            return False
         if self.state.received_bytes + len(pcm) > self.max_output_bytes:
             self.abort(
                 self.state,
@@ -651,13 +654,13 @@ class _CaptureQueue:
                 "synthesis output exceeded the configured limit",
                 503,
             )
-            return
+            return False
         self.state.received_bytes += len(pcm)
         if self.state.response_format == "wav":
             self.state.chunks.append(pcm)
             self.state.received_pcm = True
             self.metrics.progress()
-            return
+            return True
         if not self.state.audible:
             if _pcm_has_signal(pcm):
                 self.state.audible = True
@@ -670,7 +673,7 @@ class _CaptureQueue:
                 self.state.output.put(pcm, timeout=0.1)
                 self.state.received_pcm = True
                 self.metrics.progress()
-                return
+                return True
             except queue_module.Full:
                 if time.monotonic() >= self.state.deadline:
                     self.abort(
@@ -679,7 +682,44 @@ class _CaptureQueue:
                         "synthesis timed out while delivering audio",
                         504,
                     )
-                    return
+                    return False
+        return False
+
+    def put(self, item: Any, block: bool = True, timeout: Optional[float] = None) -> None:
+        del block, timeout
+        if self.state.cancelled.is_set():
+            return
+        pcm = bytes(item)
+        if not pcm:
+            return
+        self._input_bytes += len(pcm)
+        if self._input_bytes > self.max_output_bytes:
+            self.abort(
+                self.state,
+                "server_error",
+                "synthesis output exceeded the configured limit",
+                503,
+            )
+            return
+        if self.tempo_processor is None:
+            self._publish(pcm)
+            return
+        for chunk in self.tempo_processor.feed(pcm):
+            if not self._publish(bytes(chunk)):
+                break
+
+    def finish(self) -> None:
+        if self._finished:
+            return
+        self._finished = True
+        if self.tempo_processor is None:
+            return
+        if self.state.cancelled.is_set():
+            self.tempo_processor.cancel()
+            return
+        for chunk in self.tempo_processor.finish():
+            if not self._publish(bytes(chunk)):
+                break
 
 
 class _DiscardQueue:
@@ -953,15 +993,42 @@ class QwenHttpServer:
                 "universal_alignment": True,
                 "acoustic_guard": bool(getattr(self.engine, "acoustic_guard", False)),
                 "alignment_modes": ["live", "synced", "export"],
-                "alignment_timestamps": getattr(getattr(self.engine, "streaming_aligner", None), "timestamp_levels", []),
-                "alignment_language": getattr(getattr(getattr(self.engine, "streaming_aligner", None), "backend", None), "language", None),
+                "alignment_default_mode": "live",
+                "alignment_timestamps": list(dict.fromkeys(
+                    level
+                    for backend in (
+                        getattr(self.engine, "studio_aligner", None),
+                        getattr(self.engine, "streaming_aligner", None),
+                    )
+                    for level in (
+                        getattr(backend, "timestamp_levels", None)
+                        or ("word", "character") if backend is not None else ()
+                    )
+                )),
+                "alignment_language": getattr(
+                    getattr(self.engine, "studio_aligner", None),
+                    "language",
+                    getattr(getattr(getattr(self.engine, "streaming_aligner", None), "backend", None), "language", None),
+                ),
                 "alignment_language_timestamps": getattr(getattr(self.engine, "streaming_aligner", None), "language_timestamps", {}),
                 "hallucination_guard": bool(getattr(self.engine, "streaming_aligner", None) is not None and getattr(self.engine, "hallucination_guard", False)),
+                "speed_control": {
+                    "min": 0.25,
+                    "max": 4.0,
+                    "default": 1.0,
+                    "pitch_preserving": True,
+                },
             },
             "playback": {
                 "startup_buffer_ms": getattr(self.engine, "startup_buffer_ms", None),
                 "trim_silence": getattr(self.engine, "trim_silence", None),
                 "onset_silence_recovery": False,
+                "speed": {
+                    "min": 0.25,
+                    "max": 4.0,
+                    "default": 1.0,
+                    "pitch_preserving": True,
+                },
             },
             "ready": self.is_ready(),
         }
@@ -1157,6 +1224,10 @@ class QwenHttpServer:
             language = normalize_qwen_language(language, allow_auto=True)
         except ValueError as exc:
             raise ApiError(400, "invalid_request_error", str(exc)) from exc
+        try:
+            speed = validate_speed(payload.get("speed", 1.0))
+        except (TypeError, ValueError) as exc:
+            raise ApiError(400, "invalid_request_error", str(exc)) from exc
 
         sampling: dict[str, Any] = {}
         if "clone_mode" in payload:
@@ -1239,7 +1310,7 @@ class QwenHttpServer:
             raise ApiError(400, "invalid_request_error", str(exc)) from exc
         return SpeechOptions(
             voice, response_format, instructions, sampling, language, exchange, split_sentences, alignment,
-            mixed_language=mixed_language, silence=payload.get("silence"),
+            mixed_language=mixed_language, silence=payload.get("silence"), speed=speed,
         )
 
     def parse_speech(self, payload: Mapping[str, Any]) -> SpeechRequest:
@@ -1259,6 +1330,7 @@ class QwenHttpServer:
             options.sampling,
             options.language,
             options.exchange,
+            speed=options.speed,
         )
 
     def start_synthesis(
@@ -1356,24 +1428,30 @@ class QwenHttpServer:
                 shared_alignment = None
                 ok = False
                 if alignment_enabled:
+                    from RealtimeTTS.alignment.server import scale_alignment_event
                     state.alignment_done.clear()
 
                     def on_alignment(event: dict[str, Any]) -> None:
                         if state.alignment_closed.is_set():
                             return
-                        state.alignment_events.put(event)
+                        state.alignment_events.put(scale_alignment_event(event, request.speed))
                         if event["type"] == "alignment_done":
                             state.alignment_done.set()
 
                     self.engine.on_alignment = on_alignment
                     self.engine.alignment_start_event = state.first_pcm_published if state.response_format == "pcm" else None
                     self.engine.alignment_cancel_event = state.cancelled
-                self.engine.queue = _CaptureQueue(
+                tempo_processor = None
+                if request.speed != 1.0:
+                    tempo_processor = TempoProcessor(*self.engine.get_stream_info(), request.speed)
+                capture_queue = _CaptureQueue(
                     state,
                     self.metrics,
                     abort=self._abort_state,
                     max_output_bytes=self.max_output_bytes,
+                    tempo_processor=tempo_processor,
                 )
+                self.engine.queue = capture_queue
                 set_context = getattr(self.engine, "set_stream_context", None)
                 if callable(set_context):
                     set_context(getattr(state, "stream_context", None))
@@ -1391,11 +1469,16 @@ class QwenHttpServer:
                         if callable(resume):
                             resume()
                 finally:
-                    if shared_alignment is not None:
-                        shared_alignment.finish(success=bool(ok))
-                    if callable(set_context):
-                        set_context(None)
-                    self.engine.queue = original_queue
+                    try:
+                        if shared_alignment is not None:
+                            shared_alignment.finish(success=bool(ok))
+                    finally:
+                        try:
+                            capture_queue.finish()
+                        finally:
+                            if callable(set_context):
+                                set_context(None)
+                            self.engine.queue = original_queue
                     snapshot = getattr(self.engine, "synthesis_diagnostics", None)
                     if callable(snapshot):
                         state.engine_diagnostics = snapshot()
@@ -2647,6 +2730,7 @@ def create_app(server: QwenHttpServer) -> Any:
                     options.sampling,
                     getattr(fragment, "language", options.language),
                     alignment=options.alignment,
+                    speed=options.speed,
                 )
                 if request.language == "auto":
                     if isinstance(fragment, _DetectedLanguageText):
@@ -2849,8 +2933,8 @@ def build_argument_parser() -> argparse.ArgumentParser:
     parser.add_argument("--model-id", default=DEFAULT_MODEL, help="Hugging Face model id")
     parser.add_argument("--quant", default=DEFAULT_QUANT)
     parser.add_argument("--alias", default="qwen3-tts-native-q8")
-    parser.add_argument("--preset", choices=("windows-3900x",),
-                        help="Opt-in Windows Ryzen 3900X CPU profile: 6+6 workers, separate cores, AboveNormal, 80 ms reserve")
+    parser.add_argument("--preset", choices=("windows-3900x", "linux-13900kf", "linux-4090", "portable"),
+                        help="Verified CPU profile (automatic on matching hardware); portable disables automatic tuning")
     parser.add_argument("--bundled-voices", action=argparse.BooleanOptionalAction, default=True,
                         help="Make the packaged reference voices available (default: enabled)")
     parser.add_argument("--demo-voice", action=argparse.BooleanOptionalAction, default=False,
@@ -2946,6 +3030,8 @@ def build_argument_parser() -> argparse.ArgumentParser:
         help="Maximum hidden synthesis tokens used by --startup-warmup-voice",
     )
     parser.add_argument("--model-cache-dir", type=Path)
+    parser.add_argument("--alignment", action=argparse.BooleanOptionalAction, default=True,
+                        help="Prepare live Studio highlighting before readiness (default: on)")
     parser.add_argument("--alignment-model", type=Path,
                         help="CPU CTC alignment model directory")
     parser.add_argument("--alignment-language",
@@ -3112,28 +3198,107 @@ def _warn_for_compressed_language_id_model(model_path: Optional[Path]) -> None:
         )
 
 
+def _automatic_cpu_preset() -> str | None:
+    """Use measured settings only when the hardware and core layout match."""
+    if sys.platform.startswith("linux"):
+        try:
+            if "i9-13900KF" not in Path("/proc/cpuinfo").read_text():
+                return None
+            required = {bit for bit in range(64) if (0x5545 | 0xAA8A) & (1 << bit)}
+            if not required <= os.sched_getaffinity(0):
+                return None
+            for first in (0, 2, 6, 8, 10, 12, 14):
+                siblings = Path(f"/sys/devices/system/cpu/cpu{first}/topology/thread_siblings_list").read_text().strip()
+                if siblings != f"{first}-{first + 1}" and siblings != f"{first},{first + 1}":
+                    return None
+            return "linux-13900kf"
+        except (OSError, ValueError):
+            return None
+    if os.name != "nt" or os.cpu_count() != 24:
+        return None
+    try:
+        import winreg
+        with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE,
+                           r"HARDWARE\DESCRIPTION\System\CentralProcessor\0") as key:
+            name = winreg.QueryValueEx(key, "ProcessorNameString")[0]
+        if "AMD Ryzen 9 3900X " not in name:
+            return None
+        if split_windows_cpu_cores(6, 6) != (0x555, 0x555000):
+            return None
+    except (OSError, ValueError):
+        return None
+    return "windows-3900x"
+
+
+def _automatic_gpu_preset() -> str | None:
+    if not sys.platform.startswith("linux"):
+        return None
+    # Do not infer CUDA device identity when the caller has remapped devices.
+    if os.environ.get("CUDA_VISIBLE_DEVICES") not in (None, "", "0"):
+        return None
+    import subprocess
+    try:
+        result = subprocess.run(
+            ["nvidia-smi", "--query-gpu=name", "--format=csv,noheader"],
+            capture_output=True, text=True, timeout=5, check=True,
+        )
+        if result.stdout.strip() == "NVIDIA GeForce RTX 4090":
+            return "linux-4090"
+    except (OSError, subprocess.SubprocessError):
+        pass
+    return None
+
+
 def _apply_server_preset(args: Any, parser: argparse.ArgumentParser, argv: Sequence[str]) -> None:
-    """Apply an explicitly selected hardware profile; retain explicit overrides."""
-    if args.preset is None:
-        return
-    if os.name != "nt" or (os.cpu_count() or 0) < 24:
-        parser.error("--preset windows-3900x requires Windows and at least 24 logical CPUs")
+    """Select a verified profile automatically; explicit tuning always wins."""
     supplied = {argument.split("=", 1)[0] for argument in argv}
-    if "--device" in supplied and args.device != "cpu":
-        parser.error("--preset windows-3900x requires --device cpu")
-    if args.model or args.codec or args.model_id != DEFAULT_MODEL or args.quant.upper() != "Q8_0":
-        parser.error("--preset windows-3900x requires the default 0.6B Base Q8_0 model; use explicit CPU options for other models")
-    args.device = "cpu"
-    profile = {
-        "cpu_threads": 6, "cpu_codec_threads": 6, "cpu_stream_frames": 1,
-        "cpu_affinity": 0x555, "cpu_codec_affinity": 0x555000,
-        "startup_buffer_ms": 80.0, "clone_mode": "speaker_only",
-        "clamp_fp16": False,
-        "onset_silence_profile": "qwen3_tts_12hz_0_6b_base_q8_v1",
-    }
+    if args.preset == "portable":
+        args.preset = None
+        return
+    default_model = not (args.model or args.codec or args.model_id != DEFAULT_MODEL
+                         or args.quant.upper() != "Q8_0")
+    if args.preset is None:
+        manual = any(option.startswith(("--cpu-", "--no-cpu-")) for option in supplied)
+        if not default_model or manual:
+            return
+        args.preset = (_automatic_cpu_preset() if args.device == "cpu"
+                       else _automatic_gpu_preset())
+        if args.preset is None:
+            return
+    if not default_model:
+        parser.error("Hardware presets require the default 0.6B Base Q8_0 model; use explicit options for other models")
+    if args.preset == "linux-4090":
+        if not sys.platform.startswith("linux") or args.device == "cpu":
+            parser.error("--preset linux-4090 requires Linux and --device gpu")
+        profile = {"startup_buffer_ms": 40.0,
+                   "onset_silence_profile": "qwen3_tts_12hz_0_6b_base_q8_v1"}
+        os.environ.setdefault("GGML_CUDA_DISABLE_GRAPHS", "1")
+        os.environ.setdefault("CUDA_MPS_CLIENT_PRIORITY", "0")
+    else:
+        if "--device" in supplied and args.device != "cpu":
+            parser.error("CPU presets require --device cpu")
+        args.device = "cpu"
+        if args.preset == "windows-3900x":
+            if os.name != "nt" or (os.cpu_count() or 0) < 24:
+                parser.error("--preset windows-3900x requires Windows and at least 24 logical CPUs")
+            profile = dict(cpu_threads=6, cpu_codec_threads=6, cpu_stream_frames=1,
+                           cpu_affinity=0x555, cpu_codec_affinity=0x555000,
+                           cpu_fused_attention=True)
+        else:
+            if not sys.platform.startswith("linux") or _automatic_cpu_preset() != "linux-13900kf":
+                parser.error("--preset linux-13900kf requires the verified i9-13900KF core layout")
+            profile = dict(cpu_threads=7, cpu_codec_threads=7, cpu_stream_frames=2,
+                           cpu_affinity=0x5545, cpu_codec_affinity=0xaa8a,
+                           cpu_fused_attention=False)
+            os.environ.setdefault("QWENTTS_CPU_STARTUP_PRIORITY", "second_chunk")
+            os.environ.setdefault("QWENTTS_CPU_STRICT_AFFINITY", "1")
+        profile.update(startup_buffer_ms=80.0, clone_mode="speaker_only", clamp_fp16=False,
+                       onset_silence_profile="qwen3_tts_12hz_0_6b_base_q8_v1")
     for name, value in profile.items():
         option = name.replace("_", "-")
         if not {f"--{option}", f"--no-{option}"} & supplied:
+            if name == "cpu_fused_attention" and "QWENTTS_CPU_FLASH_ATTN" in os.environ:
+                continue
             setattr(args, name, value)
 
 
@@ -3309,7 +3474,11 @@ def main(argv: Optional[Sequence[str]] = None) -> None:
         ) from exc
 
     if args.preset is not None:
-        _set_windows_server_priority()
+        LOGGER.info("Hardware profile: %s", args.preset)
+        if args.preset == "windows-3900x":
+            _set_windows_server_priority()
+    elif args.device == "cpu":
+        LOGGER.info("CPU scheduling: portable/manual; no verified hardware profile selected")
     LOGGER.info("Loading Qwen %s server; the first run may download model files", args.device)
     engine_class = QwenCpuEngine if args.device == "cpu" else QwenEngine
     from urllib.parse import urlsplit
@@ -3364,6 +3533,9 @@ def main(argv: Optional[Sequence[str]] = None) -> None:
         **device_options,
     )
     _configure_native_logging(engine)
+    if args.alignment:
+        from RealtimeTTS.model_assets import prepare_studio_alignment
+        prepare_studio_alignment(engine, local_files_only=args.local_files_only)
     language_router = None
     if args.language_id_model is not None:
         language_router = QwenLanguageRouter(
@@ -3407,6 +3579,8 @@ def main(argv: Optional[Sequence[str]] = None) -> None:
         except Exception:
             engine.shutdown()
             raise
+    if args.bundled_voices and server.startup_warmup_voice is None and server.registry.get("qwen-en") is not None:
+        server.startup_warmup_voice = "qwen-en"
     LOGGER.info(
         "Loaded RealtimeTTS QwenEngine (native=%s, ABI=%s); listening on %s:%s",
         engine.native_version,

@@ -42,6 +42,27 @@ def test_directions_strip_only_paragraph_tags_and_whitespace():
     ]
 
 
+def test_sound_shortcuts_get_separate_instructions_and_restore_speech(monkeypatch):
+    sock = Socket()
+    engine, _ = make_engine(monkeypatch, sock)
+    engine.set_instructions("Warm and friendly.")
+    try:
+        assert engine.synthesize("Hello! [chuckle] That was a lovely surprise.")
+        blocks = [(m["type"], m.get("text", m.get("instruction"))) for m in sock.messages
+                  if m["type"] in {"text", "instruction"}]
+        assert blocks == [
+            ("text", "Hello!"), ("instruction", "Chuckle briefly."),
+            ("text", "(chuckle)"), ("instruction", "Warm and friendly."),
+            ("text", "That was a lovely surprise."),
+        ]
+        assert engine.get_instructions() == "Warm and friendly."
+        assert list(directed_blocks("[Whisper]\n[clear_throat] Listen.", "Natural")) == [
+            ("(clear throat)", "Clear your throat once, briefly."), ("Listen.", "Whisper")]
+        assert strip_inline_vocal_tags("Hello [CHUCKLE] (sigh) [clear_throat] world").split() == ["Hello", "world"]
+    finally:
+        engine.shutdown()
+
+
 class Response:
     def __init__(self, payload):
         self.payload = payload
@@ -208,6 +229,12 @@ def test_server_can_start_without_a_reference_and_synthesize_voice_design(monkey
 
     engine = FakeBreeze()
     monkeypatch.setattr(module, "BreezeEngine", lambda **kwargs: engine)
+    import RealtimeTTS.model_assets as assets
+    alignment_calls = []
+    def prepare_alignment(target):
+        alignment_calls.append(target)
+        target.studio_aligner = object()
+    monkeypatch.setattr(assets, "prepare_studio_alignment", prepare_alignment)
     def serve(app, **kwargs):
         with TestClient(app) as client:
             assert client.get("/ready").status_code == 200
@@ -221,6 +248,7 @@ def test_server_can_start_without_a_reference_and_synthesize_voice_design(monkey
     module.main(["--worker-url", "http://127.0.0.1:8137",
                  "--no-bundled-voices", "--voice-dir", str(tmp_path / "voices")])
     assert engine.seen == [("A fresh start.", "A calm adult narrator.")]
+    assert alignment_calls == [engine]
 
 
 class FakeBreeze:

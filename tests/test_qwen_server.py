@@ -987,7 +987,7 @@ def test_cpu_fused_attention_is_configured_before_engine_init(
         qwen_server_module.main(["--device", "cpu", *flags])
 
 
-def test_3900x_preset_is_opt_in_and_keeps_explicit_overrides(monkeypatch):
+def test_3900x_preset_keeps_explicit_overrides(monkeypatch):
     from types import SimpleNamespace
     parser = build_argument_parser()
     defaults = parser.parse_args([])
@@ -996,7 +996,7 @@ def test_3900x_preset_is_opt_in_and_keeps_explicit_overrides(monkeypatch):
     arguments = ["--preset", "windows-3900x", "--cpu-threads=4",
                  "--startup-buffer-ms", "120", "--clamp-fp16"]
     args = parser.parse_args(arguments)
-    monkeypatch.setattr(qwen_server_module, "os", SimpleNamespace(name="nt", cpu_count=lambda: 24))
+    monkeypatch.setattr(qwen_server_module, "os", SimpleNamespace(name="nt", cpu_count=lambda: 24, environ={}))
     qwen_server_module._apply_server_preset(args, parser, arguments)
     assert args.device == "cpu"
     assert args.cpu_threads == 4 and args.cpu_codec_threads == 6
@@ -1825,3 +1825,27 @@ def test_explicit_flush_releases_speech_before_end_and_retains_session(tmp_path,
                     break
             assert pcm
     assert engine.calls == ["Let me check that for you.", "The result is ready."]
+
+
+def test_automatic_cpu_profile_respects_manual_tuning_and_opt_out(monkeypatch):
+    from types import SimpleNamespace
+    monkeypatch.setattr(qwen_server_module, "_automatic_cpu_preset", lambda: "windows-3900x")
+    monkeypatch.setattr(qwen_server_module, "os",
+                        SimpleNamespace(name="nt", cpu_count=lambda: 24, environ={}))
+    parser = build_argument_parser()
+    arguments = ["--device", "cpu"]
+    args = parser.parse_args(arguments)
+    qwen_server_module._apply_server_preset(args, parser, arguments)
+    assert args.preset == "windows-3900x"
+    assert (args.cpu_threads, args.cpu_codec_threads, args.cpu_stream_frames) == (6, 6, 1)
+    assert args.cpu_fused_attention is True
+    for extra in (["--cpu-threads", "3"], ["--preset", "portable"]):
+        argv = arguments + extra
+        args = parser.parse_args(argv)
+        qwen_server_module._apply_server_preset(args, parser, argv)
+        assert args.preset is None
+        assert args.cpu_codec_threads == 0
+    argv = arguments + ["--startup-buffer-ms", "120"]
+    args = parser.parse_args(argv)
+    qwen_server_module._apply_server_preset(args, parser, argv)
+    assert args.startup_buffer_ms == 120

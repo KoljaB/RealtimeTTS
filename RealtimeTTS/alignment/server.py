@@ -1,10 +1,50 @@
 """Shared alignment wiring for the existing PCM HTTP/WebSocket services."""
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import replace
 
 from .controller import AlignmentController
 from .timeline import AlignmentConfig
+
+
+_ALIGNMENT_TIME_KEYS = frozenset({
+    "start_time", "end_time", "time_start", "time_end", "duration",
+    "global_start_time", "global_end_time", "engine_audio_offset",
+    "trim_end_time", "audio_duration", "audio_duration_s",
+    "pcm_start_sample", "audio_start_sample", "start_sample", "end_sample",
+})
+
+
+def scale_alignment_event(event, speed):
+    """Map raw engine timestamps onto the tempo-processed PCM timeline."""
+    try:
+        factor = 1.0 / float(speed)
+    except (TypeError, ValueError, ZeroDivisionError):
+        return event
+    if factor == 1.0:
+        return event
+
+    def convert(value, key=None):
+        if isinstance(value, Mapping):
+            result = {}
+            for name, item in value.items():
+                converted = convert(item)
+                if (
+                    name in _ALIGNMENT_TIME_KEYS
+                    and isinstance(converted, (int, float))
+                    and not isinstance(converted, bool)
+                ):
+                    converted *= factor
+                result[name] = converted
+            return result
+        if isinstance(value, list):
+            return [convert(item) for item in value]
+        if isinstance(value, tuple):
+            return tuple(convert(item) for item in value)
+        return value
+
+    return convert(event)
 
 
 def parse_alignment_request(value, engine, language):
@@ -19,14 +59,27 @@ def parse_alignment_request(value, engine, language):
     if config.max_buffer_seconds > 1.0:
         raise ValueError("alignment.max_buffer_seconds must not exceed 1 second")
     native = bool(getattr(engine, "provides_word_timings", False))
-    backend = getattr(engine, "streaming_aligner", None)
-    native_level = config.level == "word" or config.level in getattr(backend, "timestamp_levels", ())
+    native_backend = getattr(engine, "streaming_aligner", None)
+    studio_backend = getattr(engine, "studio_aligner", None)
+    native_level = config.level == "word" or config.level in getattr(
+        native_backend, "timestamp_levels", ()
+    )
+    studio_levels = getattr(studio_backend, "timestamp_levels", None) or (
+        "word", "character"
+    )
     if config.source == "native" and not (native and native_level):
         raise ValueError("Engine does not provide the requested native timestamp level")
-    if config.source != "native" and not (config.source == "auto" and native and native_level):
-        if backend is None:
+    if config.source == "native":
+        return replace(config, aligner=native_backend)
+    if studio_backend is not None and config.level in studio_levels:
+        return replace(config, source="model", aligner=studio_backend)
+    if config.source == "model":
+        if native_backend is None:
             raise ValueError("Configure an alignment backend on the server before requesting alignment")
-    return replace(config, aligner=backend)
+        return replace(config, aligner=native_backend)
+    if not (native and native_level) and native_backend is None:
+        raise ValueError("Configure an alignment backend on the server before requesting alignment")
+    return replace(config, aligner=native_backend)
 
 
 class ServerAlignment:
@@ -35,6 +88,8 @@ class ServerAlignment:
         self.original_callback = getattr(engine, "on_alignment", None)
         self.original_gate = getattr(engine, "alignment_start_event", None)
         self.original_cancel = getattr(engine, "alignment_cancel_event", None)
+        self.original_streaming_aligner = getattr(engine, "streaming_aligner", None)
+        self._native_alignment_suppressed = False
         state.alignment_done.clear()
         config = replace(request.alignment, language=request.language)
 
@@ -42,10 +97,10 @@ class ServerAlignment:
             if state.alignment_closed.is_set() or state.cancelled.is_set():
                 return
             if snapshot.final or state.alignment_events.qsize() < 8:
-                state.alignment_events.put({
+                state.alignment_events.put(scale_alignment_event({
                     **snapshot.to_dict(), "type": "alignment",
                     "time_base": "fragment", "text_offset_unit": "unicode_codepoint",
-                })
+                }, request.speed))
             if snapshot.final:
                 state.alignment_events.put({
                     "type": "alignment_done", "complete": snapshot.status == "ready",
@@ -69,7 +124,7 @@ class ServerAlignment:
                         and (verified_stop or kind not in {"alignment", "alignment_done", "alignment_complete"})):
                     # Display snapshots replace timing updates, but must not swallow
                     # the engine-authorized cutoff used by queued playback.
-                    state.alignment_events.put(event)
+                    state.alignment_events.put(scale_alignment_event(event, request.speed))
                 if original is not None:
                     original(event)
 
@@ -80,6 +135,16 @@ class ServerAlignment:
             engine.alignment_cancel_event = state.cancelled
         self.binding = self.controller.bind(engine)
         self.binding.begin(request.text, original_text=source, source_ranges=request.source_ranges)
+        active_guard = bool(
+            getattr(engine, "hallucination_guard", False)
+            or getattr(engine, "acoustic_guard", False)
+        )
+        if (config.source == "model" and self.original_streaming_aligner is not None
+                and not active_guard):
+            # The display model owns this request when no engine guard needs the
+            # native alignment stream for an authorized completion cutoff.
+            engine.streaming_aligner = None
+            self._native_alignment_suppressed = True
 
     def finish(self, *, success):
         try:
@@ -97,3 +162,5 @@ class ServerAlignment:
                 self.engine.alignment_start_event = self.original_gate
             if hasattr(self.engine, "alignment_cancel_event"):
                 self.engine.alignment_cancel_event = self.original_cancel
+            if self._native_alignment_suppressed:
+                self.engine.streaming_aligner = self.original_streaming_aligner

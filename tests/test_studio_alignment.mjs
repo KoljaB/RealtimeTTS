@@ -276,6 +276,18 @@ test('generic capability fallback omits unsupported controls and serializes alig
   });
 });
 
+test('speed and live alignment controls are serialized', () => {
+  const s = studio();
+  s.run("caps=normalizeCapabilities({engine:{name:'generic',model_id:'generic'},model:{id:'generic'},features:{model_type:'base'},playback:{speed:{min:0.25,max:4,default:1}}});defaults()");
+  s.control('speed').value = '1.5';
+  assert.equal(json(s, 'requestOptions().speed'), 1.5);
+  assert.deepEqual(json(s, 'requestOptions().alignment'), {source: 'auto', level: 'word', mode: 'live'});
+  s.control('alignmentLevel').value = 'character';
+  assert.deepEqual(json(s, 'requestOptions().alignment'), {source: 'auto', level: 'character', mode: 'live'});
+  s.control('speed').value = '0.1';
+  assert.throws(() => s.run('requestOptions()'), /Speed must be between/);
+});
+
 test('alignment revisions, code-point spans, old deltas, and stale runs are fenced', () => {
   const s = studio();
   const opts = {source: 'auto', level: 'character', mode: 'live'};
