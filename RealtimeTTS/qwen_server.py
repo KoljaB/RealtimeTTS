@@ -71,6 +71,7 @@ from RealtimeTTS.engines.qwen_engine import (
 )
 from RealtimeTTS.engines.qwen_cpu_engine import QwenCpuEngine
 from RealtimeTTS.audio_tempo import TempoProcessor, validate_speed
+from RealtimeTTS._audio_formats import INT16
 from RealtimeTTS.qwen_cpu_topology import split_windows_cpu_cores
 from RealtimeTTS.text_exchange import TextExchange
 from RealtimeTTS.language_router import (
@@ -870,6 +871,10 @@ class QwenHttpServer:
         with self._startup_lock:
             if self._startup_complete:
                 return
+            # Load the optional tempo DLLs/filter before the first user request.
+            # This changes no synthesis settings and emits no audio.
+            tempo = TempoProcessor(INT16, 1, SAMPLE_RATE, 1.2)
+            tempo.cancel()
             warmup_targets: list[tuple[str, str]] = []
             if self.language_detector is not None and (
                 self.language_router is None

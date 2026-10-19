@@ -923,6 +923,7 @@ def test_startup_warmup_cli_is_opt_in():
 def test_cpu_cli_constructs_cpu_engine_with_requested_threads(monkeypatch):
     import sys
     from types import SimpleNamespace
+    monkeypatch.setattr(qwen_server_module, "_automatic_cpu_preset", lambda: None)
 
     calls = []
     class ConstructionReached(Exception):
