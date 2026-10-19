@@ -8,7 +8,7 @@ from tools import release_guard as guard
 
 
 def test_breeze_native_manifest_rejects_modified_binary(tmp_path):
-    profile = guard._component_profile("RealtimeTTSBreezeNativeWindows", publishing=True)
+    profile = guard._component_profile("RealtimeTTSBreezeNativeWindows")
     wheel = tmp_path / "realtimetts_breeze_native-0.1.0rc1-py3-none-win_amd64.whl"
     binary = b"native test executable"
     info = dict(source_revision=profile["native_revision"], ggml_revision=profile["ggml_revision"],
