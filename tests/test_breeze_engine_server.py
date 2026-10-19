@@ -454,14 +454,14 @@ class PostReturnAligner(FakeAligner):
         return self.session
 
 
-def test_alignment_ranges_are_utf16_and_ignore_tone_directions():
+def test_alignment_ranges_are_utf16_and_exclude_tone_directions():
     text = "A😀 (laugh) and (breathe heavily)."
     assert strip_inline_vocal_tags(text) == "A😀   and  ."
     assert BreezeEngine.alignment_non_speech_ranges(text) == [
         {"start": 4, "end": 11},
         {"start": 16, "end": 33},
     ]
-    assert BreezeEngine.alignment_non_speech_ranges("[Whispering] hello") == []
+    assert BreezeEngine.alignment_non_speech_ranges("[Whispering] hello") == [{"start": 0, "end": 13}]
 
 
 def test_alignment_starts_after_pcm_and_preserves_vocal_insert(monkeypatch):

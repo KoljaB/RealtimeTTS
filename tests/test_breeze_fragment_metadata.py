@@ -25,3 +25,13 @@ def test_breeze_metadata_composes_existing_text_exchange_ranges():
 
 def test_other_engines_keep_alignment_metadata_unchanged():
     assert _alignment_fragment_metadata(object(), "Hello.", "Hello.", None) == {"text": "Hello."}
+
+
+def test_breeze_directions_are_not_highlighted_as_spoken_words():
+    from RealtimeTTS.engines.breeze_engine import BreezeEngine
+    source = "[Speak naturally] Hello!\n[Chuckle briefly] (chuckle)\n[Speak naturally] Welcome."
+    meta = _alignment_fragment_metadata(BreezeEngine, source, source, None)
+    assert meta["text"] == "Hello!\n\nWelcome."
+    assert meta["source_text"] == source
+    for letter, (start, end) in zip(meta["text"], meta["source_ranges"]):
+        assert source[start:end] == letter

@@ -1886,3 +1886,17 @@ def test_local_model_paths_require_named_profile_for_auto_tuning(tmp_path, monke
     qwen_server_module._apply_server_preset(args, parser, named)
     assert args.preset == "windows-3900x"
     assert (args.cpu_threads, args.cpu_codec_threads) == (6, 6)
+
+
+@pytest.mark.parametrize("extra,expected", [([], False), (["--clamp-fp16"], True)])
+def test_linux_gpu_profile_matches_production_clamp_and_keeps_override(monkeypatch, extra, expected):
+    monkeypatch.setattr(qwen_server_module.sys, "platform", "linux")
+    monkeypatch.setattr(qwen_server_module, "_automatic_gpu_preset", lambda: "linux-4090")
+    monkeypatch.setenv("GGML_CUDA_DISABLE_GRAPHS", "1")
+    monkeypatch.setenv("CUDA_MPS_CLIENT_PRIORITY", "0")
+    parser = build_argument_parser()
+    arguments = ["--device", "gpu", *extra]
+    args = parser.parse_args(arguments)
+    qwen_server_module._apply_server_preset(args, parser, arguments)
+    assert args.clamp_fp16 is expected
+    assert args.startup_buffer_ms == 40.0

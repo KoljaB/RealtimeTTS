@@ -73,7 +73,7 @@ Qwen automatically selects the tested profile only when the hardware matches:
 |---|---|
 | Windows Ryzen 9 3900X, verified core layout | 6+6 CPU workers, separate core masks, one-frame chunks, fused attention, 80 ms reserve, AboveNormal process priority |
 | Linux i9-13900KF, verified available P-core layout | 7+7 CPU workers, production masks, two-frame chunks, second-chunk startup priority, 80 ms reserve |
-| Linux RTX 4090, single unremapped GPU | 40 ms reserve, CUDA graphs disabled, MPS client priority 0 |
+| Linux RTX 4090, single unremapped GPU | 40 ms reserve, FP16 clamp disabled, CUDA graphs disabled, MPS client priority 0 |
 
 Startup logs name the selected profile. Unknown hardware retains portable
 settings. Explicit tuning flags and existing environment settings override the
@@ -97,7 +97,11 @@ Late timestamps cannot be shown retroactively as on-time highlighting.
 
 Speed changes preserve pitch. A speed of 1 bypasses tempo processing; other
 speeds need a small processing window. Faster playback also consumes audio
-faster, so it requires more synthesis headroom. Alignment timestamps follow the
+faster, so it requires more synthesis headroom. The tempo filter also retains a
+short initial window: with zero playback buffer, 1.2x produced a 71 ms initial
+delivery gap on the tested Breeze GPU and 39 ms on Windows Qwen GPU, although
+normal speed had none. The browser exposes its existing buffer control for
+manual adjustment; no extra buffer is silently applied. Alignment timestamps follow the
 processed audio. HTTP PCM/WAV also accept speed; live timing uses WebSocket.
 
 Use --no-alignment when starting a server to skip the highlighting model.

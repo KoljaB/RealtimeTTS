@@ -89,16 +89,13 @@ def _utf16_offset(text: str, index: int) -> int:
 
 
 def alignment_non_speech_ranges(text: str) -> list[dict[str, int]]:
-    """Return UTF-16 spans occupied by canonical inline vocal tags.
-
-    Square-bracket tone directions are deliberately excluded: they are
-    paragraph instructions and are removed before synthesis, while these
-    parenthesized tags and square-bracket sound shortcuts are vocal inserts.
-    """
+    """Return non-spoken tag spans using the synthesis parser's exact rules."""
+    spans = {(match.start(), match.end())
+             for pattern in (_INLINE_VOCAL_TAG, _DIRECTION)
+             for match in pattern.finditer(text)}
     return [
-        {"start": _utf16_offset(text, match.start()),
-         "end": _utf16_offset(text, match.end())}
-        for match in _INLINE_VOCAL_TAG.finditer(text)
+        {"start": _utf16_offset(text, start), "end": _utf16_offset(text, end)}
+        for start, end in sorted(spans)
     ]
 
 

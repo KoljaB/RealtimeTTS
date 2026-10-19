@@ -3277,7 +3277,7 @@ def _apply_server_preset(args: Any, parser: argparse.ArgumentParser, argv: Seque
     if args.preset == "linux-4090":
         if not sys.platform.startswith("linux") or args.device == "cpu":
             parser.error("--preset linux-4090 requires Linux and --device gpu")
-        profile = {"startup_buffer_ms": 40.0,
+        profile = {"startup_buffer_ms": 40.0, "clamp_fp16": False,
                    "onset_silence_profile": "qwen3_tts_12hz_0_6b_base_q8_v1"}
         os.environ.setdefault("GGML_CUDA_DISABLE_GRAPHS", "1")
         os.environ.setdefault("CUDA_MPS_CLIENT_PRIORITY", "0")
