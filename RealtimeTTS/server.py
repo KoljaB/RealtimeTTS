@@ -441,6 +441,7 @@ class _GenericSession:
         self._engine_locked = False
         self._ended = False
         self._lifecycle_lock = threading.Lock()
+        self._last_alignment_revision = -1
 
     def emit(self, event: dict[str, Any]) -> None:
         event.setdefault("session_id", self.session_id)
@@ -561,9 +562,17 @@ class _GenericSession:
             })
         return [grouped[index] for index in sorted(grouped)]
 
-    def _on_alignment(self, snapshot: Any) -> None:
+    def _emit_alignment_snapshot(self, snapshot: Any) -> None:
+        revision = int(getattr(snapshot, "revision", -1))
+        with self._lifecycle_lock:
+            if revision <= self._last_alignment_revision:
+                return
+            self._last_alignment_revision = revision
         for fragment in self._alignment_for_snapshot(snapshot):
             self.emit({"type": "alignment", **fragment})
+
+    def _on_alignment(self, snapshot: Any) -> None:
+        self._emit_alignment_snapshot(snapshot)
 
     def _prepare_engine(self) -> None:
         with self._lifecycle_lock:
@@ -675,6 +684,7 @@ class _GenericSession:
             snapshot = self.controller.wait(timeout=_ALIGNMENT_FINAL_TIMEOUT)
         except TimeoutError:
             snapshot = self.controller.snapshot()
+        self._emit_alignment_snapshot(snapshot)
         fragments = self._alignment_for_snapshot(snapshot)
         self.emit({
             "type": "alignment_done",
@@ -1029,6 +1039,16 @@ async def _request_json(request: Any) -> dict[str, Any]:
     return payload
 
 
+async def _wait_for_session_done(session: _GenericSession, timeout: float) -> None:
+    waiter = asyncio.create_task(asyncio.to_thread(session.done.wait, timeout))
+    while not waiter.done():
+        try:
+            await asyncio.shield(waiter)
+        except asyncio.CancelledError:
+            continue
+    await waiter
+
+
 async def _monitor_http_disconnect(request: Any, session: _GenericSession) -> None:
     while not session.done.is_set():
         try:
@@ -1157,7 +1177,7 @@ def create_app(
                 pcm = await asyncio.to_thread(session.collect_audio)
             except asyncio.CancelledError:
                 session.cancel()
-                await asyncio.to_thread(session.done.wait, 1.0)
+                await _wait_for_session_done(session, 1.0)
                 raise
             finally:
                 monitor.cancel()
