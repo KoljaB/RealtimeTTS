@@ -70,6 +70,8 @@ fast path, matching our tuned runtime. Omit the option to compare uncached synth
 CPU thread counts and core splitting are optional hardware tuning. The existing
 --preset windows-3900x combines that machine's tuned options, not universal defaults.
 The --onset-silence-profile option is checkpoint-specific.
+See the [measured comparisons and optional CPU startup profile](release-0.9.0rc4-verification.md)
+for the settings used to reproduce the tuned Windows/Linux runtimes.
 
 ## Tutor demo
 

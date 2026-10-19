@@ -47,11 +47,6 @@ plugins:
           name: Chinese
           build: true
 
-# Engine pages link to catalogued package voice files that are outside docs/.
-validation:
-  links:
-    not_found: ignore
-
 nav:
   - Home: index.md
   - Quick Start: quick-start.md

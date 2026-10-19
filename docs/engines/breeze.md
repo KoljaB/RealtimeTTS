@@ -28,16 +28,16 @@ The table lists the current selected Qwen reference files across all ten languag
 
 | Language | Selected Qwen reference | Duration | Qwen GPU result | Qwen CPU result | Breeze on selected reference | Additional Breeze-tested candidate |
 |---|---|---:|---|---|---|---|
-| English | [qwen17b_en_02](../../RealtimeTTS/voices/qwen/qwen17b_en_02.wav) | 16.80 s | Not tested | 400/400 clear | 398/400 clear; noise 1, silence 1; two >4 s tails (one unflagged) | [qwen06_en_03](../../RealtimeTTS/voices/breeze/qwen06_en_03.wav), 13.215 s: 400/400 clear, no >4 s tails |
-| Spanish | [qwen17b_es_e2_40](../../RealtimeTTS/voices/qwen/qwen17b_es_e2_40.wav) | 18.24 s | Not tested | 400/400 clear | Not tested | - |
-| German | [qwen17b_de_37](../../RealtimeTTS/voices/qwen/qwen17b_de_37.wav) | 17.76 s | 395/400 clear; noise 3, silence 2 | 102/103 clear; noise 1, silence 0 | Not tested | - |
-| French | [qwen17b_fr_31](../../RealtimeTTS/voices/qwen/qwen17b_fr_31.wav) | 17.92 s | 394/400 clear; noise 2, silence 4 | 96/100 clear; noise 0, silence 4 | Not tested | - |
-| Portuguese | [qwen17b_pt_11](../../RealtimeTTS/voices/qwen/qwen17b_pt_11.wav) | 15.84 s | 391/400 clear; noise 0, silence 9 | 99/100 clear; noise 0, silence 1 | Not tested | - |
-| Russian | [qwen17b_ru_09](../../RealtimeTTS/voices/qwen/qwen17b_ru_09.wav) | 19.12 s | 400/400 clear | 100/100 clear | Not tested | - |
-| Italian | [qwen17b_it_03](../../RealtimeTTS/voices/qwen/qwen17b_it_03.wav) | 15.20 s | 99/100 clear; noise 0, silence 1 | 98/100 clear; noise 1, silence 1 | Not tested | - |
-| Japanese | [qwen17b_ja_09](../../RealtimeTTS/voices/qwen/qwen17b_ja_09.wav) | 13.84 s | 87/100 clear; noise 4, silence 9 | 87/100 clear; noise 4, silence 9 | Not tested | - |
-| Chinese | [qwen17b_zh_01](../../RealtimeTTS/voices/qwen/qwen17b_zh_01.wav) | 16.24 s | 400/400 clear | 100/100 clear | 385/400 clear; noise 4, silence 11; 29 >4 s tails (21 unflagged) | [qwen06_zh_03](../../RealtimeTTS/voices/breeze/qwen06_zh_03.wav), 12.335 s: 400/400 clear, no >4 s tails |
-| Korean | [qwen17b_ko_08](../../RealtimeTTS/voices/qwen/qwen17b_ko_08.wav) | 13.44 s | 98/100 clear; noise 0, silence 2 | 96/100 clear; noise 2, silence 2 | Not tested | - |
+| English | [qwen17b_en_02](https://github.com/KoljaB/RealtimeTTS/blob/v0.9.0rc4/RealtimeTTS/voices/qwen/qwen17b_en_02.wav) | 16.80 s | Not tested | 400/400 clear | 398/400 clear; noise 1, silence 1; two >4 s tails (one unflagged) | [qwen06_en_03](https://github.com/KoljaB/RealtimeTTS/blob/v0.9.0rc4/RealtimeTTS/voices/breeze/qwen06_en_03.wav), 13.215 s: 400/400 clear, no >4 s tails |
+| Spanish | [qwen17b_es_e2_40](https://github.com/KoljaB/RealtimeTTS/blob/v0.9.0rc4/RealtimeTTS/voices/qwen/qwen17b_es_e2_40.wav) | 18.24 s | Not tested | 400/400 clear | Not tested | - |
+| German | [qwen17b_de_37](https://github.com/KoljaB/RealtimeTTS/blob/v0.9.0rc4/RealtimeTTS/voices/qwen/qwen17b_de_37.wav) | 17.76 s | 395/400 clear; noise 3, silence 2 | 102/103 clear; noise 1, silence 0 | Not tested | - |
+| French | [qwen17b_fr_31](https://github.com/KoljaB/RealtimeTTS/blob/v0.9.0rc4/RealtimeTTS/voices/qwen/qwen17b_fr_31.wav) | 17.92 s | 394/400 clear; noise 2, silence 4 | 96/100 clear; noise 0, silence 4 | Not tested | - |
+| Portuguese | [qwen17b_pt_11](https://github.com/KoljaB/RealtimeTTS/blob/v0.9.0rc4/RealtimeTTS/voices/qwen/qwen17b_pt_11.wav) | 15.84 s | 391/400 clear; noise 0, silence 9 | 99/100 clear; noise 0, silence 1 | Not tested | - |
+| Russian | [qwen17b_ru_09](https://github.com/KoljaB/RealtimeTTS/blob/v0.9.0rc4/RealtimeTTS/voices/qwen/qwen17b_ru_09.wav) | 19.12 s | 400/400 clear | 100/100 clear | Not tested | - |
+| Italian | [qwen17b_it_03](https://github.com/KoljaB/RealtimeTTS/blob/v0.9.0rc4/RealtimeTTS/voices/qwen/qwen17b_it_03.wav) | 15.20 s | 99/100 clear; noise 0, silence 1 | 98/100 clear; noise 1, silence 1 | Not tested | - |
+| Japanese | [qwen17b_ja_09](https://github.com/KoljaB/RealtimeTTS/blob/v0.9.0rc4/RealtimeTTS/voices/qwen/qwen17b_ja_09.wav) | 13.84 s | 87/100 clear; noise 4, silence 9 | 87/100 clear; noise 4, silence 9 | Not tested | - |
+| Chinese | [qwen17b_zh_01](https://github.com/KoljaB/RealtimeTTS/blob/v0.9.0rc4/RealtimeTTS/voices/qwen/qwen17b_zh_01.wav) | 16.24 s | 400/400 clear | 100/100 clear | 385/400 clear; noise 4, silence 11; 29 >4 s tails (21 unflagged) | [qwen06_zh_03](https://github.com/KoljaB/RealtimeTTS/blob/v0.9.0rc4/RealtimeTTS/voices/breeze/qwen06_zh_03.wav), 12.335 s: 400/400 clear, no >4 s tails |
+| Korean | [qwen17b_ko_08](https://github.com/KoljaB/RealtimeTTS/blob/v0.9.0rc4/RealtimeTTS/voices/qwen/qwen17b_ko_08.wav) | 13.44 s | 98/100 clear; noise 0, silence 2 | 96/100 clear; noise 2, silence 2 | Not tested | - |
 
 All Breeze runs used the same 100 texts with four seeds (42, 43, 69 and 177), Breeze TTS 2 Q8_0 on Vulkan, and the automatic noise/silence detectors. "Clear" means no acoustic detector finding; it does not mean a human confirmed every clip. The >4 s tail check is tracked separately: the selected English reference produced two such overruns, one with no acoustic flag; the selected Chinese reference produced 29, of which 21 had no acoustic flag. Both Qwen 0.6B candidates had zero acoustic flags and no >4 s tails.
 
