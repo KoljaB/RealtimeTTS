@@ -105,10 +105,11 @@ def build_argument_parser():
     parser.add_argument("--port", type=int, default=18084)
     worker = parser.add_mutually_exclusive_group()
     worker.add_argument("--model", type=Path,
-                        help="Start the optional packaged worker with a local Q8_0 GGUF")
+                        help="Use a local Q8_0 GGUF instead of the automatically cached model")
     worker.add_argument("--worker-url", help="Connect to an existing native worker")
     parser.add_argument("--worker-ws-url")
-    parser.add_argument("--voice", default="sl_ref1")
+    parser.add_argument("--voice", default="breeze-en")
+    parser.add_argument("--bundled-voices", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--voice-reference", type=Path)
     parser.add_argument("--voice-reference-text")
     parser.add_argument("--voice-dir", type=Path, default=Path(".breeze-voices"))
@@ -141,9 +142,10 @@ def main(argv=None):
         raise SystemExit("Pass both --voice-reference and --voice-reference-text")
     if args.model and args.worker_ws_url:
         raise SystemExit("--model cannot be combined with --worker-ws-url")
-    if args.model:
+    if args.model or not (args.worker_url or args.worker_ws_url):
         from .breeze_worker import local_worker
-        worker = local_worker(args.model, args.voice_dir / "native")
+        from .model_assets import breeze_model
+        worker = local_worker(args.model or breeze_model(), args.voice_dir / "native")
     else:
         worker = nullcontext((args.worker_url or "http://127.0.0.1:8137",
                               args.worker_ws_url or "ws://127.0.0.1:8138"))
@@ -165,6 +167,9 @@ def main(argv=None):
             startup_warmup_voice=None if args.no_warmup else args.voice,
             startup_warmup_routes=False,
         )
+        if args.bundled_voices:
+            from .voices import register_bundled_voices
+            register_bundled_voices(server.registry, "breeze")
         if args.voice_reference:
             print(f"Registering reference voice {args.voice}...", flush=True)
             server.register_voice({

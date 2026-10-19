@@ -150,6 +150,12 @@ class QwenVoice:
     rvq_path: Optional[Union[str, os.PathLike[str]]] = None
     speaker: Optional[str] = None
 
+    @classmethod
+    def builtin(cls, language: str = "en") -> "QwenVoice":
+        """Select an installed reference by language code, language or voice name."""
+        from ..voices import bundled_voice_data
+        return cls(**bundled_voice_data("qwen", language))
+
     def __post_init__(self) -> None:
         self.name = str(self.name).strip()
         self.ref_text = self.ref_text.strip() if self.ref_text else None
@@ -1383,6 +1389,9 @@ class QwenEngine(BaseEngine):
                     self._control_condition.notify_all()
 
     def get_voices(self) -> list[QwenVoice]:
+        if self.model_type == MODEL_TYPE_BASE:
+            from ..voices import bundled_voices_data
+            return [QwenVoice(**data) for data in bundled_voices_data("qwen")]
         if self.model_type != MODEL_TYPE_CUSTOM_VOICE:
             return []
         return [

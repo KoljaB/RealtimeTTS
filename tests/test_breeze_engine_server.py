@@ -102,6 +102,17 @@ def make_engine(monkeypatch, socket=None):
     return BreezeEngine(BreezeVoice("test", voice_id="test")), http
 
 
+def test_engine_translates_registered_vocalizations_from_native_tags(monkeypatch):
+    engine, _ = make_engine(monkeypatch)
+    try:
+        assert engine.get_vocalization_text("sigh", instructions="Gentle sigh") == "(sigh)"
+        assert engine.get_vocalization_text("clear_throat") == "(clear throat)"
+        with pytest.raises(NotImplementedError, match="vocalization"):
+            engine.get_vocalization_text("unsupported_sound")
+    finally:
+        engine.shutdown()
+
+
 def test_public_engine_streams_pcm_and_directs_without_reading_tags(monkeypatch):
     sock = Socket()
     engine, _ = make_engine(monkeypatch, sock)
@@ -207,7 +218,8 @@ def test_server_can_start_without_a_reference_and_synthesize_voice_design(monkey
             assert response.status_code == 200, response.text
             assert response.content == b"\xe8\x03" * 1200
     monkeypatch.setattr(uvicorn, "run", serve)
-    module.main(["--voice-dir", str(tmp_path / "voices")])
+    module.main(["--worker-url", "http://127.0.0.1:8137",
+                 "--no-bundled-voices", "--voice-dir", str(tmp_path / "voices")])
     assert engine.seen == [("A fresh start.", "A calm adult narrator.")]
 
 

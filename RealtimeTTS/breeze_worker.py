@@ -10,7 +10,7 @@ import requests
 
 @contextmanager
 def local_worker(model: Path, voice_dir: Path, *, timeout: float = 180):
-    model = model.expanduser().resolve(strict=True)
+    model = model.expanduser().absolute()
     if not model.is_file() or model.suffix.lower() != ".gguf":
         raise ValueError("--model must name a Breeze TTS 2 Q8_0 GGUF file")
     try:

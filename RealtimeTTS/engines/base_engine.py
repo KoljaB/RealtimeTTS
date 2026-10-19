@@ -278,6 +278,21 @@ class BaseEngine(ABC, metaclass=BaseInitMeta):
             "The get_stream_info method must be implemented by the derived class."
         )
 
+    def get_vocalization_text(self, name: str, *, instructions=None) -> str:
+        """Translate a supported sound to this engine's native synthesis cue.
+
+        Adapters opt in with a mapping from public names to native cue text.
+        Spaces in provider sound names are exposed as underscores.
+        """
+        text = getattr(self, "vocalizations", {}).get(name.casefold())
+        if not isinstance(text, str) or not text:
+            raise NotImplementedError(
+                f"{self.engine_name} does not support vocalization {name!r}")
+        if instructions is not None and not getattr(self, "instruction_control", False):
+            raise NotImplementedError(
+                f"{self.engine_name} does not support vocalization instructions")
+        return text
+
     def synthesize(self, text: str, sentence_count: int = 0) -> bool:
         """
         Synthesizes text to audio stream.

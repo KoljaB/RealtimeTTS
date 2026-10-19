@@ -47,6 +47,26 @@ TEXT_SUFFIXES = {
 # locations, but they cannot redefine what a component is, who may attest it, or
 # which public repository/branch is released.
 COMPONENT_PROFILES: dict[str, dict[str, object]] = {
+    "RealtimeTTSBreezeNativeWindows": {
+        "distribution": "realtimetts-breeze-native",
+        "packages": (("realtimetts_breeze_native", "native/breeze/src/realtimetts_breeze_native", "realtimetts_breeze_native"),),
+        "sdist_package_dirs": {"realtimetts_breeze_native": "src/realtimetts_breeze_native"},
+        "signer": "breeze-windows",
+        "signer_fingerprint": "SHA256:5e1dksdz2nWFmgcOFtfmEoYMNmESzhMh2zkZL68hyT0",
+        "remote_repository": "github.com/koljab/realtimetts",
+        "remote_branch": "master",
+        "service_required": False,
+        "service_name": None,
+        "publishable": True,
+        "binary_package_prefixes": {"realtimetts_breeze_native": ("bin/",)},
+        "required_wheel_platforms": ("win_amd64",),
+        "native_revision": "a0e177f91242ebbd2ea8d61548d742c89e4b9e06",
+        "native_build_info": "realtimetts_breeze_native/bin/build-info.json",
+        "ggml_revision": "36da57138425487184aa1da2eee2cde155909c6f",
+        "control_patch_sha256": "990b37b0d56047ae0bbe85b14709f7b094a070f825599e991a95d0eb1f6d2e6a",
+        "required_native_library_groups": {"win_amd64": (("realtimetts_breeze_native/bin/breeze-server.exe",),)},
+        "publish_sdist": False,
+    },
     "RealtimeTTS": {
         "distribution": "realtimetts",
         "packages": (("RealtimeTTS", "RealtimeTTS", "RealtimeTTS"),),
@@ -1623,7 +1643,24 @@ def _validate_platform_wheels(
                         f"wheel {candidate.name} lacks required native library: {group!r}"
                     )
                 selected.append(matches[0])
-            if native_revision[:7].encode("ascii") not in archive.read(selected[0]):
+            manifest_path = profile.get("native_build_info")
+            if manifest_path:
+                try:
+                    build_info = json.loads(archive.read(manifest_path))
+                    binary = build_info["native_binary"]
+                    valid = (
+                        build_info["source_revision"] == native_revision
+                        and build_info["ggml_revision"] == profile["ggml_revision"]
+                        and build_info["control_patch_sha256"] == profile["control_patch_sha256"]
+                        and build_info["platform"] == platform_tag
+                        and binary["name"] == PurePosixPath(selected[0]).name
+                        and binary["sha256"] == hashlib.sha256(archive.read(selected[0])).hexdigest()
+                    )
+                except (KeyError, TypeError, ValueError) as exc:
+                    raise GuardError("invalid native build provenance") from exc
+                if not valid:
+                    raise GuardError("native build provenance or binary hash mismatch")
+            elif native_revision[:7].encode("ascii") not in archive.read(selected[0]):
                 raise GuardError(
                     f"wheel {candidate.name} native library lacks pinned revision provenance"
                 )

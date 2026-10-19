@@ -472,6 +472,28 @@ class LanguageRoutingEngine(BaseEngine):
             normalized.append({"start": start, "end": end})
         return normalized
 
+    def get_vocalization_text(self, name, *, instructions=None):
+        """Require the active route and its fallbacks to understand the cue."""
+        language, _, _ = self._logical_state()
+        concrete = self._default_language if language == "auto" else language
+        entries = self._route_entries(concrete)
+        cue = None
+        for entry in entries:
+            renderer = getattr(entry.engine, "get_vocalization_text", None)
+            if not callable(renderer):
+                raise NotImplementedError(
+                    f"{self._provider_name(entry.engine)} does not support vocalizations")
+            candidate = renderer(name, instructions=instructions)
+            if not isinstance(candidate, str) or not candidate:
+                raise ValueError("A vocalization must have a nonempty native cue")
+            if cue is not None and candidate != cue:
+                raise NotImplementedError(
+                    f"Providers for {concrete!r} use different vocalization cues")
+            cue = candidate
+        if cue is None:
+            raise NotImplementedError(f"No vocalization provider for {concrete!r}")
+        return cue
+
     def alignment_non_speech_ranges(self, text):
         if not isinstance(text, str):
             raise TypeError("text must be a string")

@@ -6,6 +6,43 @@ The worker owns the GPU and cached voice references; the engine implements
 RealtimeTTS audio queues, voice management, native pause/resume and cancellation.
 It does not load a second model.
 
+## Bundled reference voices
+
+The wheel and source distribution include the selected English and Chinese reference WAVs and their exact transcripts:
+
+```python
+from RealtimeTTS import BreezeEngine, BreezeVoice, TextToAudioStream
+
+# Connect to the running local Breeze worker described below.
+engine = BreezeEngine(voice=BreezeVoice.builtin("en"))
+TextToAudioStream(engine).feed("Good morning!").play()
+```
+
+Use `BreezeVoice.builtin("zh")` for Chinese. Full language names and bundled names (`breeze-en`, `breeze-zh`) also work. `engine.get_voices()` lists registered worker voices followed by the bundled references; selecting a bundled voice uploads its packaged WAV and transcript to the worker using the existing voice cache. No separate audio download or local asset path is required.
+
+The Chinese 400-case result below used explicit read-once instructions and a per-request token cap. The factory selects the reference recording; it does not change synthesis instructions or token limits.
+
+## Current reference files and Breeze evaluation (2026-10-19)
+
+The table lists the current selected Qwen reference files across all ten languages. Breeze results are available for English and Chinese only. The Qwen 0.6B files are bundled as Breeze voices; the Qwen 1.7B files form the separate Qwen reference set.
+
+| Language | Selected Qwen reference | Duration | Qwen GPU result | Qwen CPU result | Breeze on selected reference | Additional Breeze-tested candidate |
+|---|---|---:|---|---|---|---|
+| English | [qwen17b_en_02](../../RealtimeTTS/voices/qwen/qwen17b_en_02.wav) | 16.80 s | Not tested | 400/400 clear | 398/400 clear; noise 1, silence 1; two >4 s tails (one unflagged) | [qwen06_en_03](../../RealtimeTTS/voices/breeze/qwen06_en_03.wav), 13.215 s: 400/400 clear, no >4 s tails |
+| Spanish | [qwen17b_es_e2_40](../../RealtimeTTS/voices/qwen/qwen17b_es_e2_40.wav) | 18.24 s | Not tested | 400/400 clear | Not tested | - |
+| German | [qwen17b_de_37](../../RealtimeTTS/voices/qwen/qwen17b_de_37.wav) | 17.76 s | 395/400 clear; noise 3, silence 2 | 102/103 clear; noise 1, silence 0 | Not tested | - |
+| French | [qwen17b_fr_31](../../RealtimeTTS/voices/qwen/qwen17b_fr_31.wav) | 17.92 s | 394/400 clear; noise 2, silence 4 | 96/100 clear; noise 0, silence 4 | Not tested | - |
+| Portuguese | [qwen17b_pt_11](../../RealtimeTTS/voices/qwen/qwen17b_pt_11.wav) | 15.84 s | 391/400 clear; noise 0, silence 9 | 99/100 clear; noise 0, silence 1 | Not tested | - |
+| Russian | [qwen17b_ru_09](../../RealtimeTTS/voices/qwen/qwen17b_ru_09.wav) | 19.12 s | 400/400 clear | 100/100 clear | Not tested | - |
+| Italian | [qwen17b_it_03](../../RealtimeTTS/voices/qwen/qwen17b_it_03.wav) | 15.20 s | 99/100 clear; noise 0, silence 1 | 98/100 clear; noise 1, silence 1 | Not tested | - |
+| Japanese | [qwen17b_ja_09](../../RealtimeTTS/voices/qwen/qwen17b_ja_09.wav) | 13.84 s | 87/100 clear; noise 4, silence 9 | 87/100 clear; noise 4, silence 9 | Not tested | - |
+| Chinese | [qwen17b_zh_01](../../RealtimeTTS/voices/qwen/qwen17b_zh_01.wav) | 16.24 s | 400/400 clear | 100/100 clear | 385/400 clear; noise 4, silence 11; 29 >4 s tails (21 unflagged) | [qwen06_zh_03](../../RealtimeTTS/voices/breeze/qwen06_zh_03.wav), 12.335 s: 400/400 clear, no >4 s tails |
+| Korean | [qwen17b_ko_08](../../RealtimeTTS/voices/qwen/qwen17b_ko_08.wav) | 13.44 s | 98/100 clear; noise 0, silence 2 | 96/100 clear; noise 2, silence 2 | Not tested | - |
+
+All Breeze runs used the same 100 texts with four seeds (42, 43, 69 and 177), Breeze TTS 2 Q8_0 on Vulkan, and the automatic noise/silence detectors. "Clear" means no acoustic detector finding; it does not mean a human confirmed every clip. The >4 s tail check is tracked separately: the selected English reference produced two such overruns, one with no acoustic flag; the selected Chinese reference produced 29, of which 21 had no acoustic flag. Both Qwen 0.6B candidates had zero acoustic flags and no >4 s tails.
+
+Candidate WAVs were synthesized on Windows with Qwen3-TTS 0.6B Base Q8_0 using qwentts.cpp CUDA 12, generation seed 203. English candidate SHA-256: 1e930fa36a8a2e9faf1a0efaae999ac5ce21b9e81546e2278b37fe9ae5daa912; Chinese candidate SHA-256: 2c9524926c6728f5ddf81717f4e42bc8fff48fae06cfd35211411e577cc8b00d. The Chinese Breeze run used the instruction "read exactly once, do not add or repeat anything, then stop" and max_new_tokens=max(16, 5 * character_count). Neither candidate has Qwen CPU qualification recorded here.
+
 ## Model and output licensing
 
 The Breeze TTS 2 model and its self-hosted outputs are for
@@ -39,9 +76,9 @@ and licence notices; model weights are downloaded separately. The candidate
 targets x64 with AVX2 and a Vulkan-capable GPU driver. Python-side inference does
 not need PyTorch or a CUDA toolkit.
 
-**The native package has not been published yet.** Build instructions are in
-`native/breeze/README.md` in the source repository. With matching local RealtimeTTS and Windows native
-wheels, install and start it using:
+The Windows TestPyPI candidate installs the native worker through the
+`breeze-server` extra. See the [short uv quickstart](../testpypi-quickstart.md).
+For local wheel development, install matching framework and native wheels:
 
 ~~~text
 python -m pip install "./realtimetts-0.9.0rc2-py3-none-any.whl[breeze-server]" ./realtimetts_breeze_native-0.1.0-py3-none-win_amd64.whl

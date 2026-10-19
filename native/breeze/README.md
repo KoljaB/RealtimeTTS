@@ -1,7 +1,8 @@
 # realtimetts-breeze-native
 
 This directory contains a small prebuilt-native wheel assembler for the
-RealtimeTTS Breeze worker. No public package has been published yet.
+RealtimeTTS Breeze worker. The Windows TestPyPI candidate is 0.1.0rc1.
+Linux packaging remains separately qualified before publication.
 
 The wheel contains the pinned patched breeze-server executable, a shell-free
 launcher, third-party notices, and deterministic build-info.json. Model GGUF

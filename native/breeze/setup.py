@@ -53,7 +53,7 @@ class NativeBdistWheel(bdist_wheel):
 
 setup(
     name="realtimetts-breeze-native",
-    version="0.1.0",
+    version="0.1.0rc1",
     description="Prebuilt RealtimeTTS Breeze native worker launcher",
     long_description=(PROJECT_DIR / "README.md").read_text(encoding="utf-8"),
     long_description_content_type="text/markdown",

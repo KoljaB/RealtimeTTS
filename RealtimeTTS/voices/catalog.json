@@ -1,0 +1,137 @@
+{
+  "schema_version": 1,
+  "voices": [
+    {
+      "name": "qwen-en",
+      "engine": "qwen",
+      "language_code": "en",
+      "language": "english",
+      "file": "qwen/qwen17b_en_02.wav",
+      "ref_text": "Along the coast, a narrow footpath leads past an old lighthouse and a sheltered beach. A couple pauses to watch the waves, listens to the distant calls of seabirds, and then continues towards the village before the afternoon rain arrives. Soft light settles over the nearby harbor.",
+      "sha256": "cb4df215fb9191ce04f66b572b8d05e96daf9170448e27b1c410cbc08a996cb7",
+      "duration_s": 16.8,
+      "generation_model": "Qwen3-TTS-12Hz-1.7B-Base"
+    },
+    {
+      "name": "qwen-es",
+      "engine": "qwen",
+      "language_code": "es",
+      "language": "spanish",
+      "file": "qwen/qwen17b_es_e2_40.wav",
+      "ref_text": "En la estación meteorológica, Elena registra la temperatura, observa las nubes y comprueba la dirección del viento. Después guarda los datos, limpia los instrumentos y prepara el informe de la semana y compara las mediciones con las de ayer antes de enviar el informe al equipo que trabaja en la costa.",
+      "sha256": "d6045fec12e4050da24f787355da25f0516041349e2f05d0407eefb39bdea12f",
+      "duration_s": 18.24,
+      "generation_model": "Qwen3-TTS-12Hz-1.7B-Base"
+    },
+    {
+      "name": "qwen-de",
+      "engine": "qwen",
+      "language_code": "de",
+      "language": "german",
+      "file": "qwen/qwen17b_de_37.wav",
+      "ref_text": "Sigrid gestaltet im Schulgarten ein Beet für heimische Pflanzen. Sie mischt Kompost unter die Erde, setzt die kleinen Sträucher mit genügend Abstand und erklärt den Kindern, warum manche Blüten erst im nächsten Frühjahr sichtbar werden. Gemeinsam schreiben sie Pflegehinweise auf Holztafeln für alle Besucher.",
+      "sha256": "9218c6815a4c5f5956f1d01c09785ccf9734e15dde0627e63fed3ead15d333fc",
+      "duration_s": 17.76,
+      "generation_model": "Qwen3-TTS-12Hz-1.7B-Base"
+    },
+    {
+      "name": "qwen-fr",
+      "engine": "qwen",
+      "language_code": "fr",
+      "language": "french",
+      "file": "qwen/qwen17b_fr_31.wav",
+      "ref_text": "Le journal local envoie David rencontrer une restauratrice. Elle lui montre des sculptures abîmées, explique le nettoyage minutieux et raconte pourquoi quelques traces de couleur révèlent leur origine. De retour au bureau, David relit ses notes et prépare un article clair. Il range ses notes.",
+      "sha256": "a9cfbe1518bc75b8633d0acb0ad05da9683bb563e078ae64c88415629f83d346",
+      "duration_s": 17.92,
+      "generation_model": "Qwen3-TTS-12Hz-1.7B-Base"
+    },
+    {
+      "name": "qwen-pt",
+      "engine": "qwen",
+      "language_code": "pt",
+      "language": "portuguese",
+      "file": "qwen/qwen17b_pt_11.wav",
+      "ref_text": "Na biblioteca do bairro, Helena devolve três romances e escolhe um livro sobre jardins. A bibliotecária recomenda uma autora brasileira, indica uma mesa silenciosa e anota a data da próxima visita. Fica tudo pronto no fim desta manhã.",
+      "sha256": "15b65a636674030e00b0713ba1bd290826c4bc48af784f102eab9c5c77572fa4",
+      "duration_s": 15.84,
+      "generation_model": "Qwen3-TTS-12Hz-1.7B-Base"
+    },
+    {
+      "name": "qwen-ru",
+      "engine": "qwen",
+      "language_code": "ru",
+      "language": "russian",
+      "file": "qwen/qwen17b_ru_09.wav",
+      "ref_text": "В городской поликлинике врач внимательно выслушивает Виктора и объясняет результаты обследования. Он советует больше отдыхать, пить воду и каждый день немного гулять. Виктор задаёт несколько вопросов, записывает рекомендации в блокнот и договаривается о повторном визите через месяц.",
+      "sha256": "50679f24aa8b3a0c083a3879095af8a8cfe8fb1d0c52a26fea307ffc0166126f",
+      "duration_s": 19.12,
+      "generation_model": "Qwen3-TTS-12Hz-1.7B-Base"
+    },
+    {
+      "name": "qwen-it",
+      "engine": "qwen",
+      "language_code": "it",
+      "language": "italian",
+      "file": "qwen/qwen17b_it_03.wav",
+      "ref_text": "Una giovane guida accompagna la classe nel giardino botanico. Indica le piante più piccole, descrive il profumo dei fiori e spiega perché alcune foglie conservano l'acqua. I bambini osservano tutto con attenzione e scrivono qualche parola nei loro quaderni.",
+      "sha256": "6a5f9c7aac90452bfbc6c789663306d16cd3082edc3ac70c6a3b408231cefb23",
+      "duration_s": 15.2,
+      "generation_model": "Qwen3-TTS-12Hz-1.7B-Base"
+    },
+    {
+      "name": "qwen-ja",
+      "engine": "qwen",
+      "language_code": "ja",
+      "language": "japanese",
+      "file": "qwen/qwen17b_ja_09.wav",
+      "ref_text": "図書館の窓際で旅行の計画を立て、地図を広げて訪れたい場所を書き出しました。駅からの道や開館時間も調べておくと、初めての町でも落ち着いて一日を過ごせそうです。",
+      "sha256": "6faea696b3c423ceaf8cc35d7341b656fa1bc12dad2f757155aa6f88ab8b6423",
+      "duration_s": 13.84,
+      "generation_model": "Qwen3-TTS-12Hz-1.7B-Base"
+    },
+    {
+      "name": "qwen-zh",
+      "engine": "qwen",
+      "language_code": "zh",
+      "language": "chinese",
+      "file": "qwen/qwen17b_zh_01.wav",
+      "ref_text": "下午，林老师带学生来到植物园。他们沿着小路观察树叶和花朵，听见远处传来清脆的鸟叫。回到教室后，大家整理笔记，把今天发现的新知识写在本子上，再一起讨论下次参观的计划。",
+      "sha256": "7191d16424d4ea998475772aa9b60064b7fa7ddb535dbc6645321defeecb44b5",
+      "duration_s": 16.24,
+      "generation_model": "Qwen3-TTS-12Hz-1.7B-Base"
+    },
+    {
+      "name": "qwen-ko",
+      "engine": "qwen",
+      "language_code": "ko",
+      "language": "korean",
+      "file": "qwen/qwen17b_ko_08.wav",
+      "ref_text": "도서관 안쪽에는 햇빛이 잘 들어오는 자리가 있습니다. 저는 그곳에 앉아서 여행에 관한 책을 읽었습니다. 창밖으로 나무가 보이고 가끔 새소리가 들려서 마음이 편안해졌습니다.",
+      "sha256": "0c08ee157f97edf1832679916561e7bb283dc6ae5a0bc73a8be4c2e782d8f0b7",
+      "duration_s": 13.44,
+      "generation_model": "Qwen3-TTS-12Hz-1.7B-Base"
+    },
+    {
+      "name": "breeze-en",
+      "engine": "breeze",
+      "language_code": "en",
+      "language": "english",
+      "file": "breeze/qwen06_en_03.wav",
+      "ref_text": "The little bookshop on Maple Street opened early today. Its owner arranged new novels near the window, watered the plants, and greeted the first customer with a warm smile. Together they looked for a story about distant islands and quiet harbors.",
+      "sha256": "1e930fa36a8a2e9faf1a0efaae999ac5ce21b9e81546e2278b37fe9ae5daa912",
+      "duration_s": 13.215,
+      "generation_model": "Qwen3-TTS-12Hz-0.6B-Base"
+    },
+    {
+      "name": "breeze-zh",
+      "engine": "breeze",
+      "language_code": "zh",
+      "language": "chinese",
+      "file": "breeze/qwen06_zh_03.wav",
+      "ref_text": "枫树街上的书店今天很早就开门了。店主把新书摆在窗边，给花草浇水，然后微笑着迎接第一位客人。他们一起寻找一本关于海岛和远方旅行的故事。",
+      "sha256": "2c9524926c6728f5ddf81717f4e42bc8fff48fae06cfd35211411e577cc8b00d",
+      "duration_s": 12.335,
+      "generation_model": "Qwen3-TTS-12Hz-0.6B-Base"
+    }
+  ]
+}

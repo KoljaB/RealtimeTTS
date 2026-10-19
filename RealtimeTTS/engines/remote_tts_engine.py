@@ -292,6 +292,12 @@ class RemoteTTSEngine(BaseEngine):
     def post_init(self):
         self.engine_name = "remote-tts"
         self.provides_word_timings = bool(self.features.get("streaming_alignment"))
+        tags = self.features.get("vocal_tags")
+        self.vocalizations = {
+            tag.casefold().replace(" ", "_"): f"({tag})"
+            for tag in (tags if isinstance(tags, (list, tuple)) else ())
+            if isinstance(tag, str) and tag.strip()
+        }
 
     def get_stream_info(self):
         return INT16, 1, 24000

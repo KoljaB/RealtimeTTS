@@ -180,9 +180,11 @@ Register named delivery controls on the Python stream, then place them between
 sentences:
 
 ```python
-stream.add_instruction("normal", "Speak at a brisk conversational pace.")
-stream.add_instruction("surprised", "Sound surprised and delighted.")
-stream.add_instruction("whispered", "Whisper softly but clearly.")
+stream.add_instructions({
+    "normal": "Speak at a brisk conversational pace.",
+    "surprised": "Sound surprised and delighted.",
+    "whispered": "Whisper softly but clearly.",
+})
 stream.feed(
     "[normal]Welcome back! [surprised]Oh wow, you learned that already! "
     "[whispered]Here is a little secret. [normal]Let us continue."
@@ -204,6 +206,47 @@ voice without receiving unsupported delivery prompts. Model delivery is still
 probabilistic. Use explicit tempo controls when a consistent speed is needed.
 
 ## Vocal cues and alignment
+
+Register one-shot sounds separately from sticky delivery instructions:
+
+```python
+stream.add_instruction("whispered", "Whisper very quietly.")
+stream.add_vocalizations({
+    "sigh": "Exhale a gentle sigh.",
+    "laugh": "Brief laughter.",
+    "clear_throat": "Clear your throat once, briefly.",
+})
+stream.add_pause("pause", 0.7)
+stream.feed(
+    "[whispered]A little secret. [laugh]Still whispered."
+    "[pause:0.7][sigh][pause:0.7]"
+).play()
+```
+
+Both bulk methods accept mappings, merge with existing registrations and return
+the stream for chaining. A batch is validated before any registration changes;
+invalid names, conflicting tags or invalid directions leave the prior mapping
+intact. Use `None` for a vocalization with no custom direction. The singular
+`add_instruction()` and `add_vocalization()` methods remain available.
+
+Each registered sound is synthesized once, at its position in the stream.
+Its optional instruction applies only to the sound and restores the preceding
+delivery even on failure or cancellation. Without an instruction, the sound
+inherits the current delivery. Language, voice and speed are preserved.
+No extra automatic punctuation pause is added after a sound. The incremental
+parser accepts tags split across input chunks and flushes preceding speech.
+
+Breeze and the remote adapter translate supported names to native vocal cues;
+spaces in provider names become underscores, such as `clear_throat`.
+The remote adapter uses the provider's advertised `vocal_tags`. Unsupported
+sounds or directions raise an error before sound synthesis. Every fallback
+provider on the selected language route must support the same cue. A registered
+sound is never sent as ordinary prose to a route that cannot perform it.
+
+Sound tags are excluded from spoken alignment text, while their audio duration
+still advances the timeline. `TerminalHighlighter(input_text=...)` can display
+the original tags without shifting subsequent word offsets. Unregistered tags
+retain the parser's existing literal-text behavior.
 
 For a remote provider advertising `vocal_tags` and UTF-16 non-speech ranges,
 `RemoteTTSEngine` preserves those exclusions for local alignment. The Python

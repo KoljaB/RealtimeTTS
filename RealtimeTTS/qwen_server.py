@@ -2851,6 +2851,8 @@ def build_argument_parser() -> argparse.ArgumentParser:
     parser.add_argument("--alias", default="qwen3-tts-native-q8")
     parser.add_argument("--preset", choices=("windows-3900x",),
                         help="Opt-in Windows Ryzen 3900X CPU profile: 6+6 workers, separate cores, AboveNormal, 80 ms reserve")
+    parser.add_argument("--bundled-voices", action=argparse.BooleanOptionalAction, default=True,
+                        help="Make the packaged reference voices available (default: enabled)")
     parser.add_argument("--demo-voice", action=argparse.BooleanOptionalAction, default=False,
                         help="Download/cache the public neutral cloning example and warm it before serving")
     parser.add_argument("--host", default="127.0.0.1")
@@ -3390,6 +3392,13 @@ def main(argv: Optional[Sequence[str]] = None) -> None:
         comma_silence_duration=args.comma_silence_duration,
         sentence_silence_duration=args.sentence_silence_duration,
     )
+    if args.bundled_voices and getattr(engine, "model_type", "base") == "base":
+        from .voices import register_bundled_voices
+        try:
+            register_bundled_voices(server.registry, "qwen")
+        except BaseException:
+            engine.shutdown()
+            raise
     if args.demo_voice:
         try:
             demo_name = _prepare_demo_voice(server, local_files_only=args.local_files_only)

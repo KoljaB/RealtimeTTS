@@ -50,6 +50,12 @@ class BreezeVoice:
     voice_id: str | None = None
     voice_design: bool = False
 
+    @classmethod
+    def builtin(cls, language: str = "en") -> "BreezeVoice":
+        """Select a packaged English or Chinese reference with its transcript."""
+        from ..voices import bundled_voice_data
+        return cls(**bundled_voice_data("breeze", language))
+
 
 @dataclass
 class _BreezeStreamContext:
@@ -145,6 +151,7 @@ class BreezeEngine(BaseEngine):
         self.model_type = "base"
         self.instruction_control = True
         self.direct_voice_control = True
+        self.vocalizations = {tag.replace(" ", "_"): f"({tag})" for tag in VOCAL_TAGS}
         self.alignment_model = alignment_model
         self.alignment_language = alignment_language
         self.alignment_threads = int(alignment_threads)
@@ -215,8 +222,13 @@ class BreezeEngine(BaseEngine):
         response = self._http.get(self.base_url + "/v1/voices", timeout=5)
         response.raise_for_status()
         payload = response.json()
-        return [BreezeVoice(v["id"], ref_text=v.get("ref_text"), voice_id=v["id"])
-                for v in payload]
+        voices = [BreezeVoice(v["id"], ref_text=v.get("ref_text"), voice_id=v["id"])
+                  for v in payload]
+        from ..voices import bundled_voices_data
+        names = {voice.name for voice in voices}
+        voices.extend(BreezeVoice(**data) for data in bundled_voices_data("breeze")
+                      if data["name"] not in names)
+        return voices
 
     def set_voice(self, voice):
         if getattr(voice, "voice_design", False):

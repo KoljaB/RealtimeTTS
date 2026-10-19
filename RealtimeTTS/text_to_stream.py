@@ -20,7 +20,7 @@ from .inline_markup import InlineMarkupParser
 from .speech_boundaries import SpeechBoundaryPauses, prefix_source_ranges
 from itertools import groupby
 from dataclasses import replace
-from typing import Union, Iterator, List, Optional
+from typing import Union, Iterator, List, Optional, Mapping
 from .alignment.audio import is_alignable_stream_format
 from .alignment.capture import CapturedAudioSegment, CapturingAudioQueue
 from .engines import BaseEngine, TimingInfo
@@ -286,6 +286,7 @@ class TextToAudioStream:
         self.voice_switch_tags = {}
         self.pause_tags = {}
         self.instruction_tags = {}
+        self.vocalization_tags = {}
         self.voice_tag_start = "["
         self.voice_tag_end = "]"
         self.active_voice_tag = None
@@ -511,14 +512,46 @@ class TextToAudioStream:
         Engines must expose set_instructions plus get_instructions() or a
         public instructions attribute. Unknown tags remain literal text.
         """
+        return self.add_instructions({tag: instructions})
+
+    def add_instructions(self, instructions: Mapping[str, str]):
+        """Merge a tag-to-direction mapping after validating the whole batch."""
+        if not isinstance(instructions, Mapping):
+            raise TypeError("instructions must be a mapping of tags to directions")
         tags = dict(self.instruction_tags)
-        key = InlineMarkupParser._tag_key(tag, "instruction")
-        tags[key] = instructions
+        for tag, direction in instructions.items():
+            tags[InlineMarkupParser._tag_key(tag, "instruction")] = direction
         InlineMarkupParser(
             self._speed, voice_tags=self.voice_switch_tags,
             pause_tags=self.pause_tags, instruction_tags=tags,
+            vocalization_tags=self.vocalization_tags,
         )
         self.instruction_tags = tags
+        return self
+
+    def add_vocalization(self, tag: str, instructions: Optional[str] = None):
+        """Register a one-shot sound such as [sigh] or [clear_throat].
+
+        The active engine translates the name using its supported vocal cues.
+        An optional direction applies only to the sound; surrounding delivery,
+        language, voice and speed are preserved. Sounds have no alignment text.
+        Unsupported sounds or directions fail before synthesis.
+        """
+        return self.add_vocalizations({tag: instructions})
+
+    def add_vocalizations(self, vocalizations: Mapping[str, Optional[str]]):
+        """Merge sound names and optional directions; an invalid batch changes nothing."""
+        if not isinstance(vocalizations, Mapping):
+            raise TypeError("vocalizations must be a mapping of sound names to directions")
+        tags = dict(self.vocalization_tags)
+        for tag, direction in vocalizations.items():
+            tags[InlineMarkupParser._tag_key(tag, "vocalization")] = direction
+        InlineMarkupParser(
+            self._speed, voice_tags=self.voice_switch_tags,
+            pause_tags=self.pause_tags, instruction_tags=self.instruction_tags,
+            vocalization_tags=tags,
+        )
+        self.vocalization_tags = tags
         return self
 
     def add_pause(self, tag: str = "pause", duration: float = 0.5):
@@ -844,7 +877,7 @@ class TextToAudioStream:
                                 if self._decoded_audio_queue is not None:
                                     self._finish_decoded_audio()
 
-                    if (not (self.language_tags or self.instruction_tags) or abort_event.is_set()
+                    if (not (self.language_tags or self.instruction_tags or self.vocalization_tags) or abort_event.is_set()
                             or self.char_iter is source or not self.char_iter.items
                             or self.char_iter.immediate_stop.is_set()):
                         break
@@ -876,7 +909,7 @@ class TextToAudioStream:
                 # Accumulate the generated text and reset the character iterators
                 self.generated_text += self.char_iter.iterated_text
 
-                if not (self.language_tags or self.instruction_tags) or self.char_iter.immediate_stop.is_set():
+                if not (self.language_tags or self.instruction_tags or self.vocalization_tags) or self.char_iter.immediate_stop.is_set():
                     self._create_iterators()
 
                 if is_external_call:
@@ -943,13 +976,16 @@ class TextToAudioStream:
                             break
 
                         action_type, action_value = sentence_item
-                        if action_type in ("speed", "language", "instruction"):
+                        if action_type in ("speed", "language", "instruction", "vocalization"):
                             try:
                                 self._apply_inline_action(action_type, action_value)
+                                if action_type == "vocalization":
+                                    # A sound ends the preceding silence interval.
+                                    boundary_pauses.after("", self._synthesis_language)
                             except Exception as exc:
                                 if action_type == "language":
                                     self._language_error = exc
-                                elif action_type == "instruction":
+                                elif action_type in ("instruction", "vocalization"):
                                     self._instruction_error = exc
                                 else:
                                     self._speed_error = exc
@@ -1085,12 +1121,12 @@ class TextToAudioStream:
                         sentence_queue.task_done()
 
                 def synthesize_worker():
-                    if not (self.language_tags or self.instruction_tags):
+                    if not (self.language_tags or self.instruction_tags or self.vocalization_tags):
                         return synthesize_worker_loop()
                     try:
                         synthesize_worker_loop()
                     except Exception as exc:
-                        if self.instruction_tags:
+                        if self.instruction_tags or self.vocalization_tags:
                             self._instruction_error = self._instruction_error or exc
                         else:
                             self._language_error = exc
@@ -1120,7 +1156,7 @@ class TextToAudioStream:
 
             except Exception as e:
                 self.error_flag = True
-                if self.instruction_tags:
+                if self.instruction_tags or self.vocalization_tags:
                     self._instruction_error = self._instruction_error or e
                     abort_event.set()
                 elif self.language_tags:
@@ -1443,6 +1479,7 @@ class TextToAudioStream:
             voice_tags=self.voice_switch_tags,
             pause_tags=self.pause_tags,
             instruction_tags=self.instruction_tags,
+            vocalization_tags=self.vocalization_tags,
             initial_voice=initial_voice,
             delimiters=(self.voice_tag_start, self.voice_tag_end),
         )
@@ -1520,27 +1557,74 @@ class TextToAudioStream:
             self._language_baselines[self.engine] = (
                 self.engine.get_language(), self._current_engine_voice(self.engine))
 
+    def _get_inline_instruction(self):
+        getter = getattr(self.engine, "get_instructions", None)
+        if callable(getter):
+            return getter()
+        if hasattr(self.engine, "instructions"):
+            return self.engine.instructions
+        raise NotImplementedError(
+            "Inline instructions require get_instructions() or public instructions")
+
     def _set_inline_instruction(self, instructions):
         setter = getattr(self.engine, "set_instructions", None)
         if not callable(setter):
             raise NotImplementedError(
                 f"{self.engine.engine_name} does not support inline instructions")
         if self.engine not in self._instruction_baselines:
-            getter = getattr(self.engine, "get_instructions", None)
-            if callable(getter):
-                baseline = getter()
-            elif hasattr(self.engine, "instructions"):
-                baseline = self.engine.instructions
-            else:
-                raise NotImplementedError(
-                    "Inline instructions require get_instructions() or public instructions")
-            self._instruction_baselines[self.engine] = baseline
+            self._instruction_baselines[self.engine] = self._get_inline_instruction()
         try:
             setter(instructions)
         except Exception as exc:
             self._instruction_error = exc
             raise
         self._active_inline_instruction = instructions
+
+    def _synthesize_vocalization(self, vocalization):
+        def stopped():
+            return (self.char_iter.immediate_stop.is_set()
+                    or any(event.is_set() for event in self.abort_events))
+
+        if stopped():
+            return
+        renderer = getattr(self.engine, "get_vocalization_text", None)
+        if not callable(renderer):
+            raise NotImplementedError(
+                f"{self.engine.engine_name} does not support vocalizations")
+        cue = renderer(vocalization.name, instructions=vocalization.instructions)
+        if not isinstance(cue, str) or not cue:
+            raise ValueError("A vocalization must have a nonempty native cue")
+        override = vocalization.instructions is not None
+        previous = self._get_inline_instruction() if override else None
+        active = self._active_inline_instruction
+        try:
+            if override:
+                self._set_inline_instruction(vocalization.instructions)
+            if stopped():
+                return
+            binding = self._alignment_binding
+            if binding is not None:
+                # Count the sound's PCM on the timeline, without spoken words.
+                binding.begin("")
+            elif self._decoded_audio_queue is not None:
+                self._decoded_audio_queue.begin()
+            success = False
+            try:
+                payload = iter((cue,)) if self.engine.can_consume_generators else cue
+                success = self.engine.synthesize(payload) is not False
+            finally:
+                if binding is not None:
+                    binding.finish(success=success)
+                elif self._decoded_audio_queue is not None:
+                    self._finish_decoded_audio()
+            if not success and not stopped():
+                raise RuntimeError(f"Vocalization {vocalization.name!r} synthesis failed")
+        finally:
+            try:
+                if override:
+                    self.engine.set_instructions(previous)
+            finally:
+                self._active_inline_instruction = active
 
     def _restore_inline_instructions(self):
         for engine, baseline in self._instruction_baselines.items():
@@ -1589,6 +1673,8 @@ class TextToAudioStream:
                 self.player.buffer_manager.audio_buffer.put(SpeedChange(value))
         elif action_type == "instruction":
             self._set_inline_instruction(value)
+        elif action_type == "vocalization":
+            self._synthesize_vocalization(value)
         elif action_type == "language":
             self._remember_inline_language_engine()
             self.engine.set_language(value)

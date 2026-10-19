@@ -9,6 +9,50 @@ from tests.test_inline_language import ObservingEngine, _coalesce, stream_factor
 from tests.test_text_to_stream_alignment import _PCMEngine
 
 
+@pytest.mark.parametrize(("method", "registry"), [
+    ("add_instructions", "instruction_tags"),
+    ("add_vocalizations", "vocalization_tags"),
+])
+def test_bulk_registration_merges_copies_and_chains(stream_factory, method, registry):
+    from types import MappingProxyType
+    with stream_factory() as stream:
+        add = getattr(stream, method)
+        assert add({"first": "Old"}) is stream
+        values = {"first": "Updated", "second": "Second"}
+        assert add(MappingProxyType(values)) is stream
+        values["second"] = "Changed outside the stream"
+        assert getattr(stream, registry) == {"first": "Updated", "second": "Second"}
+        assert add({}) is stream
+
+
+@pytest.mark.parametrize(("method", "registry"), [
+    ("add_instructions", "instruction_tags"),
+    ("add_vocalizations", "vocalization_tags"),
+])
+def test_bulk_registration_rejects_batch_without_partial_changes(stream_factory, method, registry):
+    with stream_factory() as stream:
+        add = getattr(stream, method)
+        add({"existing": "Original"})
+        for invalid, error in [
+            ({"valid": "New", "pause": "Conflicting"}, ValueError),
+            ({"valid": "New", "invalid": 123}, TypeError),
+            ({"valid": "New", "VALID": "Ambiguous"}, ValueError),
+            ([("valid", "New")], TypeError),
+        ]:
+            with pytest.raises(error):
+                add(invalid)
+            assert getattr(stream, registry) == {"existing": "Original"}
+
+
+def test_bulk_vocalizations_accept_optional_directions(stream_factory):
+    with stream_factory() as stream:
+        assert stream.add_vocalizations({"sigh": None, "laugh": "Brief laughter"}) is stream
+        assert stream.vocalization_tags == {"sigh": None, "laugh": "Brief laughter"}
+        with pytest.raises(TypeError, match="string"):
+            stream.add_instructions({"normal": None})
+        assert stream.instruction_tags == {}
+
+
 class InstructionEngine(ObservingEngine):
     def post_init(self):
         super().post_init()

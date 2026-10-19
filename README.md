@@ -1,5 +1,7 @@
 # RealtimeTTS
 
+**TestPyPI RC:** [Install Breeze GPU, Qwen GPU/CPU and run the packaged tutor demo](docs/testpypi-quickstart.md).
+
 [![PyPI](https://img.shields.io/pypi/v/RealtimeTTS)](https://pypi.org/project/RealtimeTTS/)
 [![Downloads](https://static.pepy.tech/badge/RealtimeTTS)](https://www.pepy.tech/projects/realtimetts)
 [![GitHub release](https://img.shields.io/github/release/KoljaB/RealtimeTTS.svg)](https://github.com/KoljaB/RealtimeTTS/releases/)
@@ -33,6 +35,9 @@ on Vulkan, with CFG=4. An optional native wheel and `--model` startup keep the
 worker separate from the base install. See the [Breeze guide](docs/engines/breeze.md)
 for the required worker patch, Windows Vulkan setup and server/engine examples.
 
+**Supported synthesis languages:** English and Mandarin Chinese. See the
+[Breeze TTS 2 model card](https://huggingface.co/BreezeBlue/Breeze-TTS-2).
+
 **Breeze TTS 2 licensing:** The model and its self-hosted outputs are for
 **research and non-commercial use only**. Commercial use requires a separate
 licence from BreezeBlue. Read the
@@ -47,6 +52,10 @@ currently the recommended and preferred RealtimeTTS engine for high-quality,
 low-latency conversational speech**. It offers multilingual Qwen3-TTS quality,
 x-vector and ICL voice cloning, native 24 kHz PCM streaming, fast cancellation,
 and the same engine either in-process or behind the production Qwen server.
+
+**Supported synthesis languages (CPU and GPU):** English, Chinese, Japanese,
+Korean, German, French, Russian, Portuguese, Spanish and Italian. See the
+[Qwen3-TTS model card](https://huggingface.co/Qwen/Qwen3-TTS-12Hz-0.6B-Base).
 
 In 10 warm Linux runs on our tuned RTX 4090 setup, the timeline was: about
 **35 ms engine TTFT**, another **35 ms until RealtimeTTS emits its first PCM
