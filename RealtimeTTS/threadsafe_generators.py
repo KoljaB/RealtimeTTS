@@ -106,7 +106,10 @@ class CharIterator:
                     try:
                         self._current_str = next(self._current_iterator)
                         if hasattr(self._current_str, "choices"):
-                            self._current_str = str(self._current_str.choices[0].delta.content) or ""
+                            # OpenAI chunks: content is None on the finish
+                            # chunk, and the usage chunk has no choices.
+                            choices = self._current_str.choices
+                            self._current_str = (choices[0].delta.content if choices else None) or ""
                     except StopIteration:
                         self._char_index = None
                         self._current_iterator = None

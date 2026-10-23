@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import threading
+from types import SimpleNamespace
 
 from RealtimeTTS.text_to_stream import TextToAudioStream
 from RealtimeTTS.threadsafe_generators import (
@@ -114,3 +115,17 @@ def test_char_iterator_stop_stops_without_marking_input_as_exhausted():
     assert iterator.iterated_text == "xxx"
     # An immediate stop is distinct from normal iterator exhaustion.
     assert last_callbacks == []
+
+
+def test_char_iterator_skips_openai_chunks_without_text():
+    def chunk(*contents):
+        return SimpleNamespace(
+            choices=[SimpleNamespace(delta=SimpleNamespace(content=c)) for c in contents]
+        )
+
+    iterator = CharIterator()
+    # A role-only first chunk, a finish chunk with content None, and the usage
+    # chunk that stream_options={"include_usage": True} adds with no choices.
+    iterator.add(iter([chunk(""), chunk("Hello"), chunk(" world."), chunk(None), chunk()]))
+
+    assert "".join(iterator) == "Hello world."
