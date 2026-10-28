@@ -316,7 +316,7 @@ class StyleTTSEngine(BaseEngine):
                 silence_duration = self.default_silence_duration
 
             silent_samples = int(sample_rate * silence_duration)
-            silent_chunk = np.zeros(silent_samples, dtype=np.float32)
+            silent_chunk = np.zeros(silent_samples, dtype=np.int16)
 
             self.queue.put(audio_data)
             self.queue.put(silent_chunk.tobytes())
