@@ -18,9 +18,13 @@ class PiperVoice:
         model_file (str): Path to the Piper ONNX model (.onnx).
         config_file (Optional[str]): Path to the Piper JSON configuration file (.json).
                                      If not provided, it will be derived by appending ".json" to model_file.
+        speaker_id (Optional[int]): Speaker ID for a multi-speaker model. If omitted,
+                                    Piper uses its default speaker.
     """
-    def __init__(self, model_file: str, config_file: Optional[str] = None):
+    def __init__(self, model_file: str, config_file: Optional[str] = None,
+                 speaker_id: Optional[int] = None):
         self.model_file = model_file
+        self.speaker_id = speaker_id
         if config_file is None:
             # If the .json file exists, assume we should use it.
             possible_json = f"{model_file}.json"
@@ -31,7 +35,7 @@ class PiperVoice:
     def __repr__(self):
         return (
             f"PiperVoice(model_file={self.model_file}, "
-            f"config_file={self.config_file})"
+            f"config_file={self.config_file}, speaker_id={self.speaker_id})"
         )
 
 
@@ -123,6 +127,9 @@ class PiperEngine(BaseEngine):
         # If a JSON config file is available, add it BEFORE --output-raw for proper parameter loading.
         if self.voice.config_file:
             cmd_list.extend(["-c", self.voice.config_file])
+
+        if self.voice.speaker_id is not None:
+            cmd_list.extend(["--speaker", str(self.voice.speaker_id)])
         
         # Add --output-raw last to ensure config parameters are applied first
         cmd_list.append("--output-raw")

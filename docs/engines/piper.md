@@ -40,7 +40,20 @@ if __name__ == "__main__":
 
 ## Source Notes
 
-- `PiperVoice(model_file, config_file=None)` derives `config_file` from
+For a multi-speaker model, select a speaker ID from the model's JSON
+`speaker_id_map`:
+
+```python
+voice = PiperVoice(
+    model_file="voices/multi-speaker.onnx",
+    speaker_id=3,
+)
+```
+
+Omitting `speaker_id` preserves Piper's default speaker. You can switch
+speakers with `engine.set_voice()` using another `PiperVoice`.
+
+- `PiperVoice(model_file, config_file=None, speaker_id=None)` derives `config_file` from
   `model_file + ".json"` when possible.
 - `PiperEngine(piper_path=None, voice=None, debug=False)` uses `PIPER_PATH` and
   then `piper.exe` when `piper_path` is omitted.
