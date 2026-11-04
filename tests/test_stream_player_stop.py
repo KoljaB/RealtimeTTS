@@ -1,4 +1,8 @@
+import queue
 import threading
+import types
+
+import numpy as np
 
 from RealtimeTTS.stream_player import StreamPlayer
 
@@ -63,3 +67,71 @@ def test_immediate_stop_joins_and_cleans_up_playback_thread():
     assert player.buffer_manager.cleared is True
     assert player.playback_thread is None
     assert player.immediate_stop.is_set() is False
+
+
+class _CountingStream:
+    """Records the total number of bytes handed to the audio device."""
+
+    def __init__(self):
+        self.bytes_written = 0
+
+    def write(self, data):
+        self.bytes_written += len(data)
+
+
+def _play_one_second(source_rate, device_rate):
+    """Feed one second of int16 mono audio at ``source_rate`` into a player
+    whose device runs at ``device_rate`` and return (player, stream)."""
+    import pyaudio
+
+    player = object.__new__(StreamPlayer)
+    player.muted = False
+    player.volume = 1.0
+    player.first_chunk_played = True
+    player.on_playback_start = None
+    player.on_word_spoken = None
+    player.on_audio_chunk = None
+    player.seconds_played = 0.0
+    player.timings = queue.Queue()
+    player.timings_list = []
+    player.pause_event = threading.Event()
+    player.immediate_stop = threading.Event()
+
+    config = types.SimpleNamespace(
+        format=pyaudio.paInt16,
+        rate=source_rate,
+        channels=1,
+        playout_chunk_size=8192,
+    )
+    stream = _CountingStream()
+    player.audio_stream = types.SimpleNamespace(
+        config=config,
+        actual_sample_rate=device_rate,
+        pyaudio_instance=types.SimpleNamespace(get_sample_size=lambda fmt: 2),
+        stream=stream,
+    )
+
+    chunk = np.zeros(source_rate, dtype=np.int16).tobytes()  # 1.0 s mono
+    player._play_wav_chunk(chunk)
+    return player, stream
+
+
+def test_seconds_played_tracks_device_output_rate_when_resampling():
+    # Device opens at 48 kHz while the engine emits 24 kHz, so each chunk is
+    # resampled up before being written. seconds_played must count the bytes
+    # that actually reached the device (at the device rate), not divide the
+    # resampled byte count by the source rate -- doing the latter scales the
+    # playback clock (and the word-timing callbacks it drives) by the resample
+    # ratio, here 2x.
+    sample_width, channels = 2, 1
+    player, stream = _play_one_second(source_rate=24000, device_rate=48000)
+    expected = stream.bytes_written / (48000 * sample_width * channels)
+    assert expected == 1.0  # one second really was written to the device
+    assert abs(player.seconds_played - expected) < 1e-9
+
+
+def test_seconds_played_unchanged_without_resampling():
+    sample_width, channels = 2, 1
+    player, stream = _play_one_second(source_rate=24000, device_rate=24000)
+    expected = stream.bytes_written / (24000 * sample_width * channels)
+    assert abs(player.seconds_played - expected) < 1e-9
