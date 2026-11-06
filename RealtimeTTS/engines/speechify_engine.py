@@ -34,7 +34,7 @@ class SpeechifyEngine(BaseEngine):
         self,
         api_key: str = None,
         voice_id: str = "geffen_32",
-        model: str = "simba-3.2",
+        model: str = "simba-3.5",
         language: str = None,
         sample_rate: int = 24000,
         loudness_normalization: bool = None,
@@ -49,8 +49,9 @@ class SpeechifyEngine(BaseEngine):
         Args:
             api_key (str, optional): Speechify API key. Defaults to SPEECHIFY_API_KEY env var.
             voice_id (str, optional): Voice id, see get_voices(). Defaults to "geffen_32".
-            model (str, optional): "simba-3.2" (English) or "simba-3.0" (multilingual).
-                Defaults to "simba-3.2".
+            model (str, optional): "simba-3.5" (48 languages, works with every voice),
+                "simba-3.2" (English only) or "simba-3.0" (six languages).
+                Defaults to "simba-3.5".
             language (str, optional): Language of the input, e.g. "en-US" or "fr-FR".
                 If None, the voice's own locale is used.
             sample_rate (int, optional): PCM sample rate. One of 8000, 16000, 22050,

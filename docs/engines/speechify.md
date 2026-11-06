@@ -25,7 +25,7 @@ from RealtimeTTS import TextToAudioStream, SpeechifyEngine
 
 
 if __name__ == "__main__":
-    engine = SpeechifyEngine(voice_id="geffen_32", model="simba-3.2")
+    engine = SpeechifyEngine(voice_id="geffen_32", model="simba-3.5")
     stream = TextToAudioStream(engine)
     stream.feed("Hello from Speechify.")
     stream.play()
@@ -33,8 +33,9 @@ if __name__ == "__main__":
 
 ## Source Notes
 
-- Model defaults to `simba-3.2` (English). Use `simba-3.0` with `language`
-  (for example `fr-FR`) for other languages.
+- Model defaults to `simba-3.5` (48 languages, works with every voice). Set
+  `language` (for example `fr-FR`) when the text is not in the voice's own
+  language. `simba-3.2` is English only and `simba-3.0` covers six languages.
 - Voice defaults to `geffen_32`. `get_voices()` lists the voices available to
   your key as `SpeechifyVoice(voice_id, name, locale, gender)`.
 - `sample_rate` picks the PCM format (`8000`, `16000`, `22050`, `24000`,
@@ -47,4 +48,4 @@ if __name__ == "__main__":
 
 - `Speechify API key is required`: pass `api_key` or set `SPEECHIFY_API_KEY`.
 - A 400 naming the voice usually means a non-English voice was used with
-  `simba-3.2`; switch to `simba-3.0`.
+  `simba-3.2`; switch to `simba-3.5`.
