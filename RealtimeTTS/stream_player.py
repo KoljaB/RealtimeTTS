@@ -355,6 +355,32 @@ class AudioBufferManager:
         self.timings = timings
         self.total_samples = 0
 
+    def _bytes_per_frame(self) -> int:
+        """Bytes per audio frame for the configured format and channel count."""
+        # Map PyAudio format to bytes per sample
+        format_bytes = {
+            pyaudio.paCustomFormat: 4,
+            pyaudio.paFloat32: 4,
+            pyaudio.paInt32: 4,
+            pyaudio.paInt24: 3,
+            pyaudio.paInt16: 2,
+            pyaudio.paInt8: 1,
+            pyaudio.paUInt8: 1,
+        }
+
+        audio_format = self.config.format
+        channels = self.config.channels
+
+        # Log if format is unknown
+        if audio_format not in format_bytes:
+            print(
+                f"Warning: Unknown audio format {audio_format} (0x{audio_format:x})"
+            )
+            print(f"Available formats: {[hex(k) for k in format_bytes.keys()]}")
+            format_bytes[audio_format] = 4  # Default to 4 bytes
+
+        return format_bytes[audio_format] * channels
+
     def add_to_buffer(self, audio_data):
         """
         Adds audio data to the buffer.
@@ -363,7 +389,7 @@ class AudioBufferManager:
             audio_data: Audio data to be added.
         """
         self.audio_buffer.put(audio_data)
-        self.total_samples += len(audio_data) // 2
+        self.total_samples += len(audio_data) // self._bytes_per_frame()
 
     def clear_buffer(self):
         """Clears all audio data from the buffer."""
@@ -393,35 +419,9 @@ class AudioBufferManager:
         try:
             chunk = self.audio_buffer.get(timeout=timeout)
 
-            # Map PyAudio format to bytes per sample
-            format_bytes = {
-                pyaudio.paCustomFormat: 4,
-                pyaudio.paFloat32: 4,
-                pyaudio.paInt32: 4,
-                pyaudio.paInt24: 3,
-                pyaudio.paInt16: 2,
-                pyaudio.paInt8: 1,
-                pyaudio.paUInt8: 1,
-            }
-
-            # Get format and channels from config
-            audio_format = self.config.format
-            channels = self.config.channels
-
-            # Log if format is unknown
-            if audio_format not in format_bytes:
-                print(
-                    f"Warning: Unknown audio format {audio_format} (0x{audio_format:x})"
-                )
-                print(f"Available formats: {[hex(k) for k in format_bytes.keys()]}")
-                format_bytes[audio_format] = 4  # Default to 4 bytes
-
-            # Calculate bytes per frame
-            bytes_per_frame = format_bytes[audio_format] * channels
-
             # Update total samples counter
             if chunk:
-                self.total_samples -= len(chunk) // bytes_per_frame
+                self.total_samples -= len(chunk) // self._bytes_per_frame()
             return True, chunk
         except queue.Empty:
             return False, None
