@@ -31,7 +31,7 @@ def get_lang_code_from_voice(voice_name: str) -> str:
     """
     # Handle formula strings like "0.3*af_sarah + 0.7*am_adam"
     if "*" in voice_name:
-        parts = re.split(r"\+|\s+", voice_name)
+        parts = voice_name.split("+")
         for part in parts:
             if "*" in part:
                 voice_token = part.split("*")[-1].strip()

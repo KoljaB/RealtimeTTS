@@ -88,3 +88,22 @@ def test_kokoro_honors_explicit_language_and_fails_on_empty_output(monkeypatch):
     assert engine.current_lang == "j"
     assert engine.synthesize("No audio from the fake pipeline") is False
     assert engine.queue.empty()
+
+
+@pytest.mark.parametrize(
+    ("formula", "language"),
+    [
+        ("0.3 * hf_alpha + 0.7 * hm_omega", "h"),
+        ("0.5* jf_alpha + 0.5* jf_nezumi", "j"),
+    ],
+)
+def test_kokoro_detects_language_of_formula_with_spaces(monkeypatch, formula, language):
+    module = _load_kokoro_module(monkeypatch)
+    engine = module.KokoroEngine()
+
+    engine.set_voice(formula)
+
+    assert engine.current_lang == language
+    pipeline = engine._get_pipeline(engine.current_lang)
+    engine._parse_mixed_voice_formula(formula, pipeline)
+    assert pipeline.lang_code == language
