@@ -591,8 +591,16 @@ class StreamPlayer:
             if not self.muted:
                 try:
                     self.audio_stream.stream.write(sub_chunk)
+                    # sub_chunk is written at the rate the device actually plays
+                    # it. When resampling occurred above, that is
+                    # actual_sample_rate, not the engine's source config.rate;
+                    # dividing by config.rate would scale seconds_played (and the
+                    # word-timing callbacks it drives) by the resample ratio.
+                    playback_rate = self.audio_stream.config.rate
+                    if self.audio_stream.actual_sample_rate > 0:
+                        playback_rate = self.audio_stream.actual_sample_rate
                     self.seconds_played += len(sub_chunk) / (
-                        self.audio_stream.config.rate * sample_width * channels
+                        playback_rate * sample_width * channels
                     )
                     while True:
                         try:
