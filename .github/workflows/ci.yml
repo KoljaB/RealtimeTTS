@@ -67,6 +67,7 @@ jobs:
           tests/test_public_cpu_release_profile.py
           tests/test_release_metadata.py
           tests/test_safepipe_logging.py
+          tests/test_sentence_pause.py
           tests/test_sentence_splitter_preload.py
           tests/test_sentence_tokenizer_defaults.py
           tests/test_stream_language.py

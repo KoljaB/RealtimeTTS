@@ -1,4 +1,5 @@
 from .base_engine import BaseEngine
+from ..text_pauses import pause_delimiter
 from queue import Queue
 import numpy as np
 import random
@@ -307,10 +308,10 @@ class StyleTTSEngine(BaseEngine):
             end_sentence_delimeters = ".!?…。¡¿"
             mid_sentence_delimeters = ";:,\n()[]{}-“”„”—/|《》"
 
-            text_stripped = text.strip()
-            if text_stripped and text_stripped[-1] in end_sentence_delimeters:
+            delimiter = pause_delimiter(text, end_sentence_delimeters)
+            if delimiter and delimiter in end_sentence_delimeters:
                 silence_duration = self.sentence_silence_duration
-            elif text_stripped and text_stripped[-1] in mid_sentence_delimeters:
+            elif delimiter and delimiter in mid_sentence_delimeters:
                 silence_duration = self.comma_silence_duration
             else:
                 silence_duration = self.default_silence_duration
