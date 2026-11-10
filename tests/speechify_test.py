@@ -19,7 +19,7 @@ def dummy_generator():
 
 
 if __name__ == "__main__":
-    engine = SpeechifyEngine(voice_id="geffen_32", model="simba-3.2", debug=True)
+    engine = SpeechifyEngine(voice_id="geffen_32", model="simba-3.5", debug=True)
 
     start_time = time.time()
 
