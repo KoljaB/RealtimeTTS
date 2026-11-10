@@ -609,12 +609,14 @@ class StreamPlayer:
                         except queue.Empty:
                             break
 
+                    remaining_timings = []
                     for timing in self.timings_list:
                         if timing.start_time <= self.seconds_played:
                             if self.on_word_spoken:
                                 self.on_word_spoken(timing)
-                            self.timings_list.remove(timing)
-                            break
+                        else:
+                            remaining_timings.append(timing)
+                    self.timings_list = remaining_timings
                 except Exception as e:
                     print(f"RealtimeTTS error sending audio data: {e}")
 
