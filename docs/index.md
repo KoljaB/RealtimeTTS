@@ -41,7 +41,9 @@ pattern.
 
 ## Project And License
 
-RealtimeTTS source code is MIT licensed. Engine providers, model files, voices,
+RealtimeTTS's own source code is Apache-2.0 licensed (releases up to and
+including 0.8.10 were MIT). That license covers the RealtimeTTS code only.
+Engine providers, model files, voices,
 datasets, generated audio, and third-party services can have separate terms.
 Read `LICENSING_ADDENDUM.md` and the provider/model licenses before commercial
 use.

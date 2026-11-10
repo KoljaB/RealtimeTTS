@@ -4,6 +4,10 @@
 [![Downloads](https://static.pepy.tech/badge/RealtimeTTS)](https://www.pepy.tech/projects/realtimetts)
 [![GitHub release](https://img.shields.io/github/release/KoljaB/RealtimeTTS.svg)](https://github.com/KoljaB/RealtimeTTS/releases/)
 
+> **License:** RealtimeTTS's own code is Apache-2.0. Engines, models, voices and
+> hosted services keep their own licenses, which you must check yourself:
+> [license notes](LICENSING_ADDENDUM.md).
+
 RealtimeTTS is a Python text-to-speech library for applications that need to
 turn strings, generators, and LLM token streams into audio with low latency. It
 can play speech locally, stream chunks to another process, write WAV files, and
@@ -316,10 +320,17 @@ packaging, examples, and tests rather than hiding them.
 
 ## License
 
-RealtimeTTS source code is MIT licensed. Engine providers, model weights, voice
-data, datasets, generated audio, and third-party services can have separate
-terms. Read [LICENSING_ADDENDUM.md](LICENSING_ADDENDUM.md) and the relevant
-provider or model licenses before commercial use.
+RealtimeTTS's own source code is licensed under the
+[Apache License 2.0](LICENSE); see also [NOTICE](NOTICE). Releases up to and
+including 0.8.10 were published under the MIT License.
+
+This license covers the RealtimeTTS code only. It does not relicense, and does
+not release you from checking and complying with, the licenses and terms of
+the TTS engines, model weights, voices, datasets or hosted services you use
+through this library, or of the audio you generate with them. Some of them
+require attribution, share-alike, a commercial license or a provider
+agreement. Start with [LICENSING_ADDENDUM.md](LICENSING_ADDENDUM.md) and verify
+the upstream terms for the exact package, model and revision you ship.
 
 For the native Qwen/Inflect paths, `qwentts.cpp` and `realtimetts-qwen-native` are
 MIT-licensed; Qwen 0.6B Base/tokenizer and Inflect Micro-v2/ONNX are
