@@ -57,6 +57,7 @@ from .engines.qwen_engine import (
 )
 from .engines.qwen_cpu_engine import QwenCpuEngine
 from .qwen_cpu_topology import split_windows_cpu_cores
+from .text_pauses import pause_delimiter
 from .language_router import (
     FastTextLanguageDetector,
     LanguageDetection,
@@ -732,12 +733,10 @@ class QwenHttpServer:
 
     def fragment_silence_duration(self, text: str) -> float:
         """Return the configured pause after one synthesized text fragment."""
-        stripped = text.strip()
-        if not stripped:
-            return 0.0
-        if stripped[-1] in _END_SENTENCE_DELIMITERS:
+        delimiter = pause_delimiter(text, _END_SENTENCE_DELIMITERS)
+        if delimiter and delimiter in _END_SENTENCE_DELIMITERS:
             return self.sentence_silence_duration
-        if stripped[-1] in _MID_SENTENCE_DELIMITERS:
+        if delimiter and delimiter in _MID_SENTENCE_DELIMITERS:
             return self.comma_silence_duration
         return 0.0
 

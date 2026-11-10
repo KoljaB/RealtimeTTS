@@ -13,6 +13,7 @@ Converts text into real-time audio using one or more TTS engines. Key features i
 
 
 from .threadsafe_generators import CharIterator, AccumulatingThreadSafeGenerator
+from .text_pauses import pause_delimiter
 from .stream_player import StreamPlayer, AudioConfiguration
 from .streaming_audio import DecodedAudioQueue
 from typing import Union, Iterator, List
@@ -787,10 +788,12 @@ class TextToAudioStream:
                                 end_sentence_delimeters = ".!?…。¡¿"
                                 mid_sentence_delimeters = ";:,\n()[]{}-“”„”—/|《》"
 
-                                text_stripped = sentence.strip()
-                                if text_stripped and text_stripped[-1] in end_sentence_delimeters:
+                                delimiter = pause_delimiter(
+                                    sentence, end_sentence_delimeters
+                                )
+                                if delimiter and delimiter in end_sentence_delimeters:
                                     silence_duration = sentence_silence_duration
-                                elif text_stripped and text_stripped[-1] in mid_sentence_delimeters:
+                                elif delimiter and delimiter in mid_sentence_delimeters:
                                     silence_duration = comma_silence_duration
                                 else:
                                     silence_duration = default_silence_duration
