@@ -539,7 +539,7 @@ the speaker's permission and the rights required for your application.
 
 ### Licensing and third-party boundaries
 
-RealtimeTTS is MIT-licensed. The `qwentts.cpp` native library and
+RealtimeTTS's own code is Apache-2.0-licensed. The `qwentts.cpp` native library and
 `qwentts-cpp-python` binding are MIT-licensed. The Qwen 0.6B Base model and its
 tokenizer are Apache-2.0. Inflect Micro-v2 and its ONNX artifact are
 Apache-2.0. These model and native dependencies are installed or downloaded

@@ -75,6 +75,7 @@ you handle voice selection per engine.
 
 ## Licensing
 
-The RealtimeTTS source is MIT licensed, but engine providers, model weights,
+The RealtimeTTS source is Apache-2.0 licensed, but that covers the RealtimeTTS
+code only: engine providers, model weights,
 voice data, and generated audio can carry separate restrictions. Check provider
 terms before commercial use.
