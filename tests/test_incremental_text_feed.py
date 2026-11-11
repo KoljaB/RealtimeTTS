@@ -117,6 +117,38 @@ def test_char_iterator_stop_stops_without_marking_input_as_exhausted():
     assert last_callbacks == []
 
 
+def test_accumulating_generator_does_not_refire_last_callback_after_exhaustion():
+    events: list[str] = []
+    wrapped = AccumulatingThreadSafeGenerator(
+        iter(["a", "b"]),
+        on_last_text_chunk=lambda: events.append("stop"),
+    )
+
+    assert list(wrapped) == ["a", "b"]
+    # A lookahead consumer (or any caller that polls next() again) must not
+    # re-trigger the end-of-stream callback.
+    for _ in range(3):
+        try:
+            next(wrapped)
+        except StopIteration:
+            pass
+    assert events == ["stop"]
+
+
+def test_char_iterator_does_not_refire_last_callback_after_exhaustion():
+    events: list[str] = []
+    iterator = CharIterator(on_last_text_chunk=lambda: events.append("stop"))
+    iterator.add("ab")
+
+    assert "".join(iterator) == "ab"
+    for _ in range(3):
+        try:
+            next(iterator)
+        except StopIteration:
+            pass
+    assert events == ["stop"]
+
+
 def test_char_iterator_skips_openai_chunks_without_text():
     def chunk(*contents):
         return SimpleNamespace(

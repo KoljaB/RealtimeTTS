@@ -53,6 +53,7 @@ class CharIterator:
     immediate_stop: threading.Event = field(default_factory=threading.Event)
     iterated_text: str = ""
     first_chunk_received: bool = False
+    _exhausted: bool = False
 
     def add(self, item: Union[str, Iterator[str]]) -> None:
         """Add a string or a string iterator to the list of items."""
@@ -80,6 +81,14 @@ class CharIterator:
     def __next__(self) -> str:
         """Fetch the next character from the current string or string iterator."""
         if self.immediate_stop.is_set():
+            raise StopIteration
+
+        # Once exhausted, keep raising StopIteration without re-firing the
+        # on_last_text_chunk callback. A well-behaved iterator must stay
+        # exhausted, and callers that poll next() again (or a lookahead
+        # consumer) would otherwise trigger the end-of-stream callback
+        # repeatedly.
+        if self._exhausted:
             raise StopIteration
 
         while self._index < len(self.items):
@@ -126,6 +135,7 @@ class CharIterator:
                 else:
                     self._char_index = None
 
+        self._exhausted = True
         if self.iterated_text and self.on_last_text_chunk:
             self.on_last_text_chunk()
 
@@ -161,6 +171,11 @@ class AccumulatingThreadSafeGenerator:
     def __next__(self) -> str:
         """Fetch the next token from the generator in a thread-safe manner."""
         with self.lock:
+            # Stay exhausted once the underlying generator is drained so that
+            # repeated next() calls do not re-invoke the on_last_text_chunk
+            # callback (or re-poll an already-exhausted generator).
+            if self.exhausted:
+                raise StopIteration
             try:
                 token = next(self.generator)
                 self.iterated_text += str(token)
