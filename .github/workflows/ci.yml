@@ -32,6 +32,7 @@ jobs:
         run: >-
           python -m pytest -q
           tests/test_audio_backend.py
+          tests/test_azure_engine.py
           tests/test_base_engine_silence_trim.py
           tests/test_character_alignment.py
           tests/test_alignment_decoder.py

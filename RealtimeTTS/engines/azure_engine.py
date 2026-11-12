@@ -52,16 +52,38 @@ class AzureVoice:
 
 
 class AzureEngine(BaseEngine):
+    # Azure output format names mapped to their sample rate. All formats are
+    # 16-bit mono PCM; "riff-*" formats carry a WAV header, "raw-*" formats are
+    # headerless PCM.
     SUPPORTED_AUDIO_FORMATS = {
+        "riff-8khz-16bit-mono-pcm": 8000,
         "riff-16khz-16bit-mono-pcm": 16000,
+        "riff-22050hz-16bit-mono-pcm": 22050,
         "riff-24khz-16bit-mono-pcm": 24000,
+        "riff-44100hz-16bit-mono-pcm": 44100,
         "riff-48khz-16bit-mono-pcm": 48000,
+        "raw-8khz-16bit-mono-pcm": 8000,
+        "raw-16khz-16bit-mono-pcm": 16000,
+        "raw-22050hz-16bit-mono-pcm": 22050,
+        "raw-24khz-16bit-mono-pcm": 24000,
+        "raw-44100hz-16bit-mono-pcm": 44100,
+        "raw-48khz-16bit-mono-pcm": 48000,
     }
     AUDIO_FORMAT_MAP = {
-        "riff-16khz-16bit-mono-pcm": tts.SpeechSynthesisOutputFormat.Riff16Khz16BitMonoPcm,
-        "riff-24khz-16bit-mono-pcm": tts.SpeechSynthesisOutputFormat.Riff24Khz16BitMonoPcm,
-        "riff-48khz-16bit-mono-pcm": tts.SpeechSynthesisOutputFormat.Riff48Khz16BitMonoPcm,
+        "riff-8khz-16bit-mono-pcm": SpeechSynthesisOutputFormat.Riff8Khz16BitMonoPcm,
+        "riff-16khz-16bit-mono-pcm": SpeechSynthesisOutputFormat.Riff16Khz16BitMonoPcm,
+        "riff-22050hz-16bit-mono-pcm": SpeechSynthesisOutputFormat.Riff22050Hz16BitMonoPcm,
+        "riff-24khz-16bit-mono-pcm": SpeechSynthesisOutputFormat.Riff24Khz16BitMonoPcm,
+        "riff-44100hz-16bit-mono-pcm": SpeechSynthesisOutputFormat.Riff44100Hz16BitMonoPcm,
+        "riff-48khz-16bit-mono-pcm": SpeechSynthesisOutputFormat.Riff48Khz16BitMonoPcm,
+        "raw-8khz-16bit-mono-pcm": SpeechSynthesisOutputFormat.Raw8Khz16BitMonoPcm,
+        "raw-16khz-16bit-mono-pcm": SpeechSynthesisOutputFormat.Raw16Khz16BitMonoPcm,
+        "raw-22050hz-16bit-mono-pcm": SpeechSynthesisOutputFormat.Raw22050Hz16BitMonoPcm,
+        "raw-24khz-16bit-mono-pcm": SpeechSynthesisOutputFormat.Raw24Khz16BitMonoPcm,
+        "raw-44100hz-16bit-mono-pcm": SpeechSynthesisOutputFormat.Raw44100Hz16BitMonoPcm,
+        "raw-48khz-16bit-mono-pcm": SpeechSynthesisOutputFormat.Raw48Khz16BitMonoPcm,
     }
+
     def __init__(
         self,
         speech_key: str = "",
@@ -81,8 +103,10 @@ class AzureEngine(BaseEngine):
             voice (str, optional): Voice name. Defaults to "en-US-AshleyNeural".
             rate (float, optional): Speech speed as a percentage. Defaults to 0.0.
             pitch (float, optional): Speech pitch as a percentage. Defaults to 0.0.
-            audio_format (str, optional): Audio format for output. Defaults to "riff-16khz-16bit-mono-pcm".
-                Must be one of: "riff-16khz-16bit-mono-pcm", "riff-24khz-16bit-mono-pcm", "riff-48khz-16bit-mono-pcm".
+            audio_format (str, optional): Azure output format name. Defaults to "riff-16khz-16bit-mono-pcm".
+                Must be a key of ``AzureEngine.SUPPORTED_AUDIO_FORMATS``: a 16-bit mono PCM format
+                at 8000, 16000, 22050, 24000, 44100 or 48000 Hz, either "riff-*" (WAV header) or
+                "raw-*" (headerless), e.g. "raw-8khz-16bit-mono-pcm" for telephony.
         Raises:
             ValueError: If the provided audio_format is not supported.
         """
@@ -165,7 +189,8 @@ class AzureEngine(BaseEngine):
             tuple: A tuple containing the audio format, number of channels, and the sample rate.
                   - Format (int): The format of the audio stream. pyaudio.paInt16 represents 16-bit integers.
                   - Channels (int): The number of audio channels. 1 represents mono audio.
-                  - Sample Rate (int): The sample rate of the audio in Hz. 16000 represents 16kHz sample rate.
+                  - Sample Rate (int): The sample rate in Hz of the configured audio_format (e.g. 8000 for
+                    "raw-8khz-16bit-mono-pcm").
         """
         return pyaudio.paInt16, 1, self.sample_rate
 
