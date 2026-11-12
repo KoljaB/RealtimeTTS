@@ -30,10 +30,28 @@ if __name__ == "__main__":
     stream.play()
 ```
 
+For telephony pipelines such as Asterisk, request 8 kHz audio directly:
+
+```python
+engine = AzureEngine(
+    speech_key="...",
+    service_region="eastus",
+    audio_format="raw-8khz-16bit-mono-pcm",
+)
+```
+
 ## Source Notes
 
-- Supported output formats are `riff-16khz-16bit-mono-pcm`,
-  `riff-24khz-16bit-mono-pcm`, and `riff-48khz-16bit-mono-pcm`.
+- `audio_format` selects the Azure output format. Supported values are the
+  16-bit mono PCM formats at 8, 16, 22.05, 24, 44.1 and 48 kHz, each as
+  `riff-*` (with a WAV header) or `raw-*` (headerless):
+  `riff-8khz-16bit-mono-pcm`, `riff-16khz-16bit-mono-pcm` (default),
+  `riff-22050hz-16bit-mono-pcm`, `riff-24khz-16bit-mono-pcm`,
+  `riff-44100hz-16bit-mono-pcm`, `riff-48khz-16bit-mono-pcm`,
+  `raw-8khz-16bit-mono-pcm`, `raw-16khz-16bit-mono-pcm`,
+  `raw-22050hz-16bit-mono-pcm`, `raw-24khz-16bit-mono-pcm`,
+  `raw-44100hz-16bit-mono-pcm`, and `raw-48khz-16bit-mono-pcm`.
+  Other values raise `ValueError`.
 - `get_stream_info()` returns mono 16-bit PCM at the selected Azure sample rate.
 - `get_voices()` fetches Azure voices and wraps them as
   `AzureVoice(name, locale, gender)`.
