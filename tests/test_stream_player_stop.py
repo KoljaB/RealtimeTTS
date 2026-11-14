@@ -74,14 +74,17 @@ class _CountingStream:
 
     def __init__(self):
         self.bytes_written = 0
+        self.data = b""
 
     def write(self, data):
         self.bytes_written += len(data)
+        self.data += data
 
 
-def _play_one_second(source_rate, device_rate):
-    """Feed one second of int16 mono audio at ``source_rate`` into a player
-    whose device runs at ``device_rate`` and return (player, stream)."""
+def _play_one_second(source_rate, device_rate, chunk=None, channels=1):
+    """Feed one second of int16 audio at ``source_rate`` (mono silence unless
+    ``chunk`` is given) into a player whose device runs at ``device_rate`` and
+    return (player, stream)."""
     import pyaudio
 
     player = object.__new__(StreamPlayer)
@@ -100,7 +103,7 @@ def _play_one_second(source_rate, device_rate):
     config = types.SimpleNamespace(
         format=pyaudio.paInt16,
         rate=source_rate,
-        channels=1,
+        channels=channels,
         playout_chunk_size=8192,
     )
     stream = _CountingStream()
@@ -111,7 +114,8 @@ def _play_one_second(source_rate, device_rate):
         stream=stream,
     )
 
-    chunk = np.zeros(source_rate, dtype=np.int16).tobytes()  # 1.0 s mono
+    if chunk is None:
+        chunk = np.zeros(source_rate, dtype=np.int16).tobytes()  # 1.0 s mono
     player._play_wav_chunk(chunk)
     return player, stream
 
@@ -135,3 +139,19 @@ def test_seconds_played_unchanged_without_resampling():
     player, stream = _play_one_second(source_rate=24000, device_rate=24000)
     expected = stream.bytes_written / (24000 * sample_width * channels)
     assert abs(player.seconds_played - expected) < 1e-9
+
+
+def test_resampling_keeps_stereo_channels_apart():
+    # Stereo engines (MOSS-TTS defaults to 2 channels) hand interleaved L/R
+    # frames to the player. Resampling them as one mono signal blends the two
+    # channels: a tone on the left leaks into a silent right channel.
+    t = np.arange(48000) / 48000
+    left = (np.sin(2 * np.pi * 440 * t) * 16000).astype(np.int16)
+    stereo = np.stack([left, np.zeros_like(left)], axis=1)
+    _, stream = _play_one_second(
+        source_rate=48000, device_rate=24000, chunk=stereo.tobytes(), channels=2
+    )
+    out = np.frombuffer(stream.data, dtype=np.int16).reshape(-1, 2)
+    assert abs(len(out) - 24000) <= 1
+    assert np.abs(out[:, 1]).max() <= 1  # right channel stays silent
+    assert np.abs(out[:, 0]).max() > 15000  # left keeps its level
