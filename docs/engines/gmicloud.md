@@ -53,5 +53,5 @@ engine = GmicloudEngine(model="Chatterbox-tts", voice="your-resemble-voice-uuid"
 - `speed`, `temperature` and `extra_payload` allow request customization;
   `temperature` applies to the Inworld family.
 
-Also published on PyPI as `realtimetts-gmicloud` for use without a local
-checkout.
+The same engine is also available as a standalone package for use without a
+local checkout: https://github.com/Jayanng/realtimetts-gmicloud

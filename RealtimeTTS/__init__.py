@@ -24,6 +24,7 @@ __all__ = [
     "CambEngine", "CambVoice",
     "ModelsLabEngine", "ModelsLabVoice",
     "MiniMaxEngine", "MiniMaxVoice",
+    "GmicloudEngine", "GmicloudVoice", "GmicloudAPIError",
     "CartesiaEngine", "CartesiaVoice",
     "QwenEngine", "QwenCpuEngine", "QwenVoice", "QwenEngineError",
     "OmniVoiceEngine", "OmniVoiceVoice",
@@ -312,6 +313,20 @@ def _load_minimax_engine():
     return MiniMaxEngine
 
 
+def _load_gmicloud_engine():
+    try:
+        from .engines.gmicloud_engine import GmicloudAPIError, GmicloudEngine, GmicloudVoice
+    except ImportError as e:
+        raise ImportError(
+            "Failed to load GmicloudEngine, GmicloudVoice and GmicloudAPIError. "
+            "Please install with:\npip install realtimetts[gmicloud]"
+        ) from e
+    globals()["GmicloudEngine"] = GmicloudEngine
+    globals()["GmicloudVoice"] = GmicloudVoice
+    globals()["GmicloudAPIError"] = GmicloudAPIError
+    return GmicloudEngine
+
+
 def _load_cartesia_engine():
     try:
         from .engines.cartesia_engine import CartesiaEngine, CartesiaVoice
@@ -529,6 +544,9 @@ _lazy_imports = {
     "ModelsLabVoice": _load_modelslab_engine,
     "MiniMaxEngine": _load_minimax_engine,
     "MiniMaxVoice": _load_minimax_engine,
+    "GmicloudEngine": _load_gmicloud_engine,
+    "GmicloudVoice": _load_gmicloud_engine,
+    "GmicloudAPIError": _load_gmicloud_engine,
     "CartesiaEngine": _load_cartesia_engine,
     "CartesiaVoice": _load_cartesia_engine,
     "QwenEngine": _load_qwen_engine,
