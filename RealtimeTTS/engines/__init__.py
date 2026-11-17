@@ -33,10 +33,18 @@ __all__ = [
     "SopranoEngine", "SopranoVoice",
     "MossTTSEngine", "MossTTSVoice",
     "HiggsEngine", "HiggsVoice",
+    "GmicloudEngine", "GmicloudVoice", "GmicloudAPIError",
 ]
 
 
 # Lazy loader functions for the engines in this subpackage.
+def _load_gmicloud_engine():
+    from .gmicloud_engine import GmicloudAPIError, GmicloudEngine, GmicloudVoice
+    globals()["GmicloudEngine"] = GmicloudEngine
+    globals()["GmicloudVoice"] = GmicloudVoice
+    globals()["GmicloudAPIError"] = GmicloudAPIError
+    return GmicloudEngine
+
 def _load_azure_engine():
     from .azure_engine import AzureEngine, AzureVoice
     globals()["AzureEngine"] = AzureEngine
@@ -337,6 +345,9 @@ _lazy_imports = {
     "MossTTSVoice": _load_moss_tts_engine,
     "HiggsEngine": _load_higgs_engine,
     "HiggsVoice": _load_higgs_engine,
+    "GmicloudEngine": _load_gmicloud_engine,
+    "GmicloudVoice": _load_gmicloud_engine,
+    "GmicloudAPIError": _load_gmicloud_engine,
 }
 
 
