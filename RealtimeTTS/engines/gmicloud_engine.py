@@ -34,6 +34,7 @@ from typing import Any, ClassVar
 
 import numpy as np
 import requests
+
 from .base_engine import BaseEngine
 
 logger = logging.getLogger(__name__)
