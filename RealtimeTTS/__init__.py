@@ -315,7 +315,11 @@ def _load_minimax_engine():
 
 def _load_gmicloud_engine():
     try:
-        from .engines.gmicloud_engine import GmicloudAPIError, GmicloudEngine, GmicloudVoice
+        from .engines.gmicloud_engine import (
+            GmicloudAPIError,
+            GmicloudEngine,
+            GmicloudVoice,
+        )
     except ImportError as e:
         raise ImportError(
             "Failed to load GmicloudEngine, GmicloudVoice and GmicloudAPIError. "

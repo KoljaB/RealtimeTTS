@@ -13,7 +13,6 @@ import struct
 import wave
 
 import pytest
-
 import RealtimeTTS.engines.gmicloud_engine as engine_mod
 from RealtimeTTS.engines.gmicloud_engine import (
     GmicloudEngine,
