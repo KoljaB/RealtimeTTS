@@ -247,6 +247,7 @@ see [docs/output-and-files.md](docs/output-and-files.md).
 | [`ElevenlabsEngine`](docs/engines/elevenlabs.md) | Cloud API | `realtimetts[elevenlabs]`, needs `mpv` | High-quality API voices. |
 | [`CambEngine`](docs/engines/camb.md) | Cloud API | `realtimetts[camb]` | CAMB MARS API voices. |
 | [`MiniMaxEngine`](docs/engines/minimax.md) | Cloud API | `realtimetts[minimax]` | MiniMax cloud voices. |
+| [`GmicloudEngine`](docs/engines/gmicloud.md) | Cloud API | `realtimetts[gmicloud]` | GMI Cloud speech models (Inworld Realtime TTS, MiniMax, Chatterbox) behind one request-queue API. |
 | [`CartesiaEngine`](docs/engines/cartesia.md) | Cloud API | `realtimetts[cartesia]` | Cartesia API voices. |
 | [`TypecastEngine`](docs/engines/typecast.md) | Cloud API | `realtimetts[typecast]` | Typecast API voices. |
 | [`ModelsLabEngine`](docs/engines/modelslab.md) | Cloud API | `realtimetts[modelslab]` | ModelsLab API voices. |

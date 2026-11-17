@@ -54,6 +54,7 @@ Available engine options include:
 - **coqui**: Coqui TTS engine
 - **camb**: CAMB AI MARS TTS
 - **minimax**: MiniMax Cloud TTS
+- **gmicloud**: GMI Cloud TTS (Inworld, MiniMax, Chatterbox behind one API)
 - **cartesia**: Cartesia API integration
 - **modelslab**: ModelsLab API integration
 - **orpheus**: Orpheus TTS support
@@ -305,6 +306,7 @@ extras_require = {
     "kokoro": standard_requirements + kokoro_requirements,
     "camb": standard_requirements + camb_requirements,
     "minimax": standard_requirements + requests_requirements,
+    "gmicloud": standard_requirements + requests_requirements,
     "modelslab": standard_requirements + requests_requirements,
     "cartesia": standard_requirements + cartesia_requirements,
     "typecast": standard_requirements + typecast_requirements,

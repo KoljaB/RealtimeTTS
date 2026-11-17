@@ -36,6 +36,7 @@ jobs:
           tests/test_character_alignment.py
           tests/test_alignment_decoder.py
           tests/test_ctc_alignment.py
+          tests/test_gmicloud_engine.py
           tests/test_higgs_engine.py
           tests/test_inflect_engine.py
           tests/test_kokoro_engine_contract.py
