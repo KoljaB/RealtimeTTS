@@ -3,6 +3,7 @@ name: CI
 on:
   push:
   pull_request:
+  workflow_dispatch:
 
 jobs:
   focused-unit-tests:
@@ -99,6 +100,10 @@ jobs:
   package-artifacts:
     name: Build and validate package artifacts
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
     steps:
       - name: Check out source
         uses: actions/checkout@v7
@@ -117,3 +122,19 @@ jobs:
         run: python -m twine check --strict dist/*
       - name: Smoke-test wheel in a clean environment
         run: python tools/clean_install_smoke.py dist
+      # PyPI releases upload these files unchanged (tools/release.py --ci-run),
+      # so anyone can check a downloaded file with
+      #   gh attestation verify <file> --repo KoljaB/RealtimeTTS
+      # Attestations need a public repository: the private development
+      # repository and pull requests build without one.
+      - name: Attest build provenance
+        if: github.event_name != 'pull_request' && !github.event.repository.private
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: dist/*
+      - name: Upload release artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: dist
+          path: dist/*
+          if-no-files-found: error
