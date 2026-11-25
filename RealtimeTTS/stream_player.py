@@ -536,20 +536,23 @@ class StreamPlayer:
             and self.audio_stream.actual_sample_rate > 0
         ):
             if self.audio_stream.config.format == pyaudio.paFloat32:
-                audio_data = np.frombuffer(chunk, dtype=np.float32)
+                # Interleaved frames: resample each channel on its own.
+                audio_data = np.frombuffer(chunk, dtype=np.float32).reshape(-1, channels)
                 resampled_data = resampy.resample(
                     audio_data,
                     self.audio_stream.config.rate,
                     self.audio_stream.actual_sample_rate,
+                    axis=0,
                 )
                 chunk = resampled_data.astype(np.float32).tobytes()
             else:
-                audio_data = np.frombuffer(chunk, dtype=np.int16)
+                audio_data = np.frombuffer(chunk, dtype=np.int16).reshape(-1, channels)
                 audio_data = audio_data.astype(np.float32) / 32768.0
                 resampled_data = resampy.resample(
                     audio_data,
                     self.audio_stream.config.rate,
                     self.audio_stream.actual_sample_rate,
+                    axis=0,
                 )
                 chunk = (resampled_data * 32768.0).astype(np.int16).tobytes()
 
