@@ -135,3 +135,33 @@ def test_seconds_played_unchanged_without_resampling():
     player, stream = _play_one_second(source_rate=24000, device_rate=24000)
     expected = stream.bytes_written / (24000 * sample_width * channels)
     assert abs(player.seconds_played - expected) < 1e-9
+
+
+def test_resampling_full_scale_int16_does_not_wrap_around():
+    # Peak-normalized int16 audio (e.g. Piper with normalize_audio) has
+    # inter-sample peaks above full scale. Resampling it to the device rate
+    # must saturate those at +/-32767 instead of letting the int16 cast wrap
+    # them to the opposite extreme, which plays as a loud click.
+    source_rate, device_rate = 22050, 48000
+    t = np.arange(source_rate) / source_rate
+    x = sum(
+        np.sin(2 * np.pi * f * t + ph)
+        for f, ph in [(180, 0), (470, 1.3), (1130, 2.1), (2900, 0.4), (5100, 2.7)]
+    )
+    src = np.round(x / np.abs(x).max() * 32767).astype(np.int16)
+    assert np.abs(np.diff(src.astype(np.int32))).max() < 40000
+
+    player, stream = _play_one_second(source_rate=source_rate, device_rate=device_rate)
+    stream.data = b""
+    original_write = stream.write
+
+    def write(data):
+        original_write(data)
+        stream.data += data
+
+    stream.write = write
+    player._play_wav_chunk(src.tobytes())
+
+    out = np.frombuffer(stream.data, dtype=np.int16).astype(np.int32)
+    assert abs(len(out) - device_rate) <= 1
+    assert np.abs(np.diff(out)).max() < 40000

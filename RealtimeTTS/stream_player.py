@@ -551,7 +551,14 @@ class StreamPlayer:
                     self.audio_stream.config.rate,
                     self.audio_stream.actual_sample_rate,
                 )
-                chunk = (resampled_data * 32768.0).astype(np.int16).tobytes()
+                # Resampling can overshoot full scale (inter-sample peaks of
+                # normalized audio); clip so the int16 cast saturates instead
+                # of wrapping around to the opposite extreme (audible clicks).
+                chunk = (
+                    np.clip(resampled_data * 32768.0, -32768, 32767)
+                    .astype(np.int16)
+                    .tobytes()
+                )
 
         if self.audio_stream.config.playout_chunk_size > 0:
             sub_chunk_size = self.audio_stream.config.playout_chunk_size
