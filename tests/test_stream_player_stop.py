@@ -3,6 +3,7 @@ import threading
 import types
 
 import numpy as np
+import pytest
 
 from RealtimeTTS.stream_player import StreamPlayer
 
@@ -81,12 +82,14 @@ class _CountingStream:
         self.data += data
 
 
-def _play_one_second(source_rate, device_rate, chunk=None, channels=1):
-    """Feed one second of int16 audio at ``source_rate`` (mono silence unless
+def _play_one_second(source_rate, device_rate, chunk=None, channels=1, fmt=None):
+    """Feed one second of audio at ``source_rate`` (int16 mono silence unless
     ``chunk`` is given) into a player whose device runs at ``device_rate`` and
-    return (player, stream)."""
+    return (player, stream). ``fmt`` defaults to int16."""
     import pyaudio
 
+    if fmt is None:
+        fmt = pyaudio.paInt16
     player = object.__new__(StreamPlayer)
     player.muted = False
     player.volume = 1.0
@@ -101,7 +104,7 @@ def _play_one_second(source_rate, device_rate, chunk=None, channels=1):
     player.immediate_stop = threading.Event()
 
     config = types.SimpleNamespace(
-        format=pyaudio.paInt16,
+        format=fmt,
         rate=source_rate,
         channels=channels,
         playout_chunk_size=8192,
@@ -110,7 +113,7 @@ def _play_one_second(source_rate, device_rate, chunk=None, channels=1):
     player.audio_stream = types.SimpleNamespace(
         config=config,
         actual_sample_rate=device_rate,
-        pyaudio_instance=types.SimpleNamespace(get_sample_size=lambda fmt: 2),
+        pyaudio_instance=types.SimpleNamespace(get_sample_size=pyaudio.get_sample_size),
         stream=stream,
     )
 
@@ -141,17 +144,27 @@ def test_seconds_played_unchanged_without_resampling():
     assert abs(player.seconds_played - expected) < 1e-9
 
 
-def test_resampling_keeps_stereo_channels_apart():
+@pytest.mark.parametrize(
+    "fmt_name, dtype, peak, tolerance",
+    [("paInt16", np.int16, 16000, 1), ("paFloat32", np.float32, 0.5, 1e-6)],
+)
+def test_resampling_keeps_stereo_channels_apart(fmt_name, dtype, peak, tolerance):
     # Stereo engines (MOSS-TTS defaults to 2 channels) hand interleaved L/R
     # frames to the player. Resampling them as one mono signal blends the two
     # channels: a tone on the left leaks into a silent right channel.
+    import pyaudio
+
     t = np.arange(48000) / 48000
-    left = (np.sin(2 * np.pi * 440 * t) * 16000).astype(np.int16)
+    left = (np.sin(2 * np.pi * 440 * t) * peak).astype(dtype)
     stereo = np.stack([left, np.zeros_like(left)], axis=1)
     _, stream = _play_one_second(
-        source_rate=48000, device_rate=24000, chunk=stereo.tobytes(), channels=2
+        source_rate=48000,
+        device_rate=24000,
+        chunk=stereo.tobytes(),
+        channels=2,
+        fmt=getattr(pyaudio, fmt_name),
     )
-    out = np.frombuffer(stream.data, dtype=np.int16).reshape(-1, 2)
+    out = np.frombuffer(stream.data, dtype=dtype).reshape(-1, 2)
     assert abs(len(out) - 24000) <= 1
-    assert np.abs(out[:, 1]).max() <= 1  # right channel stays silent
-    assert np.abs(out[:, 0]).max() > 15000  # left keeps its level
+    assert np.abs(out[:, 1]).max() <= tolerance  # right channel stays silent
+    assert np.abs(out[:, 0]).max() > 0.9 * peak  # left keeps its level
